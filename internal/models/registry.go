@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"stamus-ctl/internal/logging"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
@@ -100,8 +101,7 @@ func (r *RegistryInfo) PullConfig(destPath string, project, version string) erro
 			fmt.Printf("\r%s %s", pullResp.Status, pullResp.Progress)
 		}
 	}
-	fmt.Printf("\rGot configuration                                                                                 ")
-	fmt.Println()
+	logging.Sugar.Info("Got configuration")
 
 	// Run container
 	resp, err := cli.ContainerCreate(ctx, &container.Config{
@@ -149,7 +149,7 @@ func (r *RegistryInfo) PullConfig(destPath string, project, version string) erro
 	if err != nil {
 		return err
 	}
-	fmt.Println("Configuration extracted")
+	logging.Sugar.Info("Configuration extracted")
 
 	return nil
 }

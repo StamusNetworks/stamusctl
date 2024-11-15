@@ -16,7 +16,7 @@ func ValidateMemoryUsage(memory Variable) bool {
 	// if memory.String == nil {
 	// 	return false
 	// }
-	// fmt.Println()
+	// logging.Sugar.Info()
 	// possibleUnits := []string{"k", "m", "g", "t", "p"}
 	// //Extract
 	// memoryUnit := (*memory.String)[len(*memory.String)-1:]

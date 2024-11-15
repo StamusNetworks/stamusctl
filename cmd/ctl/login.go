@@ -3,7 +3,6 @@ package ctl
 import (
 	// Common
 	"context"
-	"fmt"
 
 	// External
 	"github.com/docker/docker/api/types/registry"
@@ -12,6 +11,7 @@ import (
 
 	// Custom
 	flags "stamus-ctl/internal/handlers"
+	"stamus-ctl/internal/logging"
 	"stamus-ctl/internal/models"
 	"stamus-ctl/internal/stamus"
 )
@@ -80,7 +80,7 @@ func LoginHandler(registryInfo models.RegistryInfo) error {
 	// Create a Docker client
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
-		fmt.Println("Error creating Docker client:", err)
+		logging.Sugar.Info("Error creating Docker client:", err)
 		return err
 	}
 
@@ -101,7 +101,7 @@ func LoginHandler(registryInfo models.RegistryInfo) error {
 	// Save credentials
 	stamus.SaveLogin(registryInfo)
 
-	fmt.Println("Login successful")
+	logging.Sugar.Info("Login successful")
 
 	return nil
 }

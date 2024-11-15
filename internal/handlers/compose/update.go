@@ -13,6 +13,7 @@ import (
 
 	// Custom
 	"stamus-ctl/internal/app"
+	"stamus-ctl/internal/logging"
 	"stamus-ctl/internal/models"
 	"stamus-ctl/internal/stamus"
 	"stamus-ctl/internal/utils"
@@ -60,7 +61,7 @@ func UpdateHandler(params UpdateHandlerParams) error {
 	}
 
 	// Pull config
-	fmt.Println("Getting configuration")
+	logging.Sugar.Info("Getting configuration")
 	for _, registryInfo := range stamusConf.Registries.AsList() {
 		err = registryInfo.PullConfig(destPath, project, versionVal)
 		if err == nil {
@@ -135,7 +136,7 @@ func UpdateHandler(params UpdateHandlerParams) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("")
+	logging.Sugar.Info("")
 
 	return nil
 }

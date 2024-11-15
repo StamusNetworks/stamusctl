@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 	"sort"
+	"stamus-ctl/internal/logging"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -222,7 +223,7 @@ func (p *Parameters) SetValues(values map[string]*Variable) {
 			continue
 		}
 		if !(*p)[key].ValidateFunc(*value) {
-			fmt.Println("Invalid value for", key)
+			logging.Sugar.Info("Invalid value for", key)
 		} else {
 			(*p)[key].Variable = *value
 		}
@@ -234,7 +235,7 @@ func (p *Parameters) SetLooseValues(values map[string]string) error {
 		if (*p)[key] != nil {
 			(*p)[key].SetLooseValue(key, value)
 		} else {
-			fmt.Println("Invalid parameter", key)
+			logging.Sugar.Info("Invalid parameter", key)
 		}
 	}
 

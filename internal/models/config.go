@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"stamus-ctl/internal/logging"
 	"strings"
 
 	// External
@@ -241,7 +242,7 @@ func (f *Config) SaveConfigTo(dest File, isUpgrade, isInstall bool) error {
 	for key, param := range *f.parameters {
 		value, err := param.GetValue()
 		if err != nil {
-			fmt.Println("Error getting parameter value", key, err)
+			logging.Sugar.Info("Error getting parameter value", key, err)
 			fmt.Printf("Use %s=<your value> to set it\n", key)
 			return err
 		}
@@ -293,7 +294,7 @@ func (f *Config) SaveConfigTo(dest File, isUpgrade, isInstall bool) error {
 // Set values from a file (values.yaml)
 func (f *Config) SetValuesFromFile(valuesPath string) error {
 	if valuesPath != "" {
-		fmt.Println("Loading values from", valuesPath)
+		logging.Sugar.Info("Loading values from", valuesPath)
 		file, err := CreateFileInstanceFromPath(valuesPath)
 		if err != nil {
 			return err
@@ -378,7 +379,7 @@ func (f *Config) saveParamsTo(dest File) error {
 	//ReCreate the file
 	file, err := os.Create(dest.completePath())
 	if err != nil {
-		fmt.Println("Error creating config file", err)
+		logging.Sugar.Info("Error creating config file", err)
 		return err
 	}
 	defer file.Close()
@@ -386,7 +387,7 @@ func (f *Config) saveParamsTo(dest File) error {
 	// Instanciate config to dest file
 	conf, err := NewConfigFrom(dest)
 	if err != nil {
-		fmt.Println("Error creating config instance", err)
+		logging.Sugar.Info("Error creating config instance", err)
 		return err
 	}
 	conf.parameters = f.parameters
@@ -395,7 +396,7 @@ func (f *Config) saveParamsTo(dest File) error {
 	for key, param := range *conf.parameters {
 		value, err := param.GetValue()
 		if err != nil {
-			fmt.Println("Error getting parameter value", key, err)
+			logging.Sugar.Info("Error getting parameter value", key, err)
 			log.Printf("Use %s=<your value> to set it", key)
 			return err
 		}
@@ -430,7 +431,7 @@ func (f *Config) saveParamsTo(dest File) error {
 	// Write the new config file
 	err = conf.viperInstance.WriteConfig()
 	if err != nil {
-		fmt.Println("Error writing config file", err)
+		logging.Sugar.Info("Error writing config file", err)
 		return err
 	}
 

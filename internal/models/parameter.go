@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 	"slices"
+	"stamus-ctl/internal/logging"
 	"strconv"
 	"strings"
 
@@ -197,7 +198,7 @@ func (p *Parameter) validateChoices() bool {
 			// Check
 			isOk := slices.Contains(asStrings, *p.Variable.String)
 			if !isOk {
-				fmt.Println("Error: Must be one of:", asStrings)
+				logging.Sugar.Info("Error: Must be one of:", asStrings)
 			}
 			return isOk
 		case "int":
@@ -207,7 +208,7 @@ func (p *Parameter) validateChoices() bool {
 			}
 			isOk := slices.Contains(asInts, *p.Variable.Int)
 			if !isOk {
-				fmt.Println("Error: Must be one of:", asInts)
+				logging.Sugar.Info("Error: Must be one of:", asInts)
 			}
 			return isOk
 		}
@@ -231,13 +232,13 @@ func (p *Parameter) SetLooseValue(key string, value string) error {
 		if value == "true" || value == "false" {
 			p.Variable = CreateVariableBool(value == "true")
 		} else {
-			fmt.Println("Invalid value for", key)
+			logging.Sugar.Info("Invalid value for", key)
 		}
 	case "int":
 		// Convert string to int
 		asInt, err := strconv.Atoi(value)
 		if err != nil {
-			fmt.Println("Error converting string to int:", err)
+			logging.Sugar.Info("Error converting string to int:", err)
 			return err
 		}
 		p.Variable = CreateVariableInt(asInt)

@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"fmt"
 	"os"
 	"runtime/debug"
 	"strings"
@@ -156,7 +155,7 @@ func PcapHandler(params ReadPcapParams) error {
 
 	output, _ := runContainer(params.Config, params.PcapPath)
 
-	fmt.Println(output)
+	logging.Sugar.Info(output)
 
 	return nil
 }

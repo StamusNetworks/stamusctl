@@ -1,9 +1,9 @@
 package handlers
 
 import (
-	"fmt"
 	"path/filepath"
 	"stamus-ctl/internal/app"
+	"stamus-ctl/internal/logging"
 	"stamus-ctl/internal/models"
 	"stamus-ctl/internal/stamus"
 
@@ -97,7 +97,7 @@ func pullLatestTemplate(destPath string, project, version string) error {
 			if err == nil {
 				return nil
 			} else {
-				fmt.Println(err)
+				logging.Sugar.Info(err)
 			}
 		}
 	}

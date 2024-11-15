@@ -10,12 +10,11 @@ import (
 	"stamus-ctl/internal/models"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // Entry point
 func Execute() {
-	// Setup
-	logging.SetLogger()
 	// Run
 	if err := rootCmd().Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -39,6 +38,10 @@ func rootCmd() *cobra.Command {
 	}
 	// Common flags
 	verbose.AddAsFlag(cmd, true)
+	viper.BindPFlag("verbose", cmd.Flags().Lookup("verbose"))
+	viper.BindEnv("verbose", "STAMUS_VERBOSE")
+
+	logging.SetLogger()
 	// SubCommands
 	cmd.AddCommand(versionCmd())
 	cmd.AddCommand(loginCmd())

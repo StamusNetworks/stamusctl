@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"slices"
+	"stamus-ctl/internal/logging"
 )
 
 func AskForConfirmation(question string) bool {
@@ -20,7 +21,7 @@ func AskForConfirmation(question string) bool {
 	if slices.Contains(okayResponses, response) {
 		return true
 	} else if slices.Contains(nokayResponses, response) {
-		fmt.Println("You did not confirm. Exiting.")
+		logging.Sugar.Info("You did not confirm. Exiting.")
 		return false
 	} else {
 		fmt.Print("Please type yes or no :")

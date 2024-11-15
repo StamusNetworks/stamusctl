@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"fmt"
+	"stamus-ctl/internal/logging"
 	"strings"
 )
 
@@ -10,7 +10,7 @@ func ExtractArgs(args []string) map[string]string {
 	for _, arg := range args {
 		splited := strings.Split(arg, "=")
 		if len(splited) != 2 {
-			fmt.Println("Error: invalid argument", arg)
+			logging.Sugar.Info("Error: invalid argument", arg)
 		} else {
 			paramsArgs[splited[0]] = splited[1]
 		}

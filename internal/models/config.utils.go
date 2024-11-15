@@ -1,11 +1,11 @@
 package models
 
 import (
-	"fmt"
 	"io"
 	"log"
 	"os"
 	"path/filepath"
+	"stamus-ctl/internal/logging"
 	"strings"
 	"text/template"
 
@@ -139,7 +139,7 @@ func processTemplates(inputFolder string, outputFolder string, data map[string]i
 
 		tmpl, err := template.New(filepath.Base(path)).Funcs(sprig.FuncMap()).ParseFiles(append([]string{path}, tpls...)...)
 		if err != nil {
-			fmt.Println("Error parsing template", path, err)
+			logging.Sugar.Info("Error parsing template", path, err)
 			return err
 		}
 
@@ -166,6 +166,6 @@ func processTemplates(inputFolder string, outputFolder string, data map[string]i
 	if err != nil {
 		return err
 	}
-	fmt.Println("Configuration saved to: ", outputFolder)
+	logging.Sugar.Info("Configuration saved to: ", outputFolder)
 	return nil
 }
