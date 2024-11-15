@@ -5,8 +5,8 @@ test cli:
     tags:
         - k8s-small
     rules:
-    - if: $CI_COMMIT_TAG
-      when: never
+    - if: $CI_COMMIT_BRANCH
+      when: on_success
     needs:
         - build cli
     dependencies:
@@ -32,8 +32,8 @@ compose init:
     tags:
         - k8s-small
     rules:
-    - if: $CI_COMMIT_TAG
-      when: never
+    - if: $CI_COMMIT_BRANCH
+      when: on_success
     needs:
         - build test
     dependencies:
@@ -49,8 +49,8 @@ compose init conf flag:
     tags:
         - k8s-small
     rules:
-    - if: $CI_COMMIT_TAG
-      when: never
+    - if: $CI_COMMIT_BRANCH
+      when: on_success
     needs:
         - build test
     dependencies:
@@ -66,8 +66,8 @@ compose init set:
     tags:
         - k8s-small
     rules:
-    - if: $CI_COMMIT_TAG
-      when: never
+    - if: $CI_COMMIT_BRANCH
+      when: on_success
     needs:
         - build test
     dependencies:
@@ -83,8 +83,8 @@ compose init optional:
     tags:
         - k8s-small
     rules:
-    - if: $CI_COMMIT_TAG
-      when: never
+    - if: $CI_COMMIT_BRANCH
+      when: on_success
     needs:
         - build test
     dependencies:
@@ -100,8 +100,8 @@ compose init arbitrary:
     tags:
         - k8s-small
     rules:
-    - if: $CI_COMMIT_TAG
-      when: never
+    - if: $CI_COMMIT_BRANCH
+      when: on_success
     needs:
         - build test
     dependencies:
@@ -117,8 +117,8 @@ compose config set:
     tags:
         - k8s-small
     rules:
-    - if: $CI_COMMIT_TAG
-      when: never
+    - if: $CI_COMMIT_BRANCH
+      when: on_success
     needs:
         - build test
     dependencies:
@@ -135,8 +135,8 @@ compose config reload:
     tags:
         - k8s-small
     rules:
-    - if: $CI_COMMIT_TAG
-      when: never
+    - if: $CI_COMMIT_BRANCH
+      when: on_success
     needs:
         - build test
     dependencies:
@@ -154,8 +154,8 @@ config flag set:
     tags:
         - k8s-small
     rules:
-    - if: $CI_COMMIT_TAG
-      when: never
+    - if: $CI_COMMIT_BRANCH
+      when: on_success
     needs:
         - build test
     dependencies:
