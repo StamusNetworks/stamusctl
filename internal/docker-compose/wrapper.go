@@ -2,14 +2,12 @@ package compose
 
 import (
 	// Core
-	"log"
 	"os"
 	"path/filepath"
 	"runtime/debug"
 	"strings"
 
 	// Common
-	"stamus-ctl/internal/app"
 	stamusFlags "stamus-ctl/internal/handlers"
 	"stamus-ctl/internal/models"
 
@@ -127,10 +125,6 @@ func makeCustomRunner(
 		// Get folder flag value
 		configFlag := cmd.Flags().Lookup("config")
 		conf := configFlag.Value.String()
-		if !app.IsCtl() {
-			conf = app.GetConfigsFolder(conf)
-		}
-		log.Println("Config flag value: ", configFlag.Value.String())
 		possibleComposeFiles := []string{
 			"docker-compose.yaml",
 			"docker-compose.yml",
