@@ -7,6 +7,7 @@ import (
 	// Internal
 	"stamus-ctl/internal/app"
 	handlers "stamus-ctl/internal/handlers/config"
+	"stamus-ctl/internal/logging"
 	"stamus-ctl/pkg"
 )
 
@@ -30,8 +31,9 @@ func setHandler(c *gin.Context) {
 	}
 
 	// Validate request
-	if req.Config == "" {
-		req.Config = "config"
+	conf := req.Config
+	if conf == "" {
+		conf = app.DefaultConfigName
 	}
 	if req.Values == nil {
 		req.Values = make(map[string]string)
@@ -54,7 +56,7 @@ func setHandler(c *gin.Context) {
 		Args:     valuesAsStrings,
 		Values:   req.ValuesPath,
 		FromFile: fromFile,
-		Config:   app.GetConfigsFolder(req.Config),
+		Config:   app.GetConfigsFolder(conf),
 	}
 	if err := handlers.SetHandler(params); err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
@@ -109,10 +111,15 @@ func getHandler(c *gin.Context) {
 		req.Values = []string{}
 	}
 
+	conf := req.Config
+	if conf == "" {
+		conf = app.DefaultConfigName
+	}
 	// Call handler
 	if req.Content {
-		filesMap, err := handlers.GetGroupedContent(req.Config, req.Values)
+		filesMap, err := handlers.GetGroupedContent(conf, req.Values)
 		if err != nil {
+			logging.LoggerWithRequest(c.Request).Error(err.Error())
 			c.JSON(500, gin.H{"error": err.Error()})
 			return
 		}
@@ -120,8 +127,9 @@ func getHandler(c *gin.Context) {
 		return
 	}
 
-	groupedValues, err := handlers.GetGroupedConfig(req.Config, req.Values, false)
+	groupedValues, err := handlers.GetGroupedConfig(conf, req.Values, false)
 	if err != nil {
+		logging.LoggerWithRequest(c.Request).Error(err.Error())
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
