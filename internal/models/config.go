@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"stamus-ctl/internal/app"
 	"stamus-ctl/internal/logging"
 	"strings"
 
@@ -53,6 +54,9 @@ func LoadConfigFrom(path File, reload bool) (*Config, error) {
 	// Extract config data
 	values := configured.ExtractValues()
 	stamusConfPathPointer := values["stamus.config"]
+	if stamusConfPathPointer == nil {
+		return nil, fmt.Errorf("stamus.config not found in %s", path.Path)
+	}
 	stamusConfPath := *stamusConfPathPointer.String
 	file, err := CreateFileInstance(stamusConfPath, "config.yaml")
 	if err != nil {
@@ -261,8 +265,22 @@ func (f *Config) SaveConfigTo(dest File, isUpgrade, isInstall bool) error {
 	if err != nil {
 		return err
 	}
-	configDir := filepath.Join(currentDir, dest.Path)
-	release := *NewRelease(dest.Path, configDir, isUpgrade, isInstall)
+	configDir := dest.Path
+	if app.IsCtl() {
+		configDir = filepath.Join(currentDir, dest.Path)
+	}
+	splitted := strings.Split(configDir, "/")
+	releaseName := ""
+	if len(splitted) == 0 || (len(splitted) == 1 && splitted[0] == "") {
+		releaseName = "release"
+	} else {
+		if splitted[len(splitted)-1] == "" {
+			releaseName = splitted[len(splitted)-2]
+		} else {
+			releaseName = splitted[len(splitted)-1]
+		}
+	}
+	release := *NewRelease(releaseName, configDir, isUpgrade, isInstall)
 	for key, value := range release.AsMap() {
 		data[key] = value
 	}
