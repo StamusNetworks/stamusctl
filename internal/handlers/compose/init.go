@@ -46,7 +46,7 @@ func InitHandler(isCli bool, params InitHandlerInputs) error {
 		return err
 	}
 	// Read the folder configuration
-	_, _, err = config.ExtractParams(true)
+	_, _, err = config.ExtractParams()
 	if err != nil {
 		logging.Sugar.Error(err)
 		return err

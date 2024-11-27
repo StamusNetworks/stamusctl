@@ -109,7 +109,7 @@ func UpdateHandler(params UpdateHandlerParams) error {
 	if err != nil {
 		return err
 	}
-	_, _, err = newConfig.ExtractParams(true)
+	_, _, err = newConfig.ExtractParams()
 	if err != nil {
 		return err
 	}

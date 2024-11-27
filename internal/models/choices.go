@@ -7,6 +7,7 @@ import (
 	"stamus-ctl/internal/docker"
 	"stamus-ctl/internal/logging"
 	"strings"
+	"time"
 	"unicode"
 )
 
@@ -36,6 +37,10 @@ func GetChoices(name string) ([]Variable, error) {
 // Get the list of network interfaces
 // Depending on the mode (prod or test), it will either use the host or a busybox container
 func getInterfaces() ([]Variable, error) {
+	go func() {
+		time.Sleep(1 * time.Minute)
+		interfacesCache = []Variable{}
+	}()
 	if app.Mode.IsProd() {
 		return getInterfacesBusybox()
 	} else {
@@ -46,12 +51,12 @@ func getInterfaces() ([]Variable, error) {
 // Get the list of network interfaces using the host
 func getInterfacesHost() ([]Variable, error) {
 	// Define the directory where network interfaces are listed
-	netDir := "/sys/class/net"
 	if len(interfacesCache) != 0 {
 		return interfacesCache, nil
 	}
 
 	// Read the directory contents
+	netDir := "/sys/class/net"
 	files, err := ioutil.ReadDir(netDir)
 	if err != nil {
 		log.Fatalf("Failed to read directory %s: %v", netDir, err)
@@ -63,6 +68,7 @@ func getInterfacesHost() ([]Variable, error) {
 		interfaces = append(interfaces, CreateVariableString(file.Name()))
 	}
 	interfacesCache = interfaces
+
 	return interfaces, nil
 }
 
