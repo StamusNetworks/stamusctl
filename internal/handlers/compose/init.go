@@ -97,7 +97,7 @@ func pullLatestTemplate(destPath string, project, version string) error {
 			if err == nil {
 				return nil
 			} else {
-				logging.Sugar.Info(err)
+				logging.Sugar.Debug(err)
 			}
 		}
 	}
