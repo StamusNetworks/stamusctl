@@ -95,9 +95,11 @@ func (p *Parameters) SetToDefaults() error {
 		return err
 	}
 	// Set all parameters to their default values
-	for _, param := range *p {
+	for k, param := range *p {
 		if param.Type != "optional" && param.Variable.IsNil() {
-			param.SetToDefault()
+			if k != "suricata.interfaces" {
+				param.SetToDefault()
+			}
 		}
 	}
 	return nil

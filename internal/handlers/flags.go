@@ -22,6 +22,15 @@ var IsDefaultParam = models.Parameter{
 	Default:   models.CreateVariableBool(false),
 	Usage:     "Set to default settings",
 }
+
+var IsExpert = models.Parameter{
+	Name:      "expert",
+	Shorthand: "E",
+	Type:      "bool",
+	Default:   models.CreateVariableBool(false),
+	Usage:     "Set to expert settings",
+}
+
 var Values = models.Parameter{
 	Name:      "values",
 	Shorthand: "v",

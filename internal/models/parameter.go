@@ -256,6 +256,10 @@ func (p *Parameter) AskUser() error {
 			for _, choice := range p.Choices {
 				choices = append(choices, *choice.String)
 			}
+			if len(choices) == 1 {
+				p.Variable = CreateVariableString(choices[0])
+				return nil
+			}
 			result, err := selectPrompt(p, choices)
 			if err != nil {
 				return err

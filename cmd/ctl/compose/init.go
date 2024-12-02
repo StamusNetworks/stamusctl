@@ -12,6 +12,7 @@ import (
 	"stamus-ctl/internal/embeds"
 	flags "stamus-ctl/internal/handlers"
 	handlers "stamus-ctl/internal/handlers/compose"
+	"stamus-ctl/internal/logging"
 	"stamus-ctl/internal/utils"
 )
 
@@ -38,6 +39,7 @@ func initCmd() *cobra.Command {
 	}
 	// Flags
 	flags.IsDefaultParam.AddAsFlag(cmd, false)
+	flags.IsExpert.AddAsFlag(cmd, false)
 	flags.Values.AddAsFlag(cmd, false)
 	flags.FromFile.AddAsFlag(cmd, false)
 	flags.Config.AddAsFlag(cmd, false)
@@ -65,6 +67,7 @@ func ClearNDRCmd() *cobra.Command {
 	}
 	// Flags
 	flags.IsDefaultParam.AddAsFlag(cmd, false)
+	flags.IsExpert.AddAsFlag(cmd, false)
 	flags.Values.AddAsFlag(cmd, false)
 	flags.FromFile.AddAsFlag(cmd, false)
 	flags.Config.AddAsFlag(cmd, false)
@@ -80,6 +83,16 @@ func handler(_ *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+
+	if isDefault.(bool) {
+		logging.Sugar.Info("--default flag is deprecated. It is true by default.")
+	}
+
+	isExpert, err := flags.IsExpert.GetValue()
+	if err != nil {
+		return err
+	}
+
 	values, err := flags.Values.GetValue()
 	if err != nil {
 		return err
@@ -117,7 +130,7 @@ func handler(_ *cobra.Command, args []string) error {
 
 	// Call handler
 	initParams := handlers.InitHandlerInputs{
-		IsDefault:        isDefault.(bool),
+		IsDefault:        !isExpert.(bool),
 		BackupFolderPath: app.DefaultClearNDRPath,
 		Arbitrary:        utils.ExtractArgs(args),
 		Project:          project,
