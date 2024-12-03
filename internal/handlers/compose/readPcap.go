@@ -11,6 +11,7 @@ import (
 
 	// Internal
 
+	"stamus-ctl/internal/docker"
 	"stamus-ctl/internal/logging"
 
 	"github.com/docker/docker/api/types/container"
@@ -104,6 +105,12 @@ func runContainer(configName, pcap string) (string, error) {
 
 	if err != nil {
 		logger.With("error", err).Error("container configs")
+		return "", err
+	}
+
+	_, err = docker.PullImageIfNotExisted("jasonish/", "suricata:master-amd64-profiling")
+	if err != nil {
+		logger.With("error", err).Error("image pull")
 		return "", err
 	}
 
