@@ -79,7 +79,7 @@ func InitHandler(isCli bool, params InitHandlerInputs) error {
 		return err
 	}
 	// Save the configuration
-	outputFile, err := models.CreateFileInstance(params.Config, "values.yaml")
+	outputFile, err := models.CreateFile(params.Config, "values.yaml")
 	if err != nil {
 		logging.Sugar.Error(err)
 		return err
@@ -144,11 +144,11 @@ func instanciateConfig(folderPath string, backupFolderPath string) (*models.Conf
 
 // Instanciate config from path
 func instanciateConfigFromPath(folderPath string) (*models.Config, error) {
-	confFile, err := models.CreateFileInstance(folderPath, "config.yaml")
+	confFile, err := models.CreateFile(folderPath, "config.yaml")
 	if err != nil {
 		return nil, err
 	}
-	config, err := models.NewConfigFrom(confFile)
+	config, err := models.ConfigFromFile(confFile)
 	if err != nil {
 		return nil, err
 	}

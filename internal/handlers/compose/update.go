@@ -91,7 +91,7 @@ func UpdateHandler(params UpdateHandlerParams) error {
 	}
 
 	// Load existing config
-	confFile, err := models.CreateFileInstance(configPath, "values.yaml")
+	confFile, err := models.CreateFile(configPath, "values.yaml")
 	if err != nil {
 		return err
 	}
@@ -101,11 +101,11 @@ func UpdateHandler(params UpdateHandlerParams) error {
 	}
 
 	// Create new config
-	newConfFile, err := models.CreateFileInstance(latestPath, "config.yaml")
+	newConfFile, err := models.CreateFile(latestPath, "config.yaml")
 	if err != nil {
 		return err
 	}
-	newConfig, err := models.NewConfigFrom(newConfFile)
+	newConfig, err := models.ConfigFromFile(newConfFile)
 	if err != nil {
 		return err
 	}
@@ -116,11 +116,17 @@ func UpdateHandler(params UpdateHandlerParams) error {
 
 	// Extract and set values from args and existing config
 	paramsArgs := utils.ExtractArgs(args)
-	newConfig.GetParams().SetValues(existingConfig.GetParams().GetVariablesValues())
-	newConfig.GetParams().SetLooseValues(paramsArgs)
-	newConfig.GetArbitrary().SetArbitrary(paramsArgs)
-	newConfig.GetParams().ProcessOptionnalParams(false)
 	newConfig.SetProject(project)
+	newConfig.GetParams().SetValues(existingConfig.GetParams().GetVariablesValues())
+	newConfig.GetArbitrary().SetArbitrary(paramsArgs)
+	err = newConfig.GetParams().SetLooseValues(paramsArgs)
+	if err != nil {
+		return err
+	}
+	err = newConfig.GetParams().ProcessOptionnalParams(false)
+	if err != nil {
+		return err
+	}
 
 	// Ask for missing parameters
 	if app.IsCtl() {
