@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -36,7 +37,7 @@ func deleteEmptyFolders(folderPath string) error {
 		}
 		// Check if it's a directory and empty
 		if info.IsDir() {
-
+			removeDirIfEmpty(path)
 		}
 		return nil
 	})
@@ -168,4 +169,18 @@ func processTemplates(inputFolder string, outputFolder string, data map[string]i
 	}
 	logging.Sugar.Info("Configuration saved to: ", outputFolder)
 	return nil
+}
+
+func addValuePrefix(key string) string {
+	return fmt.Sprintf("Values.%s", key)
+}
+
+func removeEmptyStrings(s []string) []string {
+	var r []string
+	for _, str := range s {
+		if str != "" {
+			r = append(r, str)
+		}
+	}
+	return r
 }
