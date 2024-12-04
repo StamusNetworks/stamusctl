@@ -4,6 +4,7 @@ import (
 	// Common
 
 	"os"
+	"path/filepath"
 	"strings"
 
 	// Internal
@@ -34,4 +35,28 @@ func ValidatePath(path models.Variable) bool {
 		}
 	}
 	return true
+}
+
+func ListFilesInFolder(folderPath string) (map[string]string, error) {
+	filesMap := make(map[string]string)
+	// Walk the folder
+	err := filepath.Walk(folderPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if !info.IsDir() {
+			relativePath, err := filepath.Rel(folderPath, path)
+			if err != nil {
+				return err
+			}
+			filesMap[relativePath] = info.Name()
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return filesMap, nil
 }
