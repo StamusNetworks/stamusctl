@@ -3,6 +3,7 @@ package models
 import (
 	"log"
 	"os/user"
+	"path/filepath"
 	"strings"
 
 	"stamus-ctl/internal/app"
@@ -33,6 +34,25 @@ func NewRelease(name, location string, isUpgrade, isInstall bool) *Release {
 		IsInstall: isInstall,
 		Service:   app.StamusAppName + ":" + app.Version,
 	}
+}
+
+func getRelease(dest File, currentDir string, isUpgrade, isInstall bool) *Release {
+	configDir := dest.Path
+	if app.IsCtl() {
+		configDir = filepath.Join(currentDir, dest.Path)
+	}
+	splitted := strings.Split(configDir, "/")
+	releaseName := ""
+	if len(splitted) == 0 || (len(splitted) == 1 && splitted[0] == "") {
+		releaseName = "release"
+	} else {
+		if splitted[len(splitted)-1] == "" {
+			releaseName = splitted[len(splitted)-2]
+		} else {
+			releaseName = splitted[len(splitted)-1]
+		}
+	}
+	return NewRelease(releaseName, configDir, isUpgrade, isInstall)
 }
 
 func (s *Release) AsMap() map[string]interface{} {

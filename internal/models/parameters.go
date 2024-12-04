@@ -39,7 +39,7 @@ func (p *Parameters) AddAsFlags(cmd *cobra.Command, persistent bool) {
 func (p *Parameters) ValidateAll() error {
 	for key, param := range *p {
 		if !param.IsValid() {
-			return fmt.Errorf("Invalid value for %s", key)
+			return fmt.Errorf("invalid value for %s", key)
 		}
 	}
 	return nil
@@ -235,9 +235,10 @@ func (p *Parameters) SetValues(values map[string]*Variable) {
 func (p *Parameters) SetLooseValues(values map[string]string) error {
 	for key, value := range values {
 		if (*p)[key] != nil {
-			(*p)[key].SetLooseValue(key, value)
-		} else {
-			logging.Sugar.Info("Invalid parameter", key)
+			err := (*p)[key].SetLooseValue(key, value)
+			if err != nil {
+				return err
+			}
 		}
 	}
 

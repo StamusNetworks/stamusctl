@@ -63,30 +63,40 @@ func (v *Variable) AsString() string {
 
 // Return the value of the variable as a any type
 func (p *Parameter) GetValue() (any, error) {
+	// Not set
 	if p.Variable.IsNil() && p.Default.IsNil() {
 		return nil, fmt.Errorf("Variable has not been set")
 	}
+	// Get value
+	value := p.getValue()
+	if value != nil {
+		return value, nil
+	}
+	return nil, fmt.Errorf("invalid type")
+}
+
+func (p *Parameter) getValue() any {
 	if !p.Variable.IsNil() {
 		switch p.Type {
 		case "string":
-			return *p.Variable.String, nil
+			return *p.Variable.String
 		case "bool", "optional":
-			return *p.Variable.Bool, nil
+			return *p.Variable.Bool
 		case "int":
-			return *p.Variable.Int, nil
+			return *p.Variable.Int
 		}
 	}
 	if !p.Default.IsNil() {
 		switch p.Type {
 		case "string":
-			return *p.Default.String, nil
+			return *p.Default.String
 		case "bool", "optional":
-			return *p.Default.Bool, nil
+			return *p.Default.Bool
 		case "int":
-			return *p.Default.Int, nil
+			return *p.Default.Int
 		}
 	}
-	return nil, fmt.Errorf("Invalid type")
+	return nil
 }
 
 // Adds the parameter as a flag to the command
@@ -292,7 +302,10 @@ func (p *Parameter) AskUser() error {
 		if err != nil {
 			return err
 		}
-		asInt, _ := strconv.Atoi(result)
+		asInt, err := strconv.Atoi(result)
+		if err != nil {
+			return err
+		}
 		p.Variable = CreateVariableInt(asInt)
 	}
 	return nil
@@ -317,7 +330,7 @@ func textPrompt(param *Parameter, defaultValue string) (string, error) {
 	}
 	result, err := prompt.Run()
 	if err != nil {
-		return "", fmt.Errorf("Prompt cancelled")
+		return "", fmt.Errorf("prompt cancelled")
 	}
 	return result, nil
 }
@@ -330,7 +343,7 @@ func validateParamFunc(param *Parameter) func(input string) error {
 			return err
 		}
 		if !current.IsValid() {
-			return fmt.Errorf("Invalid value")
+			return fmt.Errorf("invalid value")
 		}
 		return nil
 	}
@@ -348,7 +361,7 @@ func selectPrompt(p *Parameter, choices []string) (string, error) {
 	_, result, err := prompt.Run()
 
 	if err != nil {
-		return "", fmt.Errorf("Prompt cancelled")
+		return "", fmt.Errorf("prompt cancelled")
 	}
 	return result, nil
 }

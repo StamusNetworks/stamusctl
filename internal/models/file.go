@@ -16,8 +16,16 @@ type File struct {
 	Type string
 }
 
+func NewFile(path, name, fileType string) File {
+	return File{
+		Path: path,
+		Name: name,
+		Type: fileType,
+	}
+}
+
 // Used to get the file as properties from path
-func CreateFileInstanceFromPath(path string) (File, error) {
+func CreateFileFromPath(path string) (File, error) {
 	// Extract the file properties
 	pathSplited := strings.Split(path, "/")
 	if len(pathSplited) < 2 {
@@ -29,11 +37,11 @@ func CreateFileInstanceFromPath(path string) (File, error) {
 		return File{}, fmt.Errorf("path %s is not a valid file name", path)
 	}
 	// File
-	file := File{
-		Path: strings.Join(pathSplited[:len(pathSplited)-1], "/"),
-		Name: strings.Join(nameSplited[:len(nameSplited)-1], "."),
-		Type: nameSplited[len(nameSplited)-1],
-	}
+	file := NewFile(
+		strings.Join(pathSplited[:len(pathSplited)-1], "/"),
+		strings.Join(nameSplited[:len(nameSplited)-1], "."),
+		nameSplited[len(nameSplited)-1],
+	)
 	// Validate all
 	err := file.isValidPath()
 	if err != nil {
@@ -44,18 +52,18 @@ func CreateFileInstanceFromPath(path string) (File, error) {
 }
 
 // Used create a file from path and name
-func CreateFileInstance(path string, fileName string) (File, error) {
+func CreateFile(path string, fileName string) (File, error) {
 	// Extract the file properties
 	nameSplited := strings.Split(fileName, ".")
 	if len(nameSplited) != 2 {
 		return File{}, fmt.Errorf("path %s is not a valid file name", path)
 	}
 	// File
-	file := File{
-		Path: path,
-		Name: nameSplited[0],
-		Type: nameSplited[1],
-	}
+	file := NewFile(
+		path,
+		nameSplited[0],
+		nameSplited[1],
+	)
 
 	// Validate all
 	err := file.isValidPath()
