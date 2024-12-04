@@ -3,8 +3,6 @@ package config
 import (
 	// Core
 	"fmt"
-	"log"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -14,9 +12,7 @@ import (
 	wrapper "stamus-ctl/internal/handlers/wrapper"
 	"stamus-ctl/internal/models"
 	"stamus-ctl/internal/utils"
-
 	// External
-	cp "github.com/otiai10/copy"
 )
 
 type SetHandlerInputs struct {
@@ -31,7 +27,7 @@ type SetHandlerInputs struct {
 // func SetHandler(configPath string, args []string, reload bool, apply bool) error {
 func SetHandler(params SetHandlerInputs) error {
 	// Load the config
-	file, err := models.CreateFileInstance(params.Config, "values.yaml")
+	file, err := models.CreateFile(params.Config, "values.yaml")
 	if err != nil {
 		return err
 	}
@@ -41,9 +37,15 @@ func SetHandler(params SetHandlerInputs) error {
 	}
 	// Extract and set parameters from args
 	paramsArgs := utils.ExtractArgs(params.Args)
-	config.GetParams().SetLooseValues(paramsArgs)
+	err = config.GetParams().SetLooseValues(paramsArgs)
+	if err != nil {
+		return err
+	}
 	config.GetArbitrary().SetArbitrary(paramsArgs)
-	config.GetParams().ProcessOptionnalParams(false)
+	err = config.GetParams().ProcessOptionnalParams(false)
+	if err != nil {
+		return err
+	}
 	// Set values from file
 	err = config.SetValuesFromFiles(params.FromFile)
 	if err != nil {
@@ -60,11 +62,14 @@ func SetHandler(params SetHandlerInputs) error {
 	}
 
 	// Save the configuration
-	outputAsFile, err := models.CreateFileInstance(params.Config, "values.yaml")
+	outputAsFile, err := models.CreateFile(params.Config, "values.yaml")
 	if err != nil {
 		return err
 	}
-	config.SaveConfigTo(outputAsFile, false, false)
+	err = config.SaveConfigTo(outputAsFile, false, false)
+	if err != nil {
+		return err
+	}
 	// Apply the configuration
 	if params.Apply {
 		err = wrapper.HandleUp(params.Config)
@@ -96,27 +101,10 @@ func SetContentHandler(conf string, args []string) error {
 			outputPath = filepath.Join(configPath, outputPath)
 		}
 		// Call handler
-		err := copy(inputPath, filepath.Join(conf, outputPath))
+		err := utils.Copy(inputPath, filepath.Join(conf, outputPath))
 		if err != nil {
 			return err
 		}
 	}
-	return nil
-}
-
-func copy(inputPath string, outputPath string) error {
-	fmt.Println("Setting content from ", inputPath, " to ", outputPath)
-	// Check input path exists
-	info, err := os.Stat(inputPath)
-	if err != nil {
-		log.Println(info, err)
-		return fmt.Errorf("input path does not exist: %s", inputPath)
-	}
-
-	err = cp.Copy(inputPath, outputPath)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
