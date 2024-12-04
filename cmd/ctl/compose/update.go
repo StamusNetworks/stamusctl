@@ -19,7 +19,8 @@ func updateCmd() *cobra.Command {
 		Use:   "update",
 		Short: "Update compose configuration files",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return updateHandler(cmd, args)
+			updateHandler(cmd, args)
+			return nil
 		},
 	}
 	// Add flags
@@ -28,15 +29,15 @@ func updateCmd() *cobra.Command {
 	return cmd
 }
 
-func updateHandler(cmd *cobra.Command, args []string) error {
+func updateHandler(cmd *cobra.Command, args []string) {
 	// Validate flags
 	version, err := flags.Version.GetValue()
 	if err != nil {
-		return err
+		return
 	}
 	config, err := flags.Config.GetValue()
 	if err != nil {
-		return err
+		return
 	}
 	// Call handler
 	params := handlers.UpdateHandlerParams{
@@ -44,6 +45,6 @@ func updateHandler(cmd *cobra.Command, args []string) error {
 		Config:  config.(string),
 		Args:    args,
 	}
-	return handlers.UpdateHandler(params)
+	handlers.UpdateHandler(params)
 
 }

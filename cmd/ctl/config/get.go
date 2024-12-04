@@ -23,7 +23,8 @@ Input the keys of parameters to get
 Example: get scirius`,
 		Args: cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return getHandler(cmd, args)
+			getHandler(cmd, args)
+			return nil
 		},
 	}
 	// Subcommands
@@ -40,7 +41,8 @@ func getContentCmd() *cobra.Command {
 		Use:   "content",
 		Short: "Get config content architecture",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return getContent(cmd, args)
+			getContent(cmd, args)
+			return nil
 		},
 	}
 	// Flags

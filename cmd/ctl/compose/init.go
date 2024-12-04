@@ -34,7 +34,8 @@ func initCmd() *cobra.Command {
 		Short: "Init compose config file",
 		Long:  InitHelp,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return handler(cmd, args)
+			handler(cmd, args)
+			return nil
 		},
 	}
 	// Flags
@@ -62,7 +63,8 @@ func ClearNDRCmd() *cobra.Command {
 		Long:  InitHelp,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			args = append([]string{"clearndr"}, args...)
-			return handler(cmd, args)
+			handler(cmd, args)
+			return nil
 		},
 	}
 	// Flags

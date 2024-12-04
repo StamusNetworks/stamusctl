@@ -51,8 +51,8 @@ func readPcap(cmd *cobra.Command, args []string) error {
 		PcapPath: pcapFile,
 		Config:   config.(string),
 	}
-	return handlers.PcapHandler(params)
-
+	handlers.PcapHandler(params)
+	return nil
 }
 
 // checkFile checks if a file exists and has the specified extension.

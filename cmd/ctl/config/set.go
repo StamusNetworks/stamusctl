@@ -20,7 +20,8 @@ func setCmd() *cobra.Command {
 Example: set scirius.token=AwesomeToken
 Or, use subcommands to set content or current configuration.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return setHandler(cmd, args)
+			setHandler(cmd, args)
+			return nil
 		},
 	}
 	// Subcommands
@@ -44,7 +45,8 @@ func setContentCmd() *cobra.Command {
 Example: config content /nginx:/etc/nginx /nginx.conf:/etc/nginx/nginx.conf,
 		`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return setContentHandler(cmd, args)
+			setContentHandler(cmd, args)
+			return nil
 		},
 	}
 	// Flags
