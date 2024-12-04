@@ -144,6 +144,7 @@ func makeCustomRunner(
 		fileFlag.Value.Set(composeFile)
 		fileFlag.DefValue = composeFile
 		// Run existing command
-		return runE(cmd, args)
+		runE(cmd, args)
+		return nil
 	}
 }
