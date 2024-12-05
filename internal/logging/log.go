@@ -49,12 +49,13 @@ func NewLogger() *zap.Logger {
 	}
 
 	config := zap.Config{
-		Level:            zap.NewAtomicLevelAt(levels[verbosity]),
-		Development:      true,
-		Encoding:         "console",
-		EncoderConfig:    encoder,
-		OutputPaths:      []string{"stdout"},
-		ErrorOutputPaths: []string{"stderr"},
+		Level:             zap.NewAtomicLevelAt(levels[verbosity]),
+		Development:       true,
+		Encoding:          "console",
+		EncoderConfig:     encoder,
+		OutputPaths:       []string{"stdout"},
+		ErrorOutputPaths:  []string{"stderr"},
+		DisableStacktrace: true,
 	}
 
 	log, _ := config.Build()

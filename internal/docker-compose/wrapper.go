@@ -9,6 +9,7 @@ import (
 
 	// Common
 	stamusFlags "stamus-ctl/internal/handlers"
+	"stamus-ctl/internal/logging"
 	"stamus-ctl/internal/models"
 
 	// External
@@ -144,7 +145,8 @@ func makeCustomRunner(
 		fileFlag.Value.Set(composeFile)
 		fileFlag.DefValue = composeFile
 		// Run existing command
-		runE(cmd, args)
+		ret := runE(cmd, args)
+		logging.Sugar.Error(ret)
 		return nil
 	}
 }
