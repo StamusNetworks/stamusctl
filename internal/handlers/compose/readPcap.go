@@ -2,9 +2,12 @@ package handlers
 
 import (
 	// Core
-	"bytes"
+
 	"context"
+	"encoding/binary"
 	"errors"
+	"fmt"
+	"io"
 	"os"
 	"runtime/debug"
 	"strings"
@@ -50,7 +53,7 @@ func createConfig(configName, pcap string) (container.Config, container.HostConf
 	config := container.Config{
 		Image:      "jasonish/suricata:master-amd64-profiling",
 		Entrypoint: []string{"/new_entrypoint.sh"},
-		Cmd:        []string{"-k none -r /replay/" + pcapName + " --runmode autofp -l /var/log/suricata --set sensor-name=" + pcapName},
+		Cmd:        []string{"-vvv -k none -r /replay/" + pcapName + " --runmode autofp -l /var/log/suricata --set sensor-name=" + pcapName},
 	}
 
 	hostConfig := container.HostConfig{
@@ -125,30 +128,43 @@ func runContainer(configName, pcap string) (string, error) {
 		return "", err
 	}
 
-	statusCh, errCh := cli.ContainerWait(ctx, resp.ID, container.WaitConditionNotRunning)
-	select {
-	case err := <-errCh:
+	// statusCh, errCh := cli.ContainerWait(ctx, resp.ID, container.WaitConditionNotRunning)
+	// select {
+	// case err := <-errCh:
+	// 	if err != nil {
+	// 		logging.Sugar.Warn(err)
+	// 		return "", err
+	// 	}
+	// case status := <-statusCh:
+	// 	logging.Sugar.Info(status.StatusCode)
+	// 	logging.Sugar.Info(status.Error)
+	// }
+
+	out, _ := cli.ContainerLogs(ctx, resp.ID, container.LogsOptions{
+		ShowStdout: true,
+		ShowStderr: true,
+		Timestamps: false,
+		Follow:     true,
+		Tail:       "40",
+	})
+	hdr := make([]byte, 8)
+	for {
+		_, err := out.Read(hdr)
 		if err != nil {
-			logger.With("error", err).Error("container wait")
 			return "", err
 		}
-	case <-statusCh:
+		var w io.Writer
+		switch hdr[0] {
+		case 1:
+			w = os.Stdout
+		default:
+			w = os.Stderr
+		}
+		count := binary.BigEndian.Uint32(hdr[4:])
+		dat := make([]byte, count)
+		_, _ = out.Read(dat)
+		fmt.Fprint(w, string(dat))
 	}
-
-	out, err := cli.ContainerLogs(ctx, resp.ID, container.LogsOptions{ShowStdout: true})
-	if err != nil {
-		logger.With("error", err).Error("container logs")
-		return "", err
-	}
-
-	buf := new(bytes.Buffer)
-	buf.ReadFrom(out)
-
-	output := buf.String()
-
-	logger.Debugw("run output", "output", output)
-
-	return output, nil
 }
 
 func PcapHandler(params ReadPcapParams) error {

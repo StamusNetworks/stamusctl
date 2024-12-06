@@ -14,6 +14,7 @@ import (
 	// Custom
 	flags "stamus-ctl/internal/handlers"
 	handlers "stamus-ctl/internal/handlers/compose"
+	"stamus-ctl/internal/logging"
 )
 
 // Commands
@@ -51,7 +52,10 @@ func readPcap(cmd *cobra.Command, args []string) error {
 		PcapPath: pcapFile,
 		Config:   config.(string),
 	}
-	handlers.PcapHandler(params)
+	err = handlers.PcapHandler(params)
+	if err != nil {
+		logging.Sugar.Error(err)
+	}
 	return nil
 }
 
