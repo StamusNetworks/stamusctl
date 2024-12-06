@@ -5,6 +5,7 @@ import (
 
 	flags "stamus-ctl/internal/handlers"
 	config "stamus-ctl/internal/handlers/config"
+	"stamus-ctl/internal/logging"
 
 	// External
 	"github.com/spf13/cobra"
@@ -20,7 +21,10 @@ func setCmd() *cobra.Command {
 Example: set scirius.token=AwesomeToken
 Or, use subcommands to set content or current configuration.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			setHandler(cmd, args)
+			err := setHandler(cmd, args)
+			if err != nil {
+				logging.Sugar.Error(err)
+			}
 			return nil
 		},
 	}
@@ -45,7 +49,10 @@ func setContentCmd() *cobra.Command {
 Example: config content /nginx:/etc/nginx /nginx.conf:/etc/nginx/nginx.conf,
 		`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			setContentHandler(cmd, args)
+			err := setContentHandler(cmd, args)
+			if err != nil {
+				logging.Sugar.Error(err)
+			}
 			return nil
 		},
 	}
