@@ -145,8 +145,10 @@ func makeCustomRunner(
 		fileFlag.Value.Set(composeFile)
 		fileFlag.DefValue = composeFile
 		// Run existing command
-		ret := runE(cmd, args)
-		logging.Sugar.Error(ret)
+		err := runE(cmd, args)
+		if err != nil {
+			logging.Sugar.Error(err)
+		}
 		return nil
 	}
 }

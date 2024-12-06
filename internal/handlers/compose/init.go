@@ -30,6 +30,7 @@ func InitHandler(isCli bool, params InitHandlerInputs) error {
 	// Pull latest template
 	err := pullLatestTemplate(destPath, params.Project, params.Version)
 	if err != nil && !app.Embed.IsTrue() {
+		logging.Sugar.Error(err)
 		return err
 	}
 	// Instanciate config
@@ -41,24 +42,32 @@ func InitHandler(isCli bool, params InitHandlerInputs) error {
 	}
 	config, err := instanciateConfig(templatePath, params.BackupFolderPath)
 	if err != nil {
+		logging.Sugar.Error(err)
 		return err
 	}
 	// Read the folder configuration
 	_, _, err = config.ExtractParams(true)
 	if err != nil {
+		logging.Sugar.Error(err)
 		return err
 	}
+
+	logging.Sugar.Debug("Setting parameters from files")
 	// Set parameters
 	err = config.SetValuesFromFiles(params.FromFile)
 	if err != nil {
+		logging.Sugar.Error(err)
 		return err
 	}
 	err = config.SetValuesFromFile(params.Values)
 	if err != nil {
+		logging.Sugar.Error(err)
 		return err
 	}
+	logging.Sugar.Debug("Setting parameters")
 	err = setParameters(isCli, config, params)
 	if err != nil {
+		logging.Sugar.Error(err)
 		return err
 	}
 	config.SetProject(params.Project)
@@ -66,17 +75,20 @@ func InitHandler(isCli bool, params InitHandlerInputs) error {
 	// Validate parameters
 	err = config.GetParams().ValidateAll()
 	if err != nil {
+		logging.Sugar.Error(err)
 		return err
 	}
 	// Save the configuration
 	outputFile, err := models.CreateFileInstance(params.Config, "values.yaml")
 	if err != nil {
+		logging.Sugar.Error(err)
 		return err
 	}
 	config.SaveConfigTo(outputFile, false, true)
 	// Bind files
 	err = confHandler.SetContentHandler(params.Config, params.Bind)
 	if err != nil {
+		logging.Sugar.Error(err)
 		return err
 	}
 	return nil
