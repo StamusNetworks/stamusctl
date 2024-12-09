@@ -11,7 +11,36 @@ You can find its documentation [here](./cmd/daemon/docs/swagger.json).
 ## Installation
 To install stamusctl, you can:
 - build it from source
-- get it from your favorite package manager
+- get it from us `wget https://dl.clearndr.io/stamusctl-linux-amd64`
+- get it from github `wget https://github.com/StamusNetworks/stamusctl/releases/latest/download/stamusctl-linux-amd64`
+
+## Examples
+```
+// Init via user prompt
+stamusctl compose init
+
+// Init default settings
+stamusctl compose init suricata.interfaces=eth0
+
+// Get current config
+stamusctl config get
+
+// Set parameter in current config
+stamusctl config set suricata.interfaces=eth1
+
+// Start current configuration
+stamusctl compose up -d
+
+// Read a pcap file
+stamusctl compose readpcap /path/to/pcap
+```
+
+## Installation details
+```
+wget https://dl.clearndr.io/stamusctl-linux-amd64
+chmod +x stamusctl-linux-amd64
+mv stamusctl-linux-amd64 /usr/local/bin/stamusctl
+```
 
 #### Build from source
 ```
@@ -49,8 +78,7 @@ If not, you can:
   - `--values` to use a `values.yaml` as configuration
   - `--fromFile` to use a file as value for a specific key
   - `--apply` to relaunch the configuration
-  - `--default` to disable the interactive prompting
-    - `[key]=[value]` are the args to set configuration values (ex: scirius.token=AwesomeToken)
+  - `[key]=[value]` are the args to set configuration values (ex: suricata.interfaces=eth0)
 - `up` to start current configuration
   - `--file` to select specific configuration
   - `--detach` to launch in detached mode
@@ -78,7 +106,7 @@ If not, you can:
   - `set` to modify configuration
     - `--reload` to reset arbitrary values
     - `--apply` to relaunch the configuration
-    - `[key]=[value]` to set configuration values (ex: scirius.token=AwesomeToken)
+    - `[key]=[value]` to set configuration values (ex: suricata.interfaces=eth0)
     - `content` to set configuration files
       - `[host folder]:[configuration folder]` to set specific configuration files (ex: ./nginx:/nginx)
 
@@ -90,31 +118,6 @@ This way, you can pull images from private registries.
   - `--registry` to select registry
   - `--user` to input user
   - `--pass` to input password
-
-
-## Examples
-```
-// Login to a registry. optional
-stamusctl login --registry <REGISTRY_URL> --user <REGISTRY_TOKEN_NAME> --pass <REGISTRY_TOKEN>
-
-// Init via user prompt
-stamusctl compose init
-
-// Init default settings
-stamusctl compose init --default scirius.token=AwesomeToken
-
-// Get current config
-stamusctl config get
-
-// Set parameter in current config
-stamusctl config set scirius.token=AnotherAwesomeToken
-
-// Start current configuration
-stamusctl compose up -d
-
-// Read a pcap file
-stamusctl compose readpcap /path/to/pcap
-```
 
 ## Contributing
 Contributions are welcome! Please fork the repository and submit a pull request.
