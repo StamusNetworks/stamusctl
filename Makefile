@@ -1,5 +1,5 @@
-PACKAGE=github.com/StamusNetworks/stamusctl/internal/app
-LOGGER=github.com/StamusNetworks/stamusctl/internal/logging
+PACKAGE=stamus-ctl/internal/app
+LOGGER=stamus-ctl/internal/logging
 
 CURRENT_DIR=$(shell pwd)
 DIST_DIR=${CURRENT_DIR}/dist
@@ -29,21 +29,22 @@ override LDFLAGS += \
   -X ${PACKAGE}.Arch=${TARGET_ARCH} \
   -X ${PACKAGE}.Commit=${GIT_COMMIT} \
   -X ${PACKAGE}.Version=${VERSION} \
-  -X ${LOGGER}.envType=prd
+  -X ${LOGGER}.envType=prd \
+  -extldflags=-static
 
 all: cli daemon
 
 cli:
-	CGO_ENABLED=0 GODEBUG="tarinsecurepath=0,zipinsecurepath=0" go build -v -ldflags '${LDFLAGS}' -ldflags="-extldflags=-static" -o ${DIST_DIR}/${CLI_NAME} ./cmd
+	CGO_ENABLED=0 GODEBUG="tarinsecurepath=0,zipinsecurepath=0" go build -v -ldflags '${LDFLAGS}' -o ${DIST_DIR}/${CLI_NAME} ./cmd
 
 test-cli:
-	CGO_ENABLED=0 GODEBUG="tarinsecurepath=0,zipinsecurepath=0" BUILD_MODE=test STAMUS_APP_NAME=stamusctl go build -v -ldflags '${LDFLAGS}' -ldflags="-extldflags=-static" -o ${DIST_DIR}/${CLI_NAME} ./cmd
+	CGO_ENABLED=0 GODEBUG="tarinsecurepath=0,zipinsecurepath=0" BUILD_MODE=test STAMUS_APP_NAME=stamusctl go build -v -ldflags '${LDFLAGS}' -o ${DIST_DIR}/${CLI_NAME} ./cmd
 
 test:
 	go test ./internal/models
 
 daemon:
-	CGO_ENABLED=0 GODEBUG="tarinsecurepath=0,zipinsecurepath=0" go build -v -ldflags '${LDFLAGS}' -ldflags="-extldflags=-static" -o ${DIST_DIR}/${DAEMON_NAME} ./cmd
+	CGO_ENABLED=0 GODEBUG="tarinsecurepath=0,zipinsecurepath=0" go build -v -ldflags '${LDFLAGS}' -o ${DIST_DIR}/${DAEMON_NAME} ./cmd
 
 daemon-dev:
 	air run
