@@ -75,7 +75,7 @@ func UpdateHandler(params UpdateHandlerParams) error {
 	// Execute update script
 	prerunPath := filepath.Join(destPath, "sbin/pre-run")
 	postrunPath := filepath.Join(destPath, "sbin/post-run")
-	runOutput, err := runArbitraryScript(prerunPath)
+	runOutput, err := runArbitraryScript(prerunPath, configPath)
 	if err != nil {
 		return err
 	}
@@ -123,16 +123,21 @@ func UpdateHandler(params UpdateHandlerParams) error {
 	newConfig.SetProject(project)
 
 	// Ask for missing parameters
-	err = newConfig.GetParams().AskMissing()
+	if app.IsCtl() {
+		err = newConfig.GetParams().AskMissing()
+		if err != nil {
+			return err
+		}
+	}
+
+	// Save the configuration
+	err = newConfig.SaveConfigTo(confFile, false, true)
 	if err != nil {
 		return err
 	}
 
-	// Save the configuration
-	newConfig.SaveConfigTo(confFile, false, true)
-
 	// Run post-run script
-	_, err = runArbitraryScript(postrunPath)
+	_, err = runArbitraryScript(postrunPath, configPath)
 	if err != nil {
 		return err
 	}
@@ -141,15 +146,18 @@ func UpdateHandler(params UpdateHandlerParams) error {
 	return nil
 }
 
-func runArbitraryScript(path string) (*strings.Builder, error) {
+func runArbitraryScript(path string, config string) (*strings.Builder, error) {
 	// Execute arbitrary script
-	arbitrary := exec.Command(path)
+	arbitrary := exec.Command(path, "--config", config)
 	// Display output to terminal
 	runOutput := new(strings.Builder)
 	arbitrary.Stdout = runOutput
 	arbitrary.Stderr = os.Stderr
 	// Change execution rights
-	os.Chmod(path, 0755)
+	err := os.Chmod(path, 0755)
+	if err != nil {
+		return nil, err
+	}
 	// Run arbitrary script
 	if err := arbitrary.Run(); err != nil {
 		return nil, err
