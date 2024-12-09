@@ -9,6 +9,21 @@ import (
 	"strings"
 )
 
+func GetVersion(config string) string {
+	// File
+	if !app.IsCtl() {
+		config = app.GetConfigsFolder(config)
+	}
+	filePath := filepath.Join(config, "version")
+
+	// Read the file content
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		return "Could not read the version file"
+	}
+	return string(content)
+}
+
 // Get the grouped config values
 // Essentially, this function reads the config values file and groups the values
 func GetGroupedConfig(conf string, args []string, reload bool) (map[string]interface{}, error) {

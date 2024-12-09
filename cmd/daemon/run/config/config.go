@@ -135,3 +135,27 @@ func getHandler(c *gin.Context) {
 	}
 	c.JSON(200, groupedValues)
 }
+
+type VersionResponse string
+
+// versionHandler godoc
+// @Summary Get configuration version
+// @Description Retrieves configuration version for a given project.
+// @Tags config
+// @Produce json
+// @Param get query pkg.Config true "Config to get version from"
+// @Success 200 {object} VersionResponse "Configuration version retrieved successfully"
+// @Failure 404 {object} pkg.ErrorResponse "Bad request with explanation"
+// @Failure 500 {object} pkg.ErrorResponse "Internal server error with explanation"
+// @Router /config [get]
+func getVersionHandler(c *gin.Context) {
+	// Extract request body
+	var req pkg.Config
+	if err := c.BindQuery(&req); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	version := handlers.GetVersion(req.Value)
+	c.JSON(200, version)
+}

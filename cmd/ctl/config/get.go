@@ -11,6 +11,7 @@ import (
 
 	flags "stamus-ctl/internal/handlers"
 	config "stamus-ctl/internal/handlers/config"
+	handlers "stamus-ctl/internal/handlers/config"
 )
 
 // Command
@@ -32,6 +33,35 @@ Example: get scirius`,
 	// Flags
 	flags.Config.AddAsFlag(cmd, false)
 	return cmd
+}
+
+func versionCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "version",
+		Short: "Get config version",
+		Args:  cobra.ArbitraryArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			versionHandler()
+			return nil
+		},
+	}
+	// Flags
+	flags.Config.AddAsFlag(cmd, false)
+	return cmd
+}
+
+// Handlers
+func versionHandler() error {
+	// Get properties
+	conf, err := flags.Config.GetValue()
+	if err != nil {
+		return err
+	}
+	// Get the version
+	version := handlers.GetVersion(conf.(string))
+	// Print the version
+	fmt.Println(version)
+	return nil
 }
 
 // Subcommands
