@@ -22,7 +22,7 @@ func main() {
 	case "stamusd":
 		daemon.Execute()
 	default:
-		daemon.Execute()
+		ctl.Execute()
 	}
 
 	// if err != nil {
