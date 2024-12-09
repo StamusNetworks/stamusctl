@@ -52,6 +52,7 @@ func rootCmd() *cobra.Command {
 	// Common flags
 	verbose.AddAsFlag(cmd, true)
 	// SubCommands
+	cmd.AddCommand(versionCmd())
 	cmd.AddCommand(run.RunCmd())
 	return cmd
 }
