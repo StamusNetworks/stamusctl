@@ -27,7 +27,7 @@ import (
 var ComposeFlags = models.ComposeFlags{
 	"up": models.CreateComposeFlags(
 		[]string{"file"},
-		[]string{"detach"},
+		[]string{"detach", "build"},
 	),
 	"down": models.CreateComposeFlags(
 		[]string{"file"},
