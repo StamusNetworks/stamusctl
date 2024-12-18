@@ -43,7 +43,11 @@ var ComposeFlags = models.ComposeFlags{
 	),
 	"pull": models.CreateComposeFlags(
 		[]string{"file"},
-		[]string{"ignore-buildable", "ignore-pull-failures", "include-deps", "quiet "},
+		[]string{"ignore-buildable", "ignore-pull-failures", "include-deps", "quiet"},
+	),
+	"images": models.CreateComposeFlags(
+		[]string{"file"},
+		[]string{"format", "quiet"},
 	),
 }
 
