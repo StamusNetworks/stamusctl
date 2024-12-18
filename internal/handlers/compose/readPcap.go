@@ -52,7 +52,7 @@ func createConfig(configName, pcap string) (container.Config, container.HostConf
 
 	config := container.Config{
 		Image:      "jasonish/suricata:master-amd64-profiling",
-		Entrypoint: []string{"/new_entrypoint.sh"},
+		Entrypoint: []string{"/docker-entrypoint.sh"},
 		Cmd:        []string{"-vvv -k none -r /replay/" + pcapName + " --runmode autofp -l /var/log/suricata --set sensor-name=" + pcapName},
 	}
 
@@ -78,18 +78,6 @@ func createConfig(configName, pcap string) (container.Config, container.HostConf
 				Type:     mount.TypeBind,
 				Source:   pcap,
 				Target:   "/replay/" + pcapName,
-				ReadOnly: true,
-			},
-			{
-				Type:     mount.TypeBind,
-				Source:   dir + "/" + configName + "/configs/suricata/new_entrypoint.sh",
-				Target:   "/new_entrypoint.sh",
-				ReadOnly: true,
-			},
-			{
-				Type:     mount.TypeBind,
-				Source:   dir + "/" + configName + "/configs/suricata/selks6-addin.yaml",
-				Target:   "/etc/suricata-configs/selks6-addin.yaml",
 				ReadOnly: true,
 			},
 		},
