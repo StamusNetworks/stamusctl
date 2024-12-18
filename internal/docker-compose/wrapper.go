@@ -41,6 +41,10 @@ var ComposeFlags = models.ComposeFlags{
 		[]string{"file"},
 		[]string{"timestamps", "tail", "since", "until"},
 	),
+	"pull": models.CreateComposeFlags(
+		[]string{"file"},
+		[]string{"ignore-buildable", "ignore-pull-failures", "include-deps", "quiet "},
+	),
 }
 
 // Variables
