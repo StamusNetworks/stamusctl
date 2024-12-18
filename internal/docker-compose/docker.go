@@ -11,7 +11,7 @@ import (
 
 func RetrieveValideInterfacesFromDockerContainer() ([]string, error) {
 
-	alreadyHasBusybox, _ := docker.PullImageIfNotExisted("docker.io/library/", "busybox")
+	alreadyHasBusybox, _ := docker.PullImageIfNotExisted("docker.io/library/", "busybox:latest")
 
 	output, _ := docker.RunContainer("busybox", []string{
 		"ls",
@@ -20,7 +20,7 @@ func RetrieveValideInterfacesFromDockerContainer() ([]string, error) {
 
 	if !alreadyHasBusybox {
 		logging.Sugar.Debug("busybox image was not previously installed, deleting.")
-		docker.DeleteDockerImageByName("busybox")
+		docker.DeleteDockerImageByName("", "busybox:latest")
 	}
 
 	interfaces := strings.Split(output, "\n")
@@ -42,7 +42,7 @@ func GenerateSSLWithDocker(sslPath string) error {
 		logging.Sugar.Errorw("cannot create cert containing folder.", "error", err)
 	}
 
-	alreadyHasNginx, err := docker.PullImageIfNotExisted("docker.io/library/", "nginx")
+	alreadyHasNginx, err := docker.PullImageIfNotExisted("docker.io/library/", "nginx:1.27")
 	if err != nil {
 		logging.Sugar.Warnw("nginx pull failed", "error", err)
 		return err
@@ -67,7 +67,7 @@ func GenerateSSLWithDocker(sslPath string) error {
 
 	if !alreadyHasNginx {
 		logging.Sugar.Debug("nginx image was not previously installed, deleting.")
-		docker.DeleteDockerImageByName("nginx")
+		docker.DeleteDockerImageByName("", "nginx")
 	}
 
 	logging.Sugar.Debug("cert created.", "path", sslPath)

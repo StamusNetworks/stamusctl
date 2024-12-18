@@ -6,9 +6,9 @@ import (
 	"github.com/docker/docker/api/types/image"
 )
 
-func DeleteDockerImageByName(name string) (bool, error) {
+func DeleteDockerImageByName(registry, name string) (bool, error) {
 
-	id, err := GetImageIdFromName(name)
+	id, err := GetImageIdFromName(registry, name)
 
 	if err != nil {
 		logging.Sugar.Warnw("image id not found", "error", err)

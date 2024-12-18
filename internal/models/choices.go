@@ -85,13 +85,13 @@ func getInterfacesBusybox() ([]Variable, error) {
 		"",
 	)
 
-	_, err := docker.PullImageIfNotExisted("docker.io/library/", "busybox")
+	_, err := docker.PullImageIfNotExisted("docker.io/library/", "busybox:latest")
 	if err != nil {
 		logging.SpinnerStop(s)
 		return getInterfacesHost()
 	}
 
-	output, _ := docker.RunContainer("busybox", []string{
+	output, _ := docker.RunContainer("busybox:latest", []string{
 		"ls",
 		"/sys/class/net",
 	}, nil, "host")

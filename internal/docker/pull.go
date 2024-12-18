@@ -11,8 +11,12 @@ import (
 
 func PullImageIfNotExisted(registry string, name string) (bool, error) {
 	// name = name + ":main"
-	logger := logging.Sugar.With("name", name)
-	alreadyHere, err := IsImageAlreadyInstalled(name)
+	logger := logging.Sugar.With("registry", registry, "name", name)
+
+	logger.Debug("pulling image")
+
+	alreadyHere, err := IsImageAlreadyInstalled(registry, name)
+	logger.Debug("alreadyHere: ", alreadyHere)
 	if err != nil {
 		logger.Debugw("image failed to test", "error", err)
 		return true, err

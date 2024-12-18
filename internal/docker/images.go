@@ -3,7 +3,6 @@ package docker
 import (
 	"errors"
 	"slices"
-	"strings"
 
 	"stamus-ctl/internal/logging"
 
@@ -11,23 +10,27 @@ import (
 )
 
 func ImageName(image image.Summary) string {
-	logging.Sugar.Debugw("image", "RepoDigests", image.RepoDigests, "RepoTags", image.RepoTags)
+	logger := logging.Sugar.With("RepoTags", image.RepoTags)
 	if len(image.RepoTags) == 0 {
+		logger.Debug("no tag found")
 		return "none"
 	}
 	if len(image.RepoDigests) == 0 {
 		if len(image.RepoTags) == 0 {
+			logger.Debug("no tags or digests found")
 			return ""
 		}
 		return image.RepoTags[0]
 	}
-	return strings.Split(image.RepoDigests[0], "@")[0]
+	logger.Debug("found image tag, final name: ", image.RepoTags[0])
+	return image.RepoTags[0]
 }
 
 func GetImagesName(images []image.Summary) []string {
 	var names []string
 	for _, image := range images {
-		names = append(names, ImageName(image))
+		name := ImageName(image)
+		names = append(names, name)
 	}
 
 	return names
@@ -44,23 +47,35 @@ func GetInstalledImagesName() ([]string, error) {
 	return names, nil
 }
 
-func IsImageAlreadyInstalled(name string) (bool, error) {
-	images, err := GetInstalledImagesName()
+func IsImageAlreadyInstalled(registry, name string) (bool, error) {
+	logger := logging.Sugar.With("registry", registry, "name", name, "location", "IsImageAlreadyInstalled")
 
-	return slices.Contains(images, name), err
+	logger.Debug("searching for image")
+	images, err := GetInstalledImagesName()
+	logger.Debug(images)
+
+	if registry == "docker.io/library/" {
+		logger.Debug("skipping registry as it is docker")
+		return slices.Contains(images, name), err
+	}
+
+	return slices.Contains(images, registry+name), err
 }
 
-func GetImageIdFromName(name string) (string, error) {
+func GetImageIdFromName(registry, name string) (string, error) {
+	logger := logging.Sugar.With("registry", registry, "name", name, "location", "GetImageIdFromName")
+
+	logger.Debug("searching for imageID")
 	images, _ := cli.ImageList(ctx, image.ListOptions{All: true})
 	for _, image := range images {
 		shortName := ImageName(image)
 
-		if shortName == name {
+		if shortName == registry+name {
 			logging.Sugar.Debugw("image name found", "image.ID", image.ID, "shortName", shortName, "name", name)
 			return image.ID, nil
 		}
 	}
 
-	logging.Sugar.Debugw("image not found", "images", images, "name", name)
+	logging.Sugar.Debugw("image not found", " name ", name)
 	return "", errors.New("image not found")
 }
