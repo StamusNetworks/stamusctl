@@ -161,7 +161,7 @@ func (f *Config) SaveConfigTo(dest File, isUpgrade, isInstall bool) error {
 	if err != nil {
 		return err
 	}
-	releaseData, err := GetReleaseData(f.file, isUpgrade, isInstall)
+	releaseData, err := GetReleaseData(dest, isUpgrade, isInstall)
 	if err != nil {
 		return err
 	}

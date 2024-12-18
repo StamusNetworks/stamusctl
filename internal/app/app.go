@@ -85,8 +85,5 @@ func GetConfigsFolder(name string) string {
 }
 
 func IsCtl() bool {
-	if StamusAppName == "" {
-		return Name == CtlName
-	}
-	return StamusAppName == CtlName
+	return CtlName == "stamusctl"
 }
