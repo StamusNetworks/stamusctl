@@ -2,7 +2,7 @@ package models
 
 type Arbitrary map[string]any
 
-func InstanciateArbitrary() Arbitrary {
+func NewArbitrary() Arbitrary {
 	return Arbitrary{}
 }
 

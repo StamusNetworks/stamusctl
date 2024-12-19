@@ -41,7 +41,7 @@ test-cli:
 	CGO_ENABLED=0 GODEBUG="tarinsecurepath=0,zipinsecurepath=0" BUILD_MODE=test STAMUS_APP_NAME=stamusctl go build -v -ldflags '${LDFLAGS}' -o ${DIST_DIR}/${CLI_NAME} ./cmd
 
 test:
-	go test ./internal/models
+	go test ./...
 
 daemon:
 	CGO_ENABLED=0 GODEBUG="tarinsecurepath=0,zipinsecurepath=0" go build -v -ldflags '${LDFLAGS}' -o ${DIST_DIR}/${DAEMON_NAME} ./cmd
