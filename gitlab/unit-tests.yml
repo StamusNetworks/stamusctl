@@ -1,9 +1,10 @@
-
 unit tests:
     image: git.stamus-networks.com:4567/devel/devops/images-utils/stamusctl-build-image:latest
     # image: golang:alpine
     # extends: .go-cache
     stage: ut
+    tags:
+        - k8s
     script:
         - make test
 
