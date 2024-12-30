@@ -41,10 +41,11 @@ func updateHandler(cmd *cobra.Command, args []string) {
 	}
 	// Call handler
 	params := handlers.UpdateHandlerParams{
-		Version: version.(string),
-		Config:  config.(string),
-		Args:    args,
+		Version:        version.(string),
+		Config:         config.(string),
+		Args:           args,
+		TemplateFolder: "",
 	}
-	handlers.UpdateHandler(params)
 
+	handlers.UpdateHandler(params)
 }

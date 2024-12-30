@@ -22,9 +22,10 @@ import (
 )
 
 type UpdateHandlerParams struct {
-	Config  string
-	Args    []string
-	Version string
+	Config         string
+	Args           []string
+	Version        string
+	TemplateFolder string
 }
 
 func UpdateHandler(params UpdateHandlerParams) error {
@@ -52,12 +53,11 @@ func UpdateHandler(params UpdateHandlerParams) error {
 
 	// Get registry info
 	destPath := filepath.Join(app.TemplatesFolder + project + "/")
-	latestPath := filepath.Join(destPath, "latest/")
-
-	// Get registries infos
-	stamusConf, err := stamus.GetStamusConfig()
-	if err != nil {
-		return err
+	var templatePath string
+	if params.TemplateFolder == "" {
+		templatePath = filepath.Join(destPath, params.Version)
+	} else {
+		templatePath = params.TemplateFolder
 	}
 
 	// Pull config
@@ -101,7 +101,7 @@ func UpdateHandler(params UpdateHandlerParams) error {
 	}
 
 	// Create new config
-	newConfFile, err := models.CreateFile(latestPath, "config.yaml")
+	newConfFile, err := models.CreateFile(templatePath, "config.yaml")
 	if err != nil {
 		return err
 	}
