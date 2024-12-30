@@ -15,7 +15,6 @@ import (
 	"stamus-ctl/internal/app"
 	"stamus-ctl/internal/logging"
 	"stamus-ctl/internal/models"
-	"stamus-ctl/internal/stamus"
 	"stamus-ctl/internal/utils"
 
 	"github.com/spf13/viper"
@@ -47,6 +46,7 @@ func UpdateHandler(params UpdateHandlerParams) error {
 	// Read the config file
 	err := viperInstance.ReadInConfig()
 	if err != nil {
+		logging.Sugar.Error("cannot read config file: ", err)
 		return fmt.Errorf("cannot read config file: %w", err)
 	}
 	project := viperInstance.GetString("stamus.project")
@@ -60,16 +60,21 @@ func UpdateHandler(params UpdateHandlerParams) error {
 		templatePath = params.TemplateFolder
 	}
 
+	logger := logging.Sugar.With(
+		"Config", params.Config,
+		"Args", params.Args,
+		"Version", params.Version,
+		"project", project,
+	)
+
 	// Pull config
-	logging.Sugar.Info("Getting configuration")
-	for _, registryInfo := range stamusConf.Registries.AsList() {
-		err = registryInfo.PullConfig(destPath, project, versionVal)
-		if err == nil {
-			break
-		}
-	}
+	logger.Debug("pulling latest template")
+	err = pullLatestTemplate(destPath, project, versionVal)
 	if err != nil {
-		return err
+		logging.Sugar.Error(err)
+		if !app.Embed.IsTrue() {
+			return err
+		}
 	}
 
 	// Execute update script
@@ -83,34 +88,47 @@ func UpdateHandler(params UpdateHandlerParams) error {
 	// Save output
 	outputFile, err := os.Create(filepath.Join(configPath, "values.yaml"))
 	if err != nil {
+		logger.Error(err)
 		return err
 	}
 	defer outputFile.Close()
 	if _, err := outputFile.WriteString(runOutput.String()); err != nil {
+		logger.Error(err)
+
 		return err
 	}
 
 	// Load existing config
 	confFile, err := models.CreateFile(configPath, "values.yaml")
 	if err != nil {
+		logger.Error(err)
+
 		return err
 	}
 	existingConfig, err := models.LoadConfigFrom(confFile, false)
 	if err != nil {
+		logger.Error(err)
+
 		return err
 	}
 
 	// Create new config
 	newConfFile, err := models.CreateFile(templatePath, "config.yaml")
 	if err != nil {
+		logger.Error(err)
+
 		return err
 	}
 	newConfig, err := models.ConfigFromFile(newConfFile)
 	if err != nil {
+		logger.Error(err)
+
 		return err
 	}
 	_, _, err = newConfig.ExtractParams()
 	if err != nil {
+		logger.Error(err)
+
 		return err
 	}
 
@@ -121,10 +139,14 @@ func UpdateHandler(params UpdateHandlerParams) error {
 	newConfig.GetArbitrary().SetArbitrary(paramsArgs)
 	err = newConfig.GetParams().SetLooseValues(paramsArgs)
 	if err != nil {
+		logger.Error(err)
+
 		return err
 	}
 	err = newConfig.GetParams().ProcessOptionnalParams(false)
 	if err != nil {
+		logger.Error(err)
+
 		return err
 	}
 
@@ -132,23 +154,29 @@ func UpdateHandler(params UpdateHandlerParams) error {
 	if app.IsCtl() {
 		err = newConfig.GetParams().AskMissing()
 		if err != nil {
+			logger.Error(err)
+
 			return err
 		}
 	}
 
 	// Save the configuration
-	err = newConfig.SaveConfigTo(confFile, false, true)
+	err = newConfig.SaveConfigTo(confFile, true, false)
 	if err != nil {
+		logger.Error(err)
+
 		return err
 	}
 
 	// Run post-run script
 	_, err = runArbitraryScript(postrunPath, configPath)
 	if err != nil {
+		logger.Error(err)
+
 		return err
 	}
-	logging.Sugar.Info("")
 
+	logger.Debug("Update ran successfully")
 	return nil
 }
 

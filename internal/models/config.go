@@ -157,6 +157,7 @@ func (f *Config) ExtractParams() (*Parameters, []string, error) {
 // Save the config to a folder
 func (f *Config) SaveConfigTo(dest File, isUpgrade, isInstall bool) error {
 	// Get Data
+	logger := logging.Sugar.With("dest", dest.completePath(), "isUpgrade", isUpgrade, "isInstall", isInstall)
 	configData, err := f.GetData()
 	if err != nil {
 		return err
@@ -183,11 +184,12 @@ func (f *Config) SaveConfigTo(dest File, isUpgrade, isInstall bool) error {
 	// Process templates
 	err = processTemplates(f.file.Path, dest.Path, data)
 	if err != nil {
-		log.Println("Error processing templates", err)
+		logger.Error(err)
 		return err
 	}
 
 	// Save parameters values to config file
+	logger.Debug("saving config")
 	err = f.saveParamsTo(dest)
 	if err != nil {
 		return err

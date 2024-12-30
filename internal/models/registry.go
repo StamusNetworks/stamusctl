@@ -50,6 +50,10 @@ func (r *RegistryInfo) PullConfig(destPath string, project, version string) erro
 	imageName := "/" + project + ":" + version
 	imageUrl := r.Registry + imageName
 
+	logger := logging.Sugar.With("imageUrl", imageUrl, "imageName", imageName)
+
+	logger.Debug("Try pulling")
+
 	// Create docker client
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
@@ -78,6 +82,7 @@ func (r *RegistryInfo) PullConfig(destPath string, project, version string) erro
 	// Pull image
 	out, err := cli.ImagePull(ctx, imageUrl, pullOptions)
 	if err != nil {
+		logger.Debug("Pull failed")
 		return err
 	}
 	defer out.Close()
@@ -109,9 +114,11 @@ func (r *RegistryInfo) PullConfig(destPath string, project, version string) erro
 		Cmd:   []string{"sleep 60"},
 	}, nil, nil, nil, "")
 	if err != nil {
+		logger.Debug("Container creation failed")
 		return err
 	}
 	if err := cli.ContainerStart(ctx, resp.ID, container.StartOptions{}); err != nil {
+		logger.Debug("Container start failed")
 		return err
 	}
 
@@ -131,6 +138,7 @@ func (r *RegistryInfo) PullConfig(destPath string, project, version string) erro
 	// Copy files from container
 	for _, srcPath := range srcPaths {
 		if err := copyFromContainer(cli, ctx, resp.ID, srcPath, destPath); err != nil {
+			logger.Debug("Container copy from failed")
 			return err
 		}
 	}
@@ -151,6 +159,7 @@ func (r *RegistryInfo) PullConfig(destPath string, project, version string) erro
 	}
 	logging.Sugar.Info("Configuration extracted")
 
+	logger.Debug("Pull success")
 	return nil
 }
 
@@ -177,15 +186,19 @@ func copyFromContainer(cli *client.Client, ctx context.Context, containerID, src
 				return err
 			}
 		case tar.TypeReg:
+			logger := logging.Sugar.With("target", target)
 			if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
 				return err
 			}
 			outFile, err := os.Create(target)
 			if err != nil {
+				logger.Debug("creating failed")
 				return err
 			}
+			logger.Debug("copying")
 			if _, err := io.Copy(outFile, tr); err != nil {
 				outFile.Close()
+				logger.Debug("copying failed")
 				return err
 			}
 			outFile.Close()

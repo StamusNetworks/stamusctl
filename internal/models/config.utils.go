@@ -117,47 +117,56 @@ func nestMap(input map[string]interface{}) map[string]interface{} {
 // Process templates from a folder to another with a data nested map
 func processTemplates(inputFolder string, outputFolder string, data map[string]interface{}) error {
 	tpls, err := getAllFiles(inputFolder, ".tpl")
+	logging.Sugar.Debug("walking in: ", inputFolder, " to: ", outputFolder)
 	if err != nil {
 		return err
 	}
 
 	// Walk the source directory and process templates
 	err = filepath.Walk(inputFolder, func(path string, info os.FileInfo, err error) error {
+		logger := logging.Sugar.With("path", path, "isDir", info.IsDir(), "mod", info.Mode().String())
 		if err != nil {
+			logger.Error(err)
 			return err
 		}
 
 		rel, err := filepath.Rel(inputFolder, path)
 		if err != nil {
+			logger.Error(err)
 			return err
 		}
 
 		destPath := filepath.Join(outputFolder, rel)
+		logger = logger.With("destPath", destPath)
 
+		logger.Debug("Walkin")
 		if info.IsDir() {
 			return os.MkdirAll(destPath, info.Mode())
 		}
 
 		tmpl, err := template.New(filepath.Base(path)).Funcs(sprig.FuncMap()).ParseFiles(append([]string{path}, tpls...)...)
 		if err != nil {
-			logging.Sugar.Info("Error parsing template", path, err)
+			logger.Error(err)
 			return err
 		}
 
 		destFile, err := os.Create(destPath)
 		if err != nil {
+			logger.Error(err)
 			return err
 		}
 		defer destFile.Close()
 
 		err = tmpl.Execute(destFile, data)
 		if err != nil {
+			logger.Error(err)
 			return err
 		}
 
 		if filepath.Ext(path) == ".sh" {
 			err = os.Chmod(destPath, 0755)
 			if err != nil {
+				logger.Error(err)
 				return err
 			}
 		}
