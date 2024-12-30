@@ -75,6 +75,11 @@ func createConfig(configName, pcap string) (container.Config, container.HostConf
 				Target: "/var/log/suricata",
 			},
 			{
+				Type:   mount.TypeBind,
+				Source: dir + "/" + configName + "/fpc",
+				Target: "/var/log/suricata/fpc",
+			},
+			{
 				Type:     mount.TypeBind,
 				Source:   pcap,
 				Target:   "/replay/" + pcapName,
