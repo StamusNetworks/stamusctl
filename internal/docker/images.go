@@ -73,6 +73,11 @@ func GetImageIdFromName(registry, name string) (string, error) {
 	for _, image := range images {
 		shortName := ImageName(image)
 
+		if registry == "docker.io/library/" && shortName == name {
+			logging.Sugar.Debugw("image name found", "image.ID", image.ID, "shortName", shortName, "name", name)
+			return image.ID, nil
+		}
+
 		if shortName == registry+name {
 			logging.Sugar.Debugw("image name found", "image.ID", image.ID, "shortName", shortName, "name", name)
 			return image.ID, nil

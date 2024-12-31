@@ -65,6 +65,10 @@ func TestIsImageAlreadyInstalled(t *testing.T) {
 	assert.Equal(t, true, result)
 	assert.Equal(t, nil, err)
 
+	result, err = IsImageAlreadyInstalled("docker.io/library/", "test")
+	assert.Equal(t, true, result)
+	assert.Equal(t, nil, err)
+
 	result, err = IsImageAlreadyInstalled("toto", "")
 	assert.Equal(t, false, result)
 	assert.Equal(t, nil, err)
@@ -82,6 +86,10 @@ func TestGetImageIdFromName(t *testing.T) {
 	cli = &mockCli{}
 
 	result, err := GetImageIdFromName("test", "")
+	assert.Equal(t, "1", result)
+	assert.Equal(t, nil, err)
+
+	result, err = GetImageIdFromName("docker.io/library/", "test")
 	assert.Equal(t, "1", result)
 	assert.Equal(t, nil, err)
 
