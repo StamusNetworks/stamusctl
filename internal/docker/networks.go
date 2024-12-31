@@ -9,7 +9,12 @@ import (
 )
 
 func GetNetworkIdByName(name string) (string, error) {
-	networks, _ := cli.NetworkList(ctx, network.ListOptions{})
+	networks, err := cli.NetworkList(ctx, network.ListOptions{})
+
+	if err != nil {
+		return "", err
+	}
+
 	for _, network := range networks {
 
 		if network.Name == name {

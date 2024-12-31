@@ -101,9 +101,16 @@ func (m *mockCli) ContainerWait(ctx context.Context, containerID string, conditi
 	err := make(chan error)
 
 	if m.failContainerWait {
+		go func() {
+			for {
+				err <- errors.New("mock error wait")
+			}
+		}()
 		return response, err
 	}
 
+	close(response)
+	close(err)
 	return response, err
 }
 
