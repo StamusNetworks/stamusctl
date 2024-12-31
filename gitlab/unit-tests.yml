@@ -6,7 +6,10 @@ unit tests:
     tags:
         - k8s
     script:
-        - make test
+        - go test -coverprofile=profile.cov.tmp ./...
+        - cat profile.cov.tmp | grep -v "_mocks.go" > cover.out
+        - go tool cover -func cover.out
+    coverage: /total:\s+\(statements\)\s+\d+.\d+%/
 
 daemon tests:
     image: git.stamus-networks.com:4567/devel/devops/images-utils/stamusctl-build-image:latest
