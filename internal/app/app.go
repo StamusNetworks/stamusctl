@@ -4,8 +4,6 @@ import (
 	// Common
 	"os"
 	"path/filepath"
-	"runtime"
-	"runtime/debug"
 
 	// External
 	"github.com/adrg/xdg"
@@ -31,17 +29,6 @@ const (
 	binaryNameEnv = "STAMUSCTL_NAME"
 	CtlName       = "stamusctl"
 )
-
-func CatchException() {
-	if err := recover(); err != nil {
-		switch err.(type) {
-		case *runtime.Error:
-			debug.PrintStack()
-			panic(err)
-		default:
-		}
-	}
-}
 
 func init() {
 	// Binary name

@@ -15,13 +15,7 @@ func ImageName(image image.Summary) string {
 		logger.Debug("no tag found")
 		return "none"
 	}
-	if len(image.RepoDigests) == 0 {
-		if len(image.RepoTags) == 0 {
-			logger.Debug("no tags or digests found")
-			return ""
-		}
-		return image.RepoTags[0]
-	}
+
 	logger.Debug("found image tag, final name: ", image.RepoTags[0])
 	return image.RepoTags[0]
 }
@@ -37,12 +31,13 @@ func GetImagesName(images []image.Summary) []string {
 }
 
 func GetInstalledImagesName() ([]string, error) {
-	images, _ := cli.ImageList(ctx, image.ListOptions{All: true})
+	images, err := cli.ImageList(ctx, image.ListOptions{All: true})
+
+	if err != nil {
+		return nil, err
+	}
 
 	names := GetImagesName(images)
-	for _, image := range images {
-		names = append(names, ImageName(image))
-	}
 
 	return names, nil
 }
@@ -52,6 +47,10 @@ func IsImageAlreadyInstalled(registry, name string) (bool, error) {
 
 	logger.Debug("searching for image")
 	images, err := GetInstalledImagesName()
+	if err != nil {
+		return false, err
+	}
+
 	logger.Debug(images)
 
 	if registry == "docker.io/library/" {
@@ -66,7 +65,11 @@ func GetImageIdFromName(registry, name string) (string, error) {
 	logger := logging.Sugar.With("registry", registry, "name", name, "location", "GetImageIdFromName")
 
 	logger.Debug("searching for imageID")
-	images, _ := cli.ImageList(ctx, image.ListOptions{All: true})
+	images, err := cli.ImageList(ctx, image.ListOptions{All: true})
+	if err != nil {
+		return "", err
+	}
+
 	for _, image := range images {
 		shortName := ImageName(image)
 

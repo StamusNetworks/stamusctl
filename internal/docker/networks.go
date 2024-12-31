@@ -5,11 +5,11 @@ import (
 
 	"stamus-ctl/internal/logging"
 
-	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/network"
 )
 
 func GetNetworkIdByName(name string) (string, error) {
-	networks, _ := cli.NetworkList(ctx, types.NetworkListOptions{})
+	networks, _ := cli.NetworkList(ctx, network.ListOptions{})
 	for _, network := range networks {
 
 		if network.Name == name {
