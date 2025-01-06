@@ -14,25 +14,6 @@ import (
 	"stamus-ctl/internal/logging"
 )
 
-func GetExecExist(executable string, flags ...string) bool {
-	// Format cmd
-	flags = append([]string{executable}, flags...)
-	cmd := exec.Command("which", flags...)
-
-	// Execute command which
-	output, err := cmd.Output()
-
-	// If the command fails or output is empty, then executable not found
-	if err != nil || len(strings.TrimSpace(string(output))) == 0 {
-		logging.Sugar.Errorw("Executable '%s' not found\n", "executable", executable)
-		return false
-	}
-
-	// Else executable was found
-	fmt.Printf("Executable '%s' found at:\n%s\n", executable, output)
-	return true
-}
-
 func GetExecVersion(executable string, flags ...string) (*semver.Version, error) {
 	// Format cmd
 	flags = append([]string{"version"}, flags...)
