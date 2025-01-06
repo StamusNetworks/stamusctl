@@ -153,9 +153,12 @@ func (r *RegistryInfo) PullConfig(destPath string, project, version string) erro
 	if err != nil {
 		return err
 	}
+
+	if versionPath != filepath.Join(destPath, string(versionFromTemplate)) {
 	err = cp.Copy(versionPath, filepath.Join(destPath, string(versionFromTemplate)))
 	if err != nil {
 		return err
+	}
 	}
 	logging.Sugar.Info("Configuration extracted")
 
