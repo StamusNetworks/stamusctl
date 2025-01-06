@@ -2,10 +2,10 @@ full test w test config:
     stage: integration
     image: docker:24.0.5
     tags:
-      - k8s-small
+        - k8s-small
     rules:
-    - if: $CI_COMMIT_BRANCH
-      when: on_success
+        - if: $CI_COMMIT_BRANCH
+          when: on_success
     variables:
         DOCKER_HOST: tcp://docker:2376
         DOCKER_TLS_CERTDIR: '/certs'
@@ -34,10 +34,10 @@ full test w debug image:
     stage: integration
     image: git.stamus-networks.com:4567/devel/stamus-ctl/cli:$CI_COMMIT_REF_NAME-$CI_COMMIT_SHORT_SHA
     tags:
-      - k8s-small
+        - k8s-small
     rules:
-    - if: $CI_COMMIT_BRANCH
-      when: on_success
+        - if: $CI_COMMIT_BRANCH
+          when: on_success
     variables:
         DOCKER_HOST: tcp://docker:2376
         DOCKER_TLS_CERTDIR: '/certs'
@@ -57,3 +57,30 @@ full test w debug image:
         - stamusctl config set globals.restartmode=always
         - stamusctl compose up -d
         - docker inspect nginx | jq -e '.[0].HostConfig.RestartPolicy.Name == "always"'
+
+test upgrade:
+    stage: integration
+    image: git.stamus-networks.com:4567/devel/stamus-ctl/cli:$CI_COMMIT_REF_NAME-$CI_COMMIT_SHORT_SHA
+    tags:
+        - k8s-small
+    rules:
+        - if: $CI_COMMIT_BRANCH
+          when: on_success
+    variables:
+        DOCKER_HOST: tcp://docker:2376
+        DOCKER_TLS_CERTDIR: '/certs'
+        DOCKER_TLS_VERIFY: 1
+        DOCKER_CERT_PATH: '$DOCKER_TLS_CERTDIR/client'
+    services:
+        - docker:24.0.5-dind
+    needs:
+        - docker cli
+    script:
+        - apk update && apk add jq docker yq
+        - stamusctl login --registry $GITLAB_REGISTRY_PATH --user $GITLAB_REGISTRY_USER --pass $GITLAB_REGISTRY_TOKEN
+        - stamusctl compose init tests --version 0.9.3-gitlab
+        - cat config/values.yaml | yq -e '.stamus.project == "tests"'
+        - cat config/version | yq -e '. == "0.9.3"'
+        - stamusctl compose init tests --version 0.9.4-gitlab
+        - cat config/values.yaml | yq -e '.stamus.project == "tests"'
+        - cat config/version | yq -e '. == "0.9.4"'
