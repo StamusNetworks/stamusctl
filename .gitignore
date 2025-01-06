@@ -6,3 +6,6 @@ dist/
 tmp/
 config/
 .token
+
+cover.out
+profile.cov.tmp
