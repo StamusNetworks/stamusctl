@@ -16,7 +16,6 @@ func ImageName(image image.Summary) string {
 		return "none"
 	}
 
-	logger.Debug("found image tag, final name: ", image.RepoTags[0])
 	return image.RepoTags[0]
 }
 

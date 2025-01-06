@@ -43,10 +43,11 @@ func InitHandler(isCli bool, params InitHandlerInputs) error {
 	logger.Debug("pulling latest template")
 	err := pullLatestTemplate(destPath, params.Project, params.Version)
 	if err != nil {
+		logger.Error(err)
 		if !app.Embed.IsTrue() {
+			logger.Info("using embeds")
 			return err
 		}
-		logging.Sugar.Error(err)
 	}
 	// Instanciate config
 	var templatePath string
@@ -64,6 +65,7 @@ func InitHandler(isCli bool, params InitHandlerInputs) error {
 	}
 
 	// Read the folder configuration
+	logger.Debug("extracting params")
 	_, _, err = config.ExtractParams()
 	if err != nil {
 		logger.Error(err)
@@ -123,6 +125,8 @@ func InitHandler(isCli bool, params InitHandlerInputs) error {
 		logger.Error(err)
 		return err
 	}
+
+	logger.Debug("Init finished")
 	return nil
 }
 

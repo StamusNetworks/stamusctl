@@ -106,7 +106,7 @@ func (r *RegistryInfo) PullConfig(destPath string, project, version string) erro
 			fmt.Printf("\r%s %s", pullResp.Status, pullResp.Progress)
 		}
 	}
-	logging.Sugar.Info("Got configuration")
+	logger.Info("Got configuration")
 
 	// Run container
 	resp, err := cli.ContainerCreate(ctx, &container.Config{
@@ -155,12 +155,12 @@ func (r *RegistryInfo) PullConfig(destPath string, project, version string) erro
 	}
 
 	if versionPath != filepath.Join(destPath, string(versionFromTemplate)) {
-	err = cp.Copy(versionPath, filepath.Join(destPath, string(versionFromTemplate)))
-	if err != nil {
-		return err
+		err = cp.Copy(versionPath, filepath.Join(destPath, string(versionFromTemplate)))
+		if err != nil {
+			return err
+		}
 	}
-	}
-	logging.Sugar.Info("Configuration extracted")
+	logger.Info("Configuration extracted")
 
 	logger.Debug("Pull success")
 	return nil
@@ -189,7 +189,7 @@ func copyFromContainer(cli *client.Client, ctx context.Context, containerID, src
 				return err
 			}
 		case tar.TypeReg:
-			logger := logging.Sugar.With("target", target)
+			logger := logging.Sugar.With("target", target, "srcPath", srcPath, "containerID", containerID)
 			if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
 				return err
 			}
@@ -198,12 +198,13 @@ func copyFromContainer(cli *client.Client, ctx context.Context, containerID, src
 				logger.Debug("creating failed")
 				return err
 			}
-			logger.Debug("copying")
-			if _, err := io.Copy(outFile, tr); err != nil {
+			written, err := io.Copy(outFile, tr)
+			if err != nil {
 				outFile.Close()
 				logger.Debug("copying failed")
 				return err
 			}
+			logger.Debug("copied ", written, " bytes")
 			outFile.Close()
 		}
 	}

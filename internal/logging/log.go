@@ -28,10 +28,10 @@ func NewLogger() *zap.Logger {
 		MessageKey:     "M",
 		StacktraceKey:  "S",
 		LineEnding:     zapcore.DefaultLineEnding,
-		EncodeLevel:    zapcore.CapitalLevelEncoder,
 		EncodeTime:     zapcore.ISO8601TimeEncoder,
 		EncodeDuration: zapcore.StringDurationEncoder,
 		EncodeCaller:   zapcore.ShortCallerEncoder,
+		EncodeLevel:    zapcore.CapitalColorLevelEncoder,
 	}
 
 	if verbosity >= len(levels) {
@@ -43,8 +43,6 @@ func NewLogger() *zap.Logger {
 
 		if app.Name == app.CtlName {
 			encoder.TimeKey = zapcore.OmitKey
-			encoder.LevelKey = zapcore.OmitKey
-			encoder.CallerKey = zapcore.OmitKey
 		}
 	}
 

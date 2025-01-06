@@ -84,6 +84,7 @@ func handler(_ *cobra.Command, args []string) error {
 	isDefault, err := flags.IsDefaultParam.GetValue()
 	if err != nil {
 		return err
+		logging.Sugar.Error(err)
 	}
 
 	if isDefault.(bool) {
@@ -92,31 +93,38 @@ func handler(_ *cobra.Command, args []string) error {
 
 	isExpert, err := flags.IsExpert.GetValue()
 	if err != nil {
+		logging.Sugar.Error(err)
 		return err
 	}
 
 	values, err := flags.Values.GetValue()
 	if err != nil {
+		logging.Sugar.Error(err)
 		return err
 	}
 	fromFile, err := flags.FromFile.GetValue()
 	if err != nil {
+		logging.Sugar.Error(err)
 		return err
 	}
 	config, err := flags.Config.GetValue()
 	if err != nil {
+		logging.Sugar.Error(err)
 		return err
 	}
 	templateFolder, err := flags.Template.GetValue()
 	if err != nil {
+		logging.Sugar.Error(err)
 		return err
 	}
 	version, err := flags.Version.GetValue()
 	if err != nil {
+		logging.Sugar.Error(err)
 		return err
 	}
 	bind, err := flags.Bind.GetValue()
 	if err != nil {
+		logging.Sugar.Error(err)
 		return err
 	}
 	toBind := strings.Split(bind.(string), ",")
