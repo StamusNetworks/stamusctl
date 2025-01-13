@@ -1,8 +1,6 @@
 package troubleshoot
 
 import (
-	"fmt"
-
 	"github.com/gin-gonic/gin"
 )
 
@@ -14,6 +12,5 @@ import (
 // @Router /troubleshoot/reboot [post]
 func rebootHandler(c *gin.Context) {
 	// Reboot the system
-	c.JSON(500, gin.H{"error": fmt.Sprintf("failed to reboot: we are on windows")})
-	return
+	c.JSON(500, gin.H{"error": "failed to reboot: we are on windows"})
 }
