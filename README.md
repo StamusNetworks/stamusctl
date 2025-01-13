@@ -58,6 +58,11 @@ To build the `stamusd` binary, you can:
 go build -o ./stamusd ./cmd
 ```
 
+To build on Windows you can do:
+```powershell
+make all CLI_NAME=stamusctl.exe DAEMON_NAME=./stamusd.exe CURRENT_DIR=. HOST_OS=windows HOST_ARCH=amd64 VERSION=$(cat VERSION) GIT_COMMIT=$(git rev-parse HEAD)
+```
+
 ## Usage
 If you have the binary in your path, you can:
 ```
