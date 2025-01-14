@@ -42,7 +42,7 @@ test:
 	CGO_ENABLED=0 go test ./... -cover
 
 daemon:
-	go build -v -ldflags '${LDFLAGS}' -o ${DIST_DIR}/${DAEMON_NAME} ./cmd
+	CGO_ENABLED=0 go build -v -ldflags '${LDFLAGS}' -o ${DIST_DIR}/${DAEMON_NAME} ./cmd
 
 daemon-dev:
 	air run
