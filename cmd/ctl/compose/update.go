@@ -29,7 +29,7 @@ func updateCmd() *cobra.Command {
 	return cmd
 }
 
-func updateHandler(cmd *cobra.Command, args []string) {
+func updateHandler(_ *cobra.Command, args []string) {
 	// Validate flags
 	version, err := flags.Version.GetValue()
 	if err != nil {

@@ -83,8 +83,8 @@ func handler(_ *cobra.Command, args []string) error {
 	// Get flags
 	isDefault, err := flags.IsDefaultParam.GetValue()
 	if err != nil {
-		return err
 		logging.Sugar.Error(err)
+		return err
 	}
 
 	if isDefault.(bool) {

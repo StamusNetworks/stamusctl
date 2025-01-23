@@ -32,7 +32,7 @@ func readPcapCmd() *cobra.Command {
 	return cmd
 }
 
-func readPcap(cmd *cobra.Command, args []string) error {
+func readPcap(_ *cobra.Command, args []string) error {
 	// Validate pcap
 	if len(args) < 1 {
 		return errors.New("pcap file path is required")
