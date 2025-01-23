@@ -7,7 +7,6 @@ import (
 
 	"errors"
 	"os"
-	"path/filepath"
 
 	"github.com/spf13/cobra"
 
@@ -39,7 +38,7 @@ func readPcap(cmd *cobra.Command, args []string) error {
 		return errors.New("pcap file path is required")
 	}
 	pcapFile := args[0]
-	if err := checkFile(pcapFile, ".pcap"); err != nil {
+	if err := checkFile(pcapFile); err != nil {
 		return err
 	}
 	// Get flags
@@ -60,7 +59,7 @@ func readPcap(cmd *cobra.Command, args []string) error {
 }
 
 // checkFile checks if a file exists and has the specified extension.
-func checkFile(filePath, ext string) error {
+func checkFile(filePath string) error {
 	// Check if file exists
 	info, err := os.Stat(filePath)
 	if os.IsNotExist(err) {
@@ -73,11 +72,6 @@ func checkFile(filePath, ext string) error {
 	// Check if it's a regular file
 	if !info.Mode().IsRegular() {
 		return errors.New("not a regular file")
-	}
-
-	// Check file extension
-	if filepath.Ext(filePath) != ext {
-		return errors.New("file does not have the correct extension")
 	}
 
 	return nil
