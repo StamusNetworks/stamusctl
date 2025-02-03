@@ -2,6 +2,7 @@ package tests
 
 import (
 	// Core
+
 	"testing"
 
 	// External
@@ -19,6 +20,7 @@ func TestPing(t *testing.T) {
 }
 
 func TestComposeInit(t *testing.T) {
+	InitUnitTest(t)
 	initRequest := pkg.InitRequest{
 		IsDefault: true,
 		Values: map[string]string{
@@ -32,11 +34,12 @@ func TestComposeInit(t *testing.T) {
 		assert.Equal(t, 200, res.Code)
 		assert.Equal(t, "{\"message\":\"ok\"}", res.Body.String())
 		current := "config"
-		compareDirs(t, app.GetConfigsFolder(current), "../outputs/compose-init")
+		compareDirs(t, app.GetConfigsFolder(current), "./outputs/compose-init")
 	}
 }
 
 func TestComposeInitSet(t *testing.T) {
+	InitUnitTest(t)
 	initRequest := pkg.InitRequest{
 		IsDefault: true,
 		Values: map[string]string{
@@ -50,10 +53,11 @@ func TestComposeInitSet(t *testing.T) {
 	assert.Equal(t, "{\"message\":\"ok\"}", res.Body.String())
 
 	current := "config"
-	compareDirs(t, app.GetConfigsFolder(current), "../outputs/compose-init-set")
+	compareDirs(t, app.GetConfigsFolder(current), "./outputs/compose-init-set")
 }
 
 func TestComposeInitOptional(t *testing.T) {
+	InitUnitTest(t)
 	initRequest := pkg.InitRequest{
 		IsDefault: true,
 		Values: map[string]string{
@@ -66,10 +70,11 @@ func TestComposeInitOptional(t *testing.T) {
 	assert.Equal(t, "{\"message\":\"ok\"}", res.Body.String())
 
 	current := "config"
-	compareDirs(t, app.GetConfigsFolder(current), "../outputs/compose-init-optional")
+	compareDirs(t, app.GetConfigsFolder(current), "./outputs/compose-init-optional")
 }
 
 func TestComposeInitArbitrary(t *testing.T) {
+	InitUnitTest(t)
 	initRequest := pkg.InitRequest{
 		IsDefault: true,
 		Values: map[string]string{
@@ -83,10 +88,11 @@ func TestComposeInitArbitrary(t *testing.T) {
 	assert.Equal(t, "{\"message\":\"ok\"}", res.Body.String())
 
 	current := "config"
-	compareDirs(t, app.GetConfigsFolder(current), "../outputs/compose-init-arbitrary")
+	compareDirs(t, app.GetConfigsFolder(current), "./outputs/compose-init-arbitrary")
 }
 
 func TestConfigSet(t *testing.T) {
+	InitUnitTest(t)
 	// Setup
 	TestComposeInit(nil)
 	// Test
@@ -100,10 +106,11 @@ func TestConfigSet(t *testing.T) {
 	assert.Equal(t, "{\"message\":\"ok\"}", res.Body.String())
 	// Compare
 	current := "config"
-	compareDirs(t, app.GetConfigsFolder(current), "../outputs/compose-init-set")
+	compareDirs(t, app.GetConfigsFolder(current), "./outputs/compose-init-set")
 }
 
 func TestConfigReload(t *testing.T) {
+	InitUnitTest(t)
 	// Setup
 	TestComposeInit(nil)
 	setRequest := pkg.SetRequest{
@@ -121,7 +128,7 @@ func TestConfigReload(t *testing.T) {
 	assert.Equal(t, "{\"message\":\"ok\"}", res.Body.String())
 	// Compare
 	current := "config"
-	compareDirs(t, app.GetConfigsFolder(current), "../outputs/compose-init")
+	compareDirs(t, app.GetConfigsFolder(current), "./outputs/compose-init")
 }
 
 // func TestUpload(t *testing.T) {

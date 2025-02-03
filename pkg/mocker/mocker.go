@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"crypto/rand"
 	"encoding/hex"
-	"os"
 	"path/filepath"
+	"stamus-ctl/internal/app"
 	"stamus-ctl/pkg"
 	"time"
 
 	"github.com/docker/docker/api/types"
+	"github.com/spf13/afero"
 	"github.com/spf13/viper"
 )
 
@@ -79,7 +80,7 @@ func (m *mocked) Logs() (pkg.LogsResponse, error) {
 func getServices(path string) ([]string, error) {
 	// get file content
 	filePath := filepath.Join(path, "docker-compose.yaml")
-	content, err := os.ReadFile(filePath)
+	content, err := afero.ReadFile(app.FS, filePath)
 	if err != nil {
 		return []string{}, err
 	}

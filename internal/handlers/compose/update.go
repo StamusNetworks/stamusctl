@@ -86,7 +86,7 @@ func UpdateHandler(params UpdateHandlerParams) error {
 	}
 
 	// Save output
-	outputFile, err := os.Create(filepath.Join(configPath, "values.yaml"))
+	outputFile, err := app.FS.Create(filepath.Join(configPath, "values.yaml"))
 	if err != nil {
 		logger.Error(err)
 		return err
@@ -188,7 +188,7 @@ func runArbitraryScript(path string, config string) (*strings.Builder, error) {
 	arbitrary.Stdout = runOutput
 	arbitrary.Stderr = os.Stderr
 	// Change execution rights
-	err := os.Chmod(path, 0755)
+	err := app.FS.Chmod(path, 0755)
 	if err != nil {
 		return nil, err
 	}

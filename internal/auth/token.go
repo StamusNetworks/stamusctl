@@ -3,12 +3,13 @@ package auth
 import (
 	"context"
 	"encoding/base64"
-	"os"
+	"stamus-ctl/internal/app"
 	"stamus-ctl/internal/logging"
 	"strings"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/gin-gonic/gin"
+	"github.com/spf13/afero"
 )
 
 var token string
@@ -32,7 +33,7 @@ func WatchForToken(pathToWatch string) {
 				}
 				if event.Has(fsnotify.Write) {
 					logging.LoggerWithContextToSpanContext(ctx).Info("token file updated. Updating token")
-					tokenFromFile, err := os.ReadFile(pathToWatch)
+					tokenFromFile, err := afero.ReadFile(app.FS, pathToWatch)
 					if err != nil {
 						logging.LoggerWithContextToSpanContext(ctx).Sugar().Error("failed to read token file", err)
 					}

@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	// Common
+	"stamus-ctl/internal/app"
 	stamusFlags "stamus-ctl/internal/handlers"
 	"stamus-ctl/internal/logging"
 	"stamus-ctl/internal/models"
@@ -143,7 +144,7 @@ func makeCustomRunner(
 		composeFile := ""
 		for _, file := range possibleComposeFiles {
 			filePath := filepath.Join(conf, file)
-			if _, err := os.Stat(filePath); err == nil {
+			if _, err := app.FS.Stat(filePath); err == nil {
 				composeFile = filePath
 				break
 			}

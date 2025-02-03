@@ -16,7 +16,7 @@ func (m *ModeStruct) IsProd() bool {
 
 type EmbedStruct string
 
-func (e *EmbedStruct) set(value string) {
+func (e *EmbedStruct) Set(value string) {
 	*e = EmbedStruct(value)
 }
 

@@ -31,18 +31,6 @@ type Variable struct {
 	Int    *int
 }
 
-// Return the value of a string to any type
-func asLooseTyped(value string) any {
-	if value == "true" || value == "false" {
-		return value == "true"
-	}
-	asInt, err := strconv.Atoi(value)
-	if err != nil {
-		return value
-	}
-	return asInt
-}
-
 func (v *Variable) IsNil() bool {
 	return v.String == nil && v.Bool == nil && v.Int == nil
 }
@@ -234,7 +222,7 @@ func (p *Parameter) SetToDefault() {
 }
 
 // Set the variable to the value provided
-func (p *Parameter) SetLooseValue(key string, value string) error {
+func (p *Parameter) SetLooseValue(value string) error {
 	switch p.Type {
 	case "string":
 		p.Variable = CreateVariableString(value)
@@ -242,7 +230,7 @@ func (p *Parameter) SetLooseValue(key string, value string) error {
 		if value == "true" || value == "false" {
 			p.Variable = CreateVariableBool(value == "true")
 		} else {
-			logging.Sugar.Info("Invalid value for", key)
+			logging.Sugar.Info("Invalid value for", p.Name)
 		}
 	case "int":
 		// Convert string to int
@@ -254,6 +242,27 @@ func (p *Parameter) SetLooseValue(key string, value string) error {
 		p.Variable = CreateVariableInt(asInt)
 	}
 	return nil
+}
+
+func (p *Parameter) SetVariable(value Variable) *Parameter {
+	p.Variable = value
+	return p
+}
+func (p *Parameter) SetDefault(value Variable) *Parameter {
+	p.Default = value
+	return p
+}
+func (p *Parameter) Copy() *Parameter {
+	return &Parameter{
+		Name:      p.Name,
+		Shorthand: p.Shorthand,
+		Usage:     p.Usage,
+		Type:      p.Type,
+		Variable:  p.Variable,
+		Default:   p.Default,
+		Choices:   p.Choices,
+		Hidden:    p.Hidden,
+	}
 }
 
 // Ask the user for the value of the parameter
@@ -337,8 +346,8 @@ func textPrompt(param *Parameter, defaultValue string) (string, error) {
 
 func validateParamFunc(param *Parameter) func(input string) error {
 	return func(input string) error {
-		current := param
-		err := current.SetLooseValue(param.Name, input)
+		current := *param
+		err := current.SetLooseValue(input)
 		if err != nil {
 			return err
 		}

@@ -6,12 +6,13 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"stamus-ctl/internal/app"
 	"stamus-ctl/internal/logging"
 	"strings"
 
 	// External
 
-	"github.com/spf13/viper"
+	"github.com/spf13/afero"
 	// Custom
 )
 
@@ -19,33 +20,31 @@ import (
 // It contains the path to the file, the arbitrary values, the parameters values and the viper instnace to interact with the file
 // It can be used to get or set values, validates them etc
 type Config struct {
-	file          File
-	project       string
-	arbitrary     *Arbitrary
-	parameters    *Parameters
-	viperInstance *viper.Viper
+	file       *File
+	project    string
+	arbitrary  *Arbitrary
+	parameters *Parameters
 }
 
 // Create a new config instance from a file
-func ConfigFromFile(file File) (*Config, error) {
-	viperInstance, err := InstanciateViper(file)
+func ConfigFromFile(file *File) (*Config, error) {
+	_, err := file.InstanciateViper()
 	if err != nil {
 		return nil, err
 	}
-	return NewConfig(file, viperInstance), nil
+	return NewConfig(file), nil
 }
 
-func NewConfig(file File, viperInstance *viper.Viper) *Config {
+func NewConfig(file *File) *Config {
 	return &Config{
-		file:          file,
-		viperInstance: viperInstance,
-		arbitrary:     &Arbitrary{},
+		file:      file,
+		arbitrary: &Arbitrary{},
 	}
 }
 
 // Create a new config instance from a path, extract the values and return the instance
 // Reload is used to not keep the arbitrary values
-func LoadConfigFrom(path File, reload bool) (*Config, error) {
+func LoadConfigFrom(path *File, reload bool) (*Config, error) {
 	// Load the config
 	configured, err := ConfigFromFile(path)
 	if err != nil {
@@ -81,15 +80,15 @@ func LoadConfigFrom(path File, reload bool) (*Config, error) {
 	return originConf, nil
 }
 
-func GetStamusFile(values map[string]*Variable) (File, error) {
+func GetStamusFile(values map[string]*Variable) (*File, error) {
 	stamusConfPathPointer := values["stamus.config"]
 	if stamusConfPathPointer == nil {
-		return File{}, fmt.Errorf("stamus.config not found")
+		return nil, fmt.Errorf("stamus.config not found")
 	}
 	stamusConfPath := *stamusConfPathPointer.String
 	file, err := CreateFile(stamusConfPath, "config.yaml")
 	if err != nil {
-		return File{}, err
+		return nil, err
 	}
 	return file, nil
 }
@@ -155,7 +154,7 @@ func (f *Config) ExtractParams() (*Parameters, []string, error) {
 }
 
 // Save the config to a folder
-func (f *Config) SaveConfigTo(dest File, isUpgrade, isInstall bool) error {
+func (f *Config) SaveConfigTo(dest *File, isUpgrade, isInstall bool) error {
 	// Get Data
 	logger := logging.Sugar.With("dest", dest.completePath(), "isUpgrade", isUpgrade, "isInstall", isInstall)
 	configData, err := f.GetData()
@@ -226,7 +225,7 @@ func (f *Config) GetData() (map[string]any, error) {
 	return data, nil
 }
 
-func GetReleaseData(dest File, isUpgrade, isInstall bool) (map[string]any, error) {
+func GetReleaseData(dest *File, isUpgrade, isInstall bool) (map[string]any, error) {
 	currentDir, err := os.Getwd()
 	if err != nil {
 		return nil, err
@@ -269,7 +268,7 @@ func (f *Config) SetValuesFromFiles(fromFiles string) error {
 			return fmt.Errorf("invalid argument: %s of %s. Must be parameter.subparameter=./folder/file", arg, args)
 		}
 		// Get file content
-		content, err := os.ReadFile(split[1])
+		content, err := afero.ReadFile(app.FS, split[1])
 		if err != nil {
 			return err
 		}
@@ -284,21 +283,9 @@ func (f *Config) SetValuesFromFiles(fromFiles string) error {
 }
 
 // Cleans the config folder
-func (f *Config) Clean(folder File) error {
-	// Get list of all included subconfigs
-	_, includes, err := f.ExtractParams()
-	if err != nil {
-		return err
-	}
-	// Delete all included subconfig files
-	for _, include := range includes {
-		err := os.Remove(filepath.Join(folder.Path, include))
-		if err != nil {
-			return err
-		}
-	}
+func (f *Config) Clean(folder *File) error {
 	// Clean destination folder
-	err = deleteEmptyFiles(folder.Path)
+	err := deleteEmptyFiles(folder.Path)
 	if err != nil {
 		return err
 	}
@@ -310,11 +297,11 @@ func (f *Config) Clean(folder File) error {
 }
 
 // Save parameters values to config file
-func (f *Config) saveParamsTo(dest File) error {
+func (f *Config) saveParamsTo(dest *File) error {
 	//Clear the file
-	os.Remove(dest.completePath())
+	app.FS.Remove(dest.completePath())
 	//ReCreate the file
-	file, err := os.Create(dest.completePath())
+	file, err := app.FS.Create(dest.completePath())
 	if err != nil {
 		logging.Sugar.Info("Error creating config file", err)
 		return err
@@ -340,19 +327,19 @@ func (f *Config) saveParamsTo(dest File) error {
 	}
 	// Set the new values
 	for key, value := range f.arbitrary.AsMap() {
-		conf.viperInstance.Set(key, value)
+		conf.file.GetViper().Set(key, value)
 	}
 	for key, value := range paramsValues {
-		conf.viperInstance.Set(key, value)
+		conf.file.GetViper().Set(key, value)
 	}
 
 	// Project
-	conf.viperInstance.Set("stamus.project", f.project)
+	conf.file.GetViper().Set("stamus.project", f.project)
 	// If latest, set stamus.config value to version
 	path := removeEmptyStrings(strings.Split(f.file.Path, "/"))
 	if path[len(path)-1] == "latest" {
 		// Get version
-		version, err := os.ReadFile(filepath.Join(f.file.Path, "version"))
+		version, err := afero.ReadFile(app.FS, filepath.Join(f.file.Path, "version"))
 		if err != nil {
 			log.Println("Error reading version file", err)
 			return err
@@ -361,12 +348,12 @@ func (f *Config) saveParamsTo(dest File) error {
 		var versionPath []string = append([]string{}, path...)
 		copy(versionPath, path)
 		versionPath[len(versionPath)-1] = string(version)
-		conf.viperInstance.Set("stamus.config", "/"+filepath.Join(versionPath...))
+		conf.file.GetViper().Set("stamus.config", "/"+filepath.Join(versionPath...))
 	} else {
-		conf.viperInstance.Set("stamus.config", f.file.Path)
+		conf.file.GetViper().Set("stamus.config", f.file.Path)
 	}
 	// Write the new config file
-	err = conf.viperInstance.WriteConfig()
+	err = conf.file.GetViper().WriteConfig()
 	if err != nil {
 		logging.Sugar.Info("Error writing config file", err)
 		return err
@@ -376,5 +363,5 @@ func (f *Config) saveParamsTo(dest File) error {
 }
 
 func (f *Config) DeleteFolder() error {
-	return os.RemoveAll(f.file.Path)
+	return app.FS.RemoveAll(f.file.Path)
 }

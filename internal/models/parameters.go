@@ -105,50 +105,6 @@ func (p *Parameters) SetToDefaults() error {
 	return nil
 }
 
-func (p *Parameters) GetValues(keys ...string) map[string]string {
-	values := make(map[string]string)
-	for key, param := range *p {
-		// if keys are provided, only return values for keys that start with the provided keys
-		if len(keys) > 0 {
-			for _, k := range keys {
-				if strings.HasPrefix(key, k) {
-					values[key] = param.Variable.AsString()
-				}
-			}
-		} else {
-			values[key] = param.Variable.AsString()
-		}
-	}
-	return values
-}
-
-func (p *Parameters) GetVariablesValues(keys ...string) map[string]*Variable {
-	values := make(map[string]*Variable)
-	for key, param := range *p {
-		// if keys are provided, only return values for keys that start with the provided keys
-		if len(keys) > 0 {
-			for _, k := range keys {
-				if strings.HasPrefix(key, k) {
-					values[key] = &param.Variable
-				}
-			}
-		} else {
-			values[key] = &param.Variable
-		}
-	}
-	return values
-}
-
-// Returns an ordered slices of the parameters keys
-func (p *Parameters) GetOrdered() []string {
-	keys := make([]string, 0, len(*p))
-	for key := range *p {
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
-	return keys
-}
-
 // Process optional parameters
 // If interactive is true, ask the user for the optional parameters
 func (p *Parameters) ProcessOptionnalParams(interactive bool) error {
@@ -235,7 +191,7 @@ func (p *Parameters) SetValues(values map[string]*Variable) {
 func (p *Parameters) SetLooseValues(values map[string]string) error {
 	for key, value := range values {
 		if (*p)[key] != nil {
-			err := (*p)[key].SetLooseValue(key, value)
+			err := (*p)[key].SetLooseValue(value)
 			if err != nil {
 				return err
 			}
@@ -243,4 +199,8 @@ func (p *Parameters) SetLooseValues(values map[string]string) error {
 	}
 
 	return nil
+}
+
+func (p *Parameters) Get(key string) *Parameter {
+	return (*p)[key]
 }

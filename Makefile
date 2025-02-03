@@ -47,8 +47,8 @@ daemon:
 daemon-dev:
 	air run
 
-daemon-test: init-embeds
-	EMBED_MODE=true go test ./.test/unit
+daemon-test:
+	go test ./.test
 
 build-swaggo-image:
 	docker build . -t swag-daemon -f docker/Dockerfile.swag

@@ -4,28 +4,42 @@ import (
 	// Common
 
 	"fmt"
-	"os"
+	"log"
+	"stamus-ctl/internal/app"
+	"stamus-ctl/internal/logging"
 	"strings"
+
+	"github.com/spf13/viper"
 	// External
 )
 
 // Used to setup viper instances
 type File struct {
-	Path string
-	Name string
-	Type string
+	Path          string
+	Name          string
+	Type          string
+	viperInstance *viper.Viper
 }
 
-func NewFile(path, name, fileType string) File {
-	return File{
+func NewFile(path, name, fileType string) *File {
+	return &File{
 		Path: path,
 		Name: name,
 		Type: fileType,
 	}
 }
 
+func (f *File) InstanciateViper() (*viper.Viper, error) {
+	viperInstance, err := InstanciateViper(f)
+	if err != nil {
+		return nil, err
+	}
+	f.viperInstance = viperInstance
+	return viperInstance, nil
+}
+
 // Used to get the file as properties from path
-func CreateFileFromPath(path string) (File, error) {
+func CreateFileFromPath(path string) (*File, error) {
 	// Extract the file properties
 	pathSplited := strings.Split(path, "/")
 	if len(pathSplited) < 2 {
@@ -34,7 +48,7 @@ func CreateFileFromPath(path string) (File, error) {
 	nameSplited := strings.Split(pathSplited[len(pathSplited)-1], ".")
 	// Validate name
 	if len(nameSplited) < 2 {
-		return File{}, fmt.Errorf("path %s is not a valid file name", path)
+		return nil, fmt.Errorf("path %s is not a valid file name", path)
 	}
 	// File
 	file := NewFile(
@@ -45,18 +59,18 @@ func CreateFileFromPath(path string) (File, error) {
 	// Validate all
 	err := file.isValidPath()
 	if err != nil {
-		return File{}, err
+		return nil, err
 	}
 	// Return file instance
 	return file, nil
 }
 
 // Used create a file from path and name
-func CreateFile(path string, fileName string) (File, error) {
+func CreateFile(path string, fileName string) (*File, error) {
 	// Extract the file properties
 	nameSplited := strings.Split(fileName, ".")
 	if len(nameSplited) != 2 {
-		return File{}, fmt.Errorf("path %s is not a valid file name", path)
+		return nil, fmt.Errorf("path %s is not a valid file name", path)
 	}
 	// File
 	file := NewFile(
@@ -68,7 +82,7 @@ func CreateFile(path string, fileName string) (File, error) {
 	// Validate all
 	err := file.isValidPath()
 	if err != nil {
-		return File{}, err
+		return nil, err
 	}
 
 	// Return file instance
@@ -79,10 +93,22 @@ func (f *File) completePath() string {
 	return f.Path + "/" + f.Name + "." + f.Type
 }
 
+func (f *File) GetViper() *viper.Viper {
+	if f.viperInstance == nil {
+		_, err := f.InstanciateViper()
+		if err != nil {
+			log.Println("Error instanciating viper", err)
+			logging.Sugar.Error("Error instanciating viper", err)
+			return nil
+		}
+	}
+	return f.viperInstance
+}
+
 // Empirical function to check if a path is valid
 func (f *File) isValidPath() error {
 	// Check if file already exists
-	if _, err := os.Stat(f.completePath()); err == nil {
+	if _, err := app.FS.Stat(f.completePath()); err == nil {
 		return nil
 	}
 

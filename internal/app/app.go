@@ -2,11 +2,15 @@ package app
 
 import (
 	// Common
+
+	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	// External
 	"github.com/adrg/xdg"
+	"github.com/spf13/afero"
 )
 
 // Variables
@@ -22,6 +26,7 @@ var (
 	DefaultConfigName   = "config"
 	StamusAppName       = ""
 	DefaultRegistry     = "ghcr.io/stamusnetworks/stamusctl-templates"
+	FS                  = afero.NewOsFs()
 )
 
 // Constants
@@ -42,7 +47,7 @@ func init() {
 		Mode.set(val)
 	}
 	if val := os.Getenv("EMBED_MODE"); val != "" {
-		Embed.set(val)
+		Embed.Set(val)
 	}
 	if val := os.Getenv("STAMUS_APP_NAME"); val != "" {
 		StamusAppName = val
@@ -65,6 +70,11 @@ func init() {
 	LatestClearNDRPath = TemplatesFolder + "clearndr/latest/"
 	ConfigsFolder = ConfigFolder + "configs/"
 
+	// Test mode
+	if isUnderTest() && !isMemFSDisabled() {
+		FS = afero.NewMemMapFs()
+		log.Println("Using in-memory filesystem for tests")
+	}
 }
 
 func GetConfigsFolder(name string) string {
@@ -73,4 +83,15 @@ func GetConfigsFolder(name string) string {
 
 func IsCtl() bool {
 	return CtlName == "stamusctl"
+}
+func isUnderTest() bool {
+	for _, arg := range os.Args {
+		if strings.HasPrefix(arg, "-test.") {
+			return true
+		}
+	}
+	return false
+}
+func isMemFSDisabled() bool {
+	return os.Getenv("DISABLE_MEM_FS") == "true"
 }

@@ -1,0 +1,8 @@
+websocket:
+  type: optional
+  usage: Enable websocket server
+  default: true
+  response:
+    type: string
+    usage: Response to ping
+    default: pong

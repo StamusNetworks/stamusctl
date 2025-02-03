@@ -9,7 +9,6 @@ import (
 
 	// Internal
 	"stamus-ctl/internal/app"
-	"stamus-ctl/internal/embeds"
 	flags "stamus-ctl/internal/handlers"
 	handlers "stamus-ctl/internal/handlers/compose"
 	"stamus-ctl/internal/logging"
@@ -26,8 +25,6 @@ const (
 
 // Commands
 func initCmd() *cobra.Command {
-	// Setup
-	embeds.InitClearNDRFolder(app.DefaultClearNDRPath)
 	// Command
 	cmd := &cobra.Command{
 		Use:   "init",
@@ -54,8 +51,6 @@ func initCmd() *cobra.Command {
 }
 
 func ClearNDRCmd() *cobra.Command {
-	// Setup
-	embeds.InitClearNDRFolder(app.DefaultClearNDRPath)
 	// Command
 	cmd := &cobra.Command{
 		Use:   "clearndr",

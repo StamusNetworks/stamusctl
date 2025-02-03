@@ -14,6 +14,7 @@ import (
 
 	// Internal
 
+	"stamus-ctl/internal/app"
 	"stamus-ctl/internal/docker"
 	"stamus-ctl/internal/logging"
 
@@ -162,10 +163,10 @@ func runContainer(configName, pcap string) (string, error) {
 
 func PcapHandler(params ReadPcapParams) error {
 
-	if _, err := os.Stat(params.Config); os.IsNotExist(err) {
+	if _, err := app.FS.Stat(params.Config); os.IsNotExist(err) {
 		return errors.New("instance '" + params.Config + "' don't exist")
 	}
-	if _, err := os.Stat(params.Config + "/containers-data/suricata/etc"); os.IsNotExist(err) {
+	if _, err := app.FS.Stat(params.Config + "/containers-data/suricata/etc"); os.IsNotExist(err) {
 		return errors.New("instance '" + params.Config + "' seems do not have been started.")
 	}
 

@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"stamus-ctl/internal/app"
 	"stamus-ctl/internal/logging"
 
 	"github.com/docker/docker/api/types/container"
@@ -17,6 +18,7 @@ import (
 	"github.com/docker/docker/api/types/registry"
 	"github.com/docker/docker/client"
 	cp "github.com/otiai10/copy"
+	"github.com/spf13/afero"
 )
 
 type RegistryInfo struct {
@@ -132,7 +134,7 @@ func (r *RegistryInfo) PullConfig(destPath string, project, version string) erro
 	// Extract conf from container
 	srcPaths := []string{"/data", "/sbin"} // Source path inside the container
 	// Remove existing configuration
-	if err := os.RemoveAll(filepath.Join(destPath, version)); err != nil {
+	if err := app.FS.RemoveAll(filepath.Join(destPath, version)); err != nil {
 		return err
 	}
 	// Copy files from container
@@ -145,11 +147,11 @@ func (r *RegistryInfo) PullConfig(destPath string, project, version string) erro
 	// Move files to correct locations
 	originPath := filepath.Join(destPath, "data/")
 	versionPath := filepath.Join(destPath, version+"/")
-	if err := os.Rename(originPath, versionPath); err != nil {
+	if err := app.FS.Rename(originPath, versionPath); err != nil {
 		return err
 	}
 	// Copy templates latest to templates version
-	versionFromTemplate, err := os.ReadFile(versionPath + "/version")
+	versionFromTemplate, err := afero.ReadFile(app.FS, versionPath+"/version")
 	if err != nil {
 		return err
 	}
@@ -185,15 +187,15 @@ func copyFromContainer(cli *client.Client, ctx context.Context, containerID, src
 		target := filepath.Join(destPath, header.Name)
 		switch header.Typeflag {
 		case tar.TypeDir:
-			if err := os.MkdirAll(target, os.FileMode(header.Mode)); err != nil {
+			if err := app.FS.MkdirAll(target, os.FileMode(header.Mode)); err != nil {
 				return err
 			}
 		case tar.TypeReg:
 			logger := logging.Sugar.With("target", target, "srcPath", srcPath, "containerID", containerID)
-			if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
+			if err := app.FS.MkdirAll(filepath.Dir(target), 0755); err != nil {
 				return err
 			}
-			outFile, err := os.Create(target)
+			outFile, err := app.FS.Create(target)
 			if err != nil {
 				logger.Debug("creating failed")
 				return err

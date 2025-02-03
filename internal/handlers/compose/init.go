@@ -3,6 +3,7 @@ package handlers
 import (
 	"path/filepath"
 	"stamus-ctl/internal/app"
+	"stamus-ctl/internal/embeds"
 	"stamus-ctl/internal/logging"
 	"stamus-ctl/internal/models"
 	"stamus-ctl/internal/stamus"
@@ -36,6 +37,8 @@ func InitHandler(isCli bool, params InitHandlerInputs) error {
 		"TemplateFolder", params.TemplateFolder,
 		"Bind", params.Bind,
 	)
+	// Setup
+	embeds.InitClearNDRFolder(app.DefaultClearNDRPath)
 	// Get registry info
 	destPath := filepath.Join(app.TemplatesFolder, params.Project)
 
@@ -55,6 +58,9 @@ func InitHandler(isCli bool, params InitHandlerInputs) error {
 		templatePath = filepath.Join(destPath, params.Version)
 	} else {
 		templatePath = params.TemplateFolder
+	}
+	if app.Embed.IsTrue() {
+		templatePath = app.DefaultClearNDRPath
 	}
 
 	logger.Debug("instanciation config")

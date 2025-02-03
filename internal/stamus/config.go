@@ -5,6 +5,8 @@ import (
 	"os"
 	"stamus-ctl/internal/app"
 	"stamus-ctl/internal/models"
+
+	"github.com/spf13/afero"
 )
 
 type Registry string
@@ -79,11 +81,11 @@ func (c *Config) SetRegistry(registry Registry, user User, token Token) {
 
 func GetConfigsList() ([]string, error) {
 	// Get list of configs in app.ConfigsFolder
-	entries, err := os.ReadDir(app.ConfigsFolder)
+	entries, err := afero.ReadDir(app.FS, app.ConfigsFolder)
 	if err != nil {
 		// Create folder if it does not exist
 		if os.IsNotExist(err) {
-			err = os.MkdirAll(app.ConfigsFolder, 0755)
+			err = app.FS.MkdirAll(app.ConfigsFolder, 0755)
 			if err != nil {
 				return nil, err
 			}

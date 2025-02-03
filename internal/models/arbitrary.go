@@ -1,5 +1,7 @@
 package models
 
+import "strconv"
+
 type Arbitrary map[string]any
 
 func NewArbitrary() Arbitrary {
@@ -18,4 +20,16 @@ func (a *Arbitrary) AsMap() map[string]any {
 
 func (a *Arbitrary) Set(key string, value any) {
 	(*a)[key] = value
+}
+
+// Return the value of a string to any type
+func asLooseTyped(value string) any {
+	if value == "true" || value == "false" {
+		return value == "true"
+	}
+	asInt, err := strconv.Atoi(value)
+	if err != nil {
+		return value
+	}
+	return asInt
 }

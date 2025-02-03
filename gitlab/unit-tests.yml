@@ -19,5 +19,4 @@ daemon tests:
     tags:
         - k8s
     script:
-        - $(pwd)/scripts/move.sh
-        - make daemon-test
+        - go test ./.test

@@ -36,7 +36,7 @@ func NewRelease(name, location string, isUpgrade, isInstall bool) *Release {
 	}
 }
 
-func getRelease(dest File, currentDir string, isUpgrade, isInstall bool) *Release {
+func getRelease(dest *File, currentDir string, isUpgrade, isInstall bool) *Release {
 	configDir := dest.Path
 	if app.IsCtl() {
 		configDir = filepath.Join(currentDir, dest.Path)

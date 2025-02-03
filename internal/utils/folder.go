@@ -8,12 +8,13 @@ import (
 	"strings"
 
 	// Internal
+	"stamus-ctl/internal/app"
 	"stamus-ctl/internal/models"
 )
 
 // Check if the folder exists
 func FolderExists(path string) (bool, error) {
-	_, err := os.Stat(path)
+	_, err := app.FS.Stat(path)
 	if os.IsNotExist(err) {
 		return false, nil
 	}

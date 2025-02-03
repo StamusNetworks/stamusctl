@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 
 	// Custom
+	"stamus-ctl/internal/app"
 	flags "stamus-ctl/internal/handlers"
 	handlers "stamus-ctl/internal/handlers/compose"
 	"stamus-ctl/internal/logging"
@@ -61,7 +62,7 @@ func readPcap(_ *cobra.Command, args []string) error {
 // checkFile checks if a file exists and has the specified extension.
 func checkFile(filePath string) error {
 	// Check if file exists
-	info, err := os.Stat(filePath)
+	info, err := app.FS.Stat(filePath)
 	if os.IsNotExist(err) {
 		return errors.New("file does not exist")
 	}
