@@ -22,6 +22,23 @@ func (p *Parameters) GetValues(keys ...string) map[string]string {
 	return values
 }
 
+func (p *Parameters) GetParameters(keys ...string) map[string]*Parameter {
+	values := make(map[string]*Parameter)
+	for key, param := range *p {
+		// if keys are provided, only return values for keys that start with the provided keys
+		if len(keys) > 0 {
+			for _, k := range keys {
+				if strings.HasPrefix(key, k) {
+					values[key] = param
+				}
+			}
+		} else {
+			values[key] = param
+		}
+	}
+	return values
+}
+
 func (p *Parameters) GetVariablesValues(keys ...string) map[string]*Variable {
 	values := make(map[string]*Variable)
 	for key, param := range *p {

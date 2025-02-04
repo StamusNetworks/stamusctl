@@ -106,3 +106,11 @@ var Password = models.Parameter{
 	Type:  "string",
 	Usage: "Registry password",
 }
+
+// Get
+var Markdown = models.Parameter{
+	Name:    "markdown",
+	Type:    "bool",
+	Usage:   "Output in markdown format",
+	Default: models.CreateVariableBool(false),
+}

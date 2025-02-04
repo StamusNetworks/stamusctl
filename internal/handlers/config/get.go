@@ -47,7 +47,7 @@ func GetGroupedConfig(conf string, args []string, reload bool) (map[string]inter
 		return nil, err
 	}
 	// Group values
-	groupedValues := utils.GroupValues(config, args)
+	groupedValues := utils.GroupValues(config.GetParams(), args)
 	// Return
 	return groupedValues, nil
 }
@@ -86,4 +86,22 @@ func GetConfigsList() ([]string, error) {
 		return nil, err
 	}
 	return configsList, nil
+}
+
+// Get the list of keys
+func GetParamsList(conf string) (*models.Parameters, error) {
+	// File instance
+	if !app.IsCtl() {
+		conf = app.GetConfigsFolder(conf)
+	}
+	inputAsFile, err := models.CreateFile(conf, "values.yaml")
+	if err != nil {
+		return nil, err
+	}
+	// Load the config
+	config, err := models.LoadConfigFrom(inputAsFile, true)
+	if err != nil {
+		return nil, err
+	}
+	return config.GetParams(), nil
 }
