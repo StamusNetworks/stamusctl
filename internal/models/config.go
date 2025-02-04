@@ -103,13 +103,6 @@ func (f *Config) extractParam(parameter string) (*Parameter, error) {
 		return nil, err
 	}
 	currentParam.Choices = choices
-	if parameter == "suricata.interfaces" {
-		asStrings := []string{}
-		for _, choice := range choices {
-			asStrings = append(asStrings, *choice.String)
-		}
-		currentParam.Default = CreateVariableString(strings.Join(asStrings, ","))
-	}
 	return &currentParam, nil
 }
 
