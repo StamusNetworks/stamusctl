@@ -111,4 +111,4 @@ test config get keys:
         - ./stamusctl login --registry $GITLAB_REGISTRY_PATH --user $GITLAB_REGISTRY_USER --pass $GITLAB_REGISTRY_TOKEN
         - ./stamusctl compose init tests --default
         - ./stamusctl config get keys
-        - ./stamusctl config get keys | grep -q 'websocket.response'
+        - ./stamusctl config get keys | grep 'websocket.response' || exit 1
