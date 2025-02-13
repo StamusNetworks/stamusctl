@@ -31,5 +31,6 @@ func ConfigCmd() *cobra.Command {
 	cmd.AddCommand(getCmd())
 	cmd.AddCommand(setCmd())
 	cmd.AddCommand(versionCmd())
+	cmd.AddCommand(clearCmd())
 	return cmd
 }
