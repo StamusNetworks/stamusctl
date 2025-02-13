@@ -135,20 +135,7 @@ func makeCustomRunner(
 		// Get folder flag value
 		configFlag := cmd.Flags().Lookup("config")
 		conf := configFlag.Value.String()
-		possibleComposeFiles := []string{
-			"docker-compose.yaml",
-			"docker-compose.yml",
-			"compose.yaml",
-			"compose.yml",
-		}
-		composeFile := ""
-		for _, file := range possibleComposeFiles {
-			filePath := filepath.Join(conf, file)
-			if _, err := app.FS.Stat(filePath); err == nil {
-				composeFile = filePath
-				break
-			}
-		}
+		composeFile := GetComposeFilePath(conf)
 		// Set file flag
 		fileFlag := cmd.Flags().Lookup("file")
 		fileFlag.Value.Set(composeFile)
@@ -160,4 +147,20 @@ func makeCustomRunner(
 		}
 		return nil
 	}
+}
+
+func GetComposeFilePath(confPath string) string {
+	possibleComposeFiles := []string{
+		"docker-compose.yaml",
+		"docker-compose.yml",
+		"compose.yaml",
+		"compose.yml",
+	}
+	for _, file := range possibleComposeFiles {
+		filePath := filepath.Join(confPath, file)
+		if _, err := app.FS.Stat(filePath); err == nil {
+			return filePath
+		}
+	}
+	return filepath.Join(confPath, "docker-compose.yaml")
 }

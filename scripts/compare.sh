@@ -35,7 +35,15 @@ fi
 
 # Check the contents of each file
 for file in $files1; do
-    diff <(tr -d '\n' < "$folder1/$file") <(tr -d '\n' < "$folder2/$file") > /dev/null
+    content1 = $(tr -d '\n' < "$folder1/$file")
+    content2 = $(tr -d '\n' < "$folder2/$file")
+
+    # Delete lines where "seed" is present
+    content1 = $(echo "$content1" | sed '/seed/d')
+    content2 = $(echo "$content2" | sed '/seed/d')
+
+    # diff <(tr -d '\n' < "$folder1/$file") <(tr -d '\n' < "$folder2/$file") > /dev/null
+    diff <(echo "$content1") <(echo "$content2") > /dev/null
     if [ $? -ne 0 ]; then
         echo "Files $folder1/$file and $folder2/$file differ"
         echo "Diff:"

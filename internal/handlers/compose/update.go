@@ -131,6 +131,7 @@ func UpdateHandler(params UpdateHandlerParams) error {
 
 		return err
 	}
+	newConfig.SetSeed(existingConfig.GetSeed())
 
 	// Extract and set values from args and existing config
 	paramsArgs := utils.ExtractArgs(args)

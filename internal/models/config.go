@@ -6,14 +6,15 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"stamus-ctl/internal/app"
-	"stamus-ctl/internal/logging"
 	"strings"
 
 	// External
-
 	"github.com/spf13/afero"
-	// Custom
+	"golang.org/x/exp/rand"
+
+	// Internal
+	"stamus-ctl/internal/app"
+	"stamus-ctl/internal/logging"
 )
 
 // Config is a struct that represents a configuration file
@@ -22,6 +23,7 @@ import (
 type Config struct {
 	file       *File
 	project    string
+	seed       string
 	arbitrary  *Arbitrary
 	parameters *Parameters
 }
@@ -32,7 +34,9 @@ func ConfigFromFile(file *File) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewConfig(file), nil
+	config := NewConfig(file)
+	config.GetOrSetSeed()
+	return config, nil
 }
 
 func NewConfig(file *File) *Config {
@@ -58,6 +62,9 @@ func LoadConfigFrom(path *File, reload bool) (*Config, error) {
 	}
 	// Get project
 	project := values["stamus.project"]
+	if project == nil {
+		return nil, fmt.Errorf("stamus.project not found")
+	}
 	projectName := *project.String
 	// Load origin config
 	originConf, err := ConfigFromFile(file)
@@ -77,6 +84,13 @@ func LoadConfigFrom(path *File, reload bool) (*Config, error) {
 	// Merge
 	originConf.parameters.SetValues(values)
 	originConf.SetProject(projectName)
+	// Get seed
+	seed := values["stamus.seed"]
+	if seed == nil {
+		originConf.seed = generateSeed()
+	} else {
+		originConf.seed = *seed.String
+	}
 	return originConf, nil
 }
 
@@ -170,6 +184,9 @@ func (f *Config) SaveConfigTo(dest *File, isUpgrade, isInstall bool) error {
 	}
 	for key, value := range templateData {
 		data[key] = value
+	}
+	data["stamus"] = map[string]any{
+		"seed": f.seed,
 	}
 	data = nestMap(data)
 
@@ -345,6 +362,8 @@ func (f *Config) saveParamsTo(dest *File) error {
 	} else {
 		conf.file.GetViper().Set("stamus.config", f.file.Path)
 	}
+	conf.file.GetViper().Set("stamus.seed", f.seed)
+
 	// Write the new config file
 	err = conf.file.GetViper().WriteConfig()
 	if err != nil {
@@ -357,4 +376,40 @@ func (f *Config) saveParamsTo(dest *File) error {
 
 func (f *Config) DeleteFolder() error {
 	return app.FS.RemoveAll(f.file.Path)
+}
+
+func (f *Config) CreateSeed() string {
+	seed := generateSeed()
+	f.seed = seed
+	return seed
+}
+
+func (f *Config) GetSeed() string {
+	return f.seed
+}
+
+func (f *Config) SetSeed(value string) {
+	f.seed = value
+}
+
+func generateSeed() string {
+	return generateRandomString(16)
+}
+func (f *Config) GetOrSetSeed() string {
+	seed := f.file.GetViper().GetString("stamus.seed")
+	if seed == "" {
+		f.CreateSeed()
+	} else {
+		f.SetSeed(seed)
+	}
+	return f.GetSeed()
+}
+
+func generateRandomString(n int) string {
+	const letters = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+	return string(b)
 }
