@@ -4,7 +4,6 @@ import (
 	// Core
 	"bytes"
 	"fmt"
-	"log"
 	"os/exec"
 	"slices"
 	"strings"
@@ -13,6 +12,7 @@ import (
 	"stamus-ctl/internal/app"
 	docker "stamus-ctl/internal/docker-compose"
 	"stamus-ctl/internal/handlers/wrapper"
+	"stamus-ctl/internal/stamus"
 )
 
 func Clear(conf string) error {
@@ -25,7 +25,6 @@ func Clear(conf string) error {
 	if err != nil {
 		return err
 	}
-	log.Println("networks", networks)
 	// Down containers
 	err = wrapper.HandleDown(conf, true, true)
 	if err != nil {
@@ -41,7 +40,8 @@ func Clear(conf string) error {
 	if err != nil {
 		return err
 	}
-	return nil
+	// Save stamus
+	return stamus.RemoveInstance(conf)
 }
 
 func getNetworks(conf string) ([]string, error) {

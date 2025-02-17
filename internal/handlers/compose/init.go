@@ -1,14 +1,18 @@
 package handlers
 
 import (
+	"os"
 	"path/filepath"
 	"stamus-ctl/internal/app"
 	"stamus-ctl/internal/embeds"
 	"stamus-ctl/internal/logging"
 	"stamus-ctl/internal/models"
 	"stamus-ctl/internal/stamus"
+	"strings"
 
 	confHandler "stamus-ctl/internal/handlers/config"
+
+	"github.com/spf13/afero"
 )
 
 type InitHandlerInputs struct {
@@ -127,6 +131,24 @@ func InitHandler(isCli bool, params InitHandlerInputs) error {
 	// Bind files
 	logger.Debug("Set content handler")
 	err = confHandler.SetContentHandler(params.Config, params.Bind)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+
+	// Save instance
+	logger.Debug("Save instance")
+	var configPath string = params.Config
+	if isCli {
+		currentPath, _ := os.Getwd()
+		configPath = filepath.Join(currentPath, params.Config)
+	}
+	version, _ := afero.ReadFile(app.FS, filepath.Join(configPath, "version"))
+	versionString := strings.Split(string(version), "\n")[0]
+	if versionString == "" {
+		versionString = params.Version
+	}
+	err = stamus.AddInstance(configPath, params.Project, versionString)
 	if err != nil {
 		logger.Error(err)
 		return err

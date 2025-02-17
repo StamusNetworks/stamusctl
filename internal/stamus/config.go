@@ -9,15 +9,9 @@ import (
 	"github.com/spf13/afero"
 )
 
-type Registry string
-type User string
-type Token string
-
-type Registries map[Registry]Logins
-type Logins map[User]Token
-
 type Config struct {
 	Registries Registries `json:"registries"`
+	Instances  Instances  `json:"instances"`
 }
 
 func (r *Registries) AsList() []models.RegistryInfo {
@@ -65,20 +59,6 @@ func (conf *Config) setStamusConfig() error {
 	}
 	return nil
 }
-
-func (c *Config) SetRegistry(registry Registry, user User, token Token) {
-	// Create Registries if it does not exist in Config
-	if c.Registries == nil {
-		c.Registries = make(Registries)
-	}
-	// Create Registry if it does not exist in Registries
-	if c.Registries[Registry(registry)] == nil {
-		c.Registries[Registry(registry)] = make(Logins)
-	}
-
-	c.Registries[Registry(registry)][User(user)] = Token(token)
-}
-
 func GetConfigsList() ([]string, error) {
 	// Get list of configs in app.ConfigsFolder
 	entries, err := afero.ReadDir(app.FS, app.ConfigsFolder)
