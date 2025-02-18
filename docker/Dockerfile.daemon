@@ -1,10 +1,10 @@
-FROM golang:alpine AS Builder
+FROM golang:1.22-alpine3.20 AS builder
 
 ARG var_version=devel
 ENV VERSION=$var_version
 
 RUN mkdir -p /src
-RUN apk update && apk add --no-cache gcc musl-dev make
+RUN apk add --no-cache gcc=13.2.1_git20240309-r0 musl-dev=1.2.5-r1 make=4.4.1-r2
 RUN go install github.com/swaggo/swag/cmd/swag@latest
 
 COPY ./go.mod /src/stamus-ctl/go.mod
@@ -17,7 +17,7 @@ RUN swag init --pd -g root.go -o cmd/docs -d cmd/daemon/run/
 RUN CGO_ENABLED=1 make daemon
 
 FROM docker
-COPY --from=Builder /src/stamus-ctl/dist /bin/
+COPY --from=builder /src/stamus-ctl/dist /bin/
 
 ENTRYPOINT [ "stamusd" ]
 CMD [ "run" ]
