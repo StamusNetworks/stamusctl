@@ -32,7 +32,7 @@ full test w test config:
 
 full test w debug image:
     stage: integration
-    image: git.stamus-networks.com:4567/devel/stamus-ctl/cli:$CI_COMMIT_REF_NAME-$CI_COMMIT_SHORT_SHA
+    image: $CI_REGISTRY_IMAGE/cli:$CI_COMMIT_REF_NAME-$CI_COMMIT_SHORT_SHA
     tags:
         - k8s-small
     rules:
@@ -60,7 +60,7 @@ full test w debug image:
 
 test upgrade:
     stage: integration
-    image: git.stamus-networks.com:4567/devel/stamus-ctl/cli:$CI_COMMIT_REF_NAME-$CI_COMMIT_SHORT_SHA
+    image: $CI_REGISTRY_IMAGE/cli:$CI_COMMIT_REF_NAME-$CI_COMMIT_SHORT_SHA
     tags:
         - k8s-small
     rules:
