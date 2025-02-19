@@ -7,7 +7,7 @@ refresh-app-of-apps:
         BRANCH: $CI_COMMIT_REF_NAME
         SHA: $CI_COMMIT_SHORT_SHA
         PROJECT: $CI_PROJECT_NAME
-        NAMESPACE: $CI_PROJECT_NAMESPACE
+        NAMESPACE: $CI_PROJECT_PATH_SLUG
     trigger:
         project: devel/devops/app-of-app
         strategy: depend
