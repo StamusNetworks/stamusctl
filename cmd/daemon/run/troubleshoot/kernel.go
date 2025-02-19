@@ -1,9 +1,7 @@
 package troubleshoot
 
 import (
-	"fmt"
-	"os/exec"
-
+	"github.com/docker/docker/pkg/dmesg"
 	"github.com/gin-gonic/gin"
 )
 
@@ -16,11 +14,6 @@ import (
 // @Failure 500 {object} pkg.ErrorResponse "Internal server error with explanation"
 // @Router /troubleshoot/kernel [post]
 func kernelHandler(c *gin.Context) {
-	// Execute the `dmesg` command
-	cmd := exec.Command("dmesg")
-	output, err := cmd.Output()
-	if err != nil {
-		c.JSON(500, gin.H{"error": fmt.Sprintf("Error executing dmesg: %s", err)})
-	}
-	c.JSON(200, gin.H{"message": string(output)})
+	msg := dmesg.Dmesg(32768)
+	c.JSON(200, gin.H{"message": msg})
 }

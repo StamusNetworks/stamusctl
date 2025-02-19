@@ -3,9 +3,9 @@ module stamus-ctl
 // TODO: once public repo created, uncomment the following line
 // replace stamus-ctl => github.com/StamusNetworks/stamus-ctl v1
 
-go 1.22.0
+go 1.22.2
 
-toolchain go1.22.3
+toolchain go1.23.5
 
 require (
 	github.com/Masterminds/semver/v3 v3.2.1
@@ -140,6 +140,7 @@ require (
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
+	github.com/martzki/dmesg v1.0.1 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.16 // indirect

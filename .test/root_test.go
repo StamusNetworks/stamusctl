@@ -131,6 +131,14 @@ func TestConfigReload(t *testing.T) {
 	compareDirs(t, app.GetConfigsFolder(current), "./outputs/compose-init")
 }
 
+func TestTroubleshootKernel(t *testing.T) {
+	res, _ := newRequest("POST", "/api/v1/troubleshoot/kernel", nil)
+
+	if t != nil {
+		assert.Equal(t, 200, res.Code)
+	}
+}
+
 // func TestUpload(t *testing.T) {
 // 	// Setup
 // 	TestComposeInit(nil)
