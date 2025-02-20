@@ -112,3 +112,35 @@ test config get keys:
         - ./stamusctl compose init tests --default
         - ./stamusctl config get keys
         - ./stamusctl config get keys | grep 'websocket.response' || exit 1
+
+
+test clear instance:
+    stage: integration
+    image: docker:24.0.5
+    tags:
+        - k8s-small
+    rules:
+        - if: $CI_COMMIT_BRANCH
+          when: on_success
+    variables:
+        DOCKER_HOST: tcp://docker:2376
+        DOCKER_TLS_CERTDIR: '/certs'
+        DOCKER_TLS_VERIFY: 1
+        DOCKER_CERT_PATH: '$DOCKER_TLS_CERTDIR/client'
+    services:
+        - docker:24.0.5-dind
+    needs:
+        - build cli
+    dependencies:
+        - build cli
+    before_script:
+        - until docker info; do sleep 1; done
+    script:
+        - apk update && apk add jq
+        - ./stamusctl login --registry $GITLAB_REGISTRY_PATH --user $GITLAB_REGISTRY_USER --pass $GITLAB_REGISTRY_TOKEN
+        - ./stamusctl compose init tests --default
+        - ./stamusctl compose up -d
+        - docker network ls
+        - docker ps
+        - ./stamusctl config clear
+        - docker ps

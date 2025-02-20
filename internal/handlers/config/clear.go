@@ -4,6 +4,7 @@ import (
 	// Core
 	"bytes"
 	"fmt"
+	"log"
 	"os/exec"
 	"slices"
 	"strings"
@@ -21,27 +22,38 @@ func Clear(conf string) error {
 		conf = app.GetConfigsFolder(conf)
 	}
 	// Get networks
+	log.Println("Getting networks")
 	networks, err := getNetworks(conf)
+	log.Println("Got networks", networks)
 	if err != nil {
 		return err
 	}
 	// Down containers
+	log.Println("Handling down")
 	err = wrapper.HandleDown(conf, true, true)
+	log.Println("Handled down with err", err)
 	if err != nil {
 		return err
 	}
 	// Clear networks
+	log.Println("Clearing networks", networks)
 	err = clearNetworks(networks)
+	log.Println("Cleared networks with err", err)
 	if err != nil {
 		return err
 	}
 	// Delete folder
+	log.Println("Deleting folder", conf)
 	err = deleteFolder(conf)
+	log.Println("Deleted folder with err", err)
 	if err != nil {
 		return err
 	}
 	// Save stamus
-	return stamus.RemoveInstance(conf)
+	log.Println("Removing instance", conf)
+	err = stamus.RemoveInstance(conf)
+	log.Println("Removed instance with err", err)
+	return err
 }
 
 func getNetworks(conf string) ([]string, error) {
