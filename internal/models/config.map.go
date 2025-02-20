@@ -92,3 +92,7 @@ func (f *Config) MergeArbitrary(arbitrary map[string]any) {
 func (f *Config) SetProject(project string) {
 	f.project = project
 }
+
+func (f *Config) SetRegistry(registry string) {
+	f.registry = registry
+}

@@ -91,10 +91,9 @@ var Version = models.Parameter{
 
 // Registry
 var Registry = models.Parameter{
-	Name:    "registry",
-	Type:    "string",
-	Usage:   "Registry to use",
-	Default: models.CreateVariableString("docker.io/library/"),
+	Name:  "registry",
+	Type:  "string",
+	Usage: "Registry to use",
 }
 var Username = models.Parameter{
 	Name:  "user",

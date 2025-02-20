@@ -56,6 +56,7 @@ func initHandler(c *gin.Context) {
 		Project:          req.Project,
 		Version:          req.Version,
 		Values:           req.ValuesPath,
+		Registry:         req.Registry,
 		FromFile:         fromFile,
 		Config:           app.GetConfigsFolder(req.Config),
 	}

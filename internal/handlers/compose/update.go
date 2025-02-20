@@ -50,6 +50,7 @@ func UpdateHandler(params UpdateHandlerParams) error {
 		return fmt.Errorf("cannot read config file: %w", err)
 	}
 	project := viperInstance.GetString("stamus.project")
+	registry := viperInstance.GetString("stamus.registry")
 
 	// Get registry info
 	destPath := filepath.Join(app.TemplatesFolder + project + "/")
@@ -69,11 +70,24 @@ func UpdateHandler(params UpdateHandlerParams) error {
 
 	// Pull config
 	logger.Debug("pulling latest template")
-	err = pullLatestTemplate(destPath, project, versionVal)
-	if err != nil {
-		logging.Sugar.Error(err)
-		if !app.Embed.IsTrue() {
-			return err
+	if registry != "" {
+		registryInfo := models.RegistryInfo{
+			Registry: registry,
+		}
+		err = registryInfo.PullConfig(destPath, project, versionVal)
+		if err != nil {
+			logger.Error(err)
+			if !app.Embed.IsTrue() {
+				return err
+			}
+		}
+	} else {
+		err = pullLatestTemplate(destPath, project, versionVal)
+		if err != nil {
+			logging.Sugar.Error(err)
+			if !app.Embed.IsTrue() {
+				return err
+			}
 		}
 	}
 

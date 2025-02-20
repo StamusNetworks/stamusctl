@@ -25,6 +25,7 @@ type InitRequest struct {
 	Version    string            `json:"version"`     // Target version, default is latest
 	ValuesPath string            `json:"values_path"` // Path to a values.yaml file
 	FromFile   map[string]string `json:"from_file"`   // Values keys and paths to files containing the content used as value
+	Registry   string            `json:"registry"`    // Registry to use, default is docker.io/library
 }
 
 // Config

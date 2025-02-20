@@ -24,6 +24,7 @@ type Config struct {
 	file       *File
 	project    string
 	seed       string
+	registry   string
 	arbitrary  *Arbitrary
 	parameters *Parameters
 }
@@ -91,6 +92,12 @@ func LoadConfigFrom(path *File, reload bool) (*Config, error) {
 	} else {
 		originConf.seed = *seed.String
 	}
+	// Get registry
+	registry := values["stamus.registry"]
+	if registry != nil {
+		originConf.registry = *registry.String
+	}
+	// Return
 	return originConf, nil
 }
 
@@ -363,6 +370,7 @@ func (f *Config) saveParamsTo(dest *File) error {
 		conf.file.GetViper().Set("stamus.config", f.file.Path)
 	}
 	conf.file.GetViper().Set("stamus.seed", f.seed)
+	conf.file.GetViper().Set("stamus.registry", f.registry)
 
 	// Write the new config file
 	err = conf.file.GetViper().WriteConfig()

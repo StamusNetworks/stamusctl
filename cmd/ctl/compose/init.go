@@ -44,6 +44,7 @@ func initCmd() *cobra.Command {
 	flags.Template.AddAsFlag(cmd, false)
 	flags.Bind.AddAsFlag(cmd, false)
 	flags.Version.AddAsFlag(cmd, false)
+	flags.Registry.AddAsFlag(cmd, false)
 
 	// Commands
 	cmd.AddCommand(ClearNDRCmd())
@@ -71,6 +72,7 @@ func ClearNDRCmd() *cobra.Command {
 	flags.Template.AddAsFlag(cmd, false)
 	flags.Version.AddAsFlag(cmd, false)
 	flags.Bind.AddAsFlag(cmd, false)
+	flags.Registry.AddAsFlag(cmd, false)
 	return cmd
 }
 
@@ -117,6 +119,11 @@ func handler(_ *cobra.Command, args []string) error {
 		logging.Sugar.Error(err)
 		return err
 	}
+	registry, err := flags.Registry.GetValue()
+	if err != nil {
+		logging.Sugar.Error(err)
+		return err
+	}
 	bind, err := flags.Bind.GetValue()
 	if err != nil {
 		logging.Sugar.Error(err)
@@ -144,6 +151,7 @@ func handler(_ *cobra.Command, args []string) error {
 		Config:           config.(string),
 		FromFile:         fromFile.(string),
 		TemplateFolder:   templateFolder.(string),
+		Registry:         registry.(string),
 		Bind:             toBind,
 	}
 	return handlers.InitHandler(true, initParams)

@@ -24,6 +24,7 @@ type InitHandlerInputs struct {
 	Values           string
 	Config           string
 	FromFile         string
+	Registry         string
 	TemplateFolder   string
 	Bind             []string
 }
@@ -48,12 +49,26 @@ func InitHandler(isCli bool, params InitHandlerInputs) error {
 
 	// Pull latest template
 	logger.Debug("pulling latest template")
-	err := pullLatestTemplate(destPath, params.Project, params.Version)
-	if err != nil {
-		logger.Error(err)
-		if !app.Embed.IsTrue() {
-			logger.Info("using embeds")
-			return err
+	if params.Registry != "" {
+		registryInfo := models.RegistryInfo{
+			Registry: params.Registry,
+		}
+		err := registryInfo.PullConfig(destPath, params.Project, params.Version)
+		if err != nil {
+			logger.Error(err)
+			if !app.Embed.IsTrue() {
+				logger.Info("using embeds")
+				return err
+			}
+		}
+	} else {
+		err := pullLatestTemplate(destPath, params.Project, params.Version)
+		if err != nil {
+			logger.Error(err)
+			if !app.Embed.IsTrue() {
+				logger.Info("using embeds")
+				return err
+			}
 		}
 	}
 	// Instanciate config
@@ -106,6 +121,7 @@ func InitHandler(isCli bool, params InitHandlerInputs) error {
 
 	logger.Debug("Set project")
 	config.SetProject(params.Project)
+	config.SetRegistry(params.Registry)
 
 	// Validate parameters
 	logger.Debug("Validate params")

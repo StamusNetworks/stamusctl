@@ -2,5 +2,6 @@ nginx: false
 stamus:
     config: /root/Templates/stamus/clearndr/embedded/
     project: clearndr
+    registry: ""
 websocket:
     response: pong
