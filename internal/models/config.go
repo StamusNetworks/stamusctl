@@ -198,7 +198,6 @@ func (f *Config) SaveConfigTo(dest *File, isUpgrade, isInstall bool) error {
 	// Process templates
 	err = processTemplates(f.file.Path, dest.Path, data)
 	if err != nil {
-		logger.Error(err)
 		return err
 	}
 

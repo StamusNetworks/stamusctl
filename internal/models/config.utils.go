@@ -219,7 +219,8 @@ func processTemplate(data map[string]interface{}, tpls []string, path, inputFold
 	// Execute the template
 	err = tmpl.Execute(destFile, data)
 	if err != nil {
-		logger.Error(err)
+		splited := strings.Split(err.Error(), "error calling fail: ")
+		fmt.Println("Failed instanciating template.", splited[1])
 		return err
 	}
 

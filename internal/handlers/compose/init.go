@@ -141,7 +141,7 @@ func InitHandler(isCli bool, params InitHandlerInputs) error {
 
 	logger.Debug("Save config to: ", outputFile)
 	if err = config.SaveConfigTo(outputFile, false, true); err != nil {
-		logger.Error("Error saving config to", outputFile, err)
+		return err
 	}
 
 	// Bind files
