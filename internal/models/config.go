@@ -9,8 +9,9 @@ import (
 	"strings"
 
 	// External
+	"math/rand"
+
 	"github.com/spf13/afero"
-	"golang.org/x/exp/rand"
 
 	// Internal
 	"stamus-ctl/internal/app"
