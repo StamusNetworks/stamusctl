@@ -23,7 +23,7 @@ func deleteEmptyFiles(folderPath string) error {
 		// Check if it's a regular file and empty
 		if !info.IsDir() && info.Size() == 0 {
 			err := app.FS.Remove(path)
-			if err != nil {
+			if err != nil && !os.IsPermission(err) {
 				return err
 			}
 		}

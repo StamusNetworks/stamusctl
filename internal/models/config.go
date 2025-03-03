@@ -175,7 +175,7 @@ func (f *Config) SaveConfigTo(dest *File, isUpgrade, isInstall bool) error {
 	if err != nil {
 		return err
 	}
-	releaseData, err := GetReleaseData(dest, isUpgrade, isInstall)
+	releaseData, err := GetReleaseData(dest, isUpgrade, isInstall, f.seed)
 	if err != nil {
 		return err
 	}
@@ -191,9 +191,6 @@ func (f *Config) SaveConfigTo(dest *File, isUpgrade, isInstall bool) error {
 	}
 	for key, value := range templateData {
 		data[key] = value
-	}
-	data["stamus"] = map[string]any{
-		"seed": f.seed,
 	}
 	data = nestMap(data)
 
@@ -242,12 +239,12 @@ func (f *Config) GetData() (map[string]any, error) {
 	return data, nil
 }
 
-func GetReleaseData(dest *File, isUpgrade, isInstall bool) (map[string]any, error) {
+func GetReleaseData(dest *File, isUpgrade, isInstall bool, seed string) (map[string]any, error) {
 	currentDir, err := os.Getwd()
 	if err != nil {
 		return nil, err
 	}
-	return getRelease(dest, currentDir, isUpgrade, isInstall).AsMap(), nil
+	return getRelease(dest, currentDir, seed, isUpgrade, isInstall).AsMap(), nil
 }
 
 // Set values from a file (values.yaml)

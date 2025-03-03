@@ -17,9 +17,10 @@ type Release struct {
 	IsUpgrade bool   // see helm
 	IsInstall bool   // see helm
 	Service   string
+	Seed      string
 }
 
-func NewRelease(name, location string, isUpgrade, isInstall bool) *Release {
+func NewRelease(name, location, seed string, isUpgrade, isInstall bool) *Release {
 	currentUser, err := user.Current()
 	if err != nil {
 		log.Fatal(err)
@@ -32,11 +33,12 @@ func NewRelease(name, location string, isUpgrade, isInstall bool) *Release {
 		Location:  location,
 		IsUpgrade: isUpgrade,
 		IsInstall: isInstall,
+		Seed:      seed,
 		Service:   app.StamusAppName + ":" + app.Version,
 	}
 }
 
-func getRelease(dest *File, currentDir string, isUpgrade, isInstall bool) *Release {
+func getRelease(dest *File, currentDir, seed string, isUpgrade, isInstall bool) *Release {
 	configDir := dest.Path
 	if app.IsCtl() {
 		configDir = filepath.Join(currentDir, dest.Path)
@@ -52,7 +54,7 @@ func getRelease(dest *File, currentDir string, isUpgrade, isInstall bool) *Relea
 			releaseName = splitted[len(splitted)-1]
 		}
 	}
-	return NewRelease(releaseName, configDir, isUpgrade, isInstall)
+	return NewRelease(releaseName, configDir, seed, isUpgrade, isInstall)
 }
 
 func (s *Release) AsMap() map[string]interface{} {
@@ -65,6 +67,7 @@ func (s *Release) AsMap() map[string]interface{} {
 		prefix + ".isUpgrade": s.IsUpgrade,
 		prefix + ".isInstall": s.IsInstall,
 		prefix + ".service":   s.Service,
+		prefix + ".seed":      s.Seed,
 	}
 }
 
