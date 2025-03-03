@@ -4,7 +4,7 @@ ARG var_version=devel
 ENV VERSION=$var_version
 
 RUN mkdir -p /src
-RUN apk add --no-cache gcc=13.2.1_git20240309-r0 musl-dev=1.2.5-r1 make=4.4.1-r2
+RUN apk add --no-cache gcc=13.2.1_git20240309-r1 musl-dev=1.2.5-r1 make=4.4.1-r2
 RUN go install github.com/swaggo/swag/cmd/swag@latest
 
 COPY ./go.mod /src/stamus-ctl/go.mod
