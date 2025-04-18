@@ -78,12 +78,12 @@ test upgrade:
     script:
         - apk update && apk add jq docker yq
         - stamusctl login --registry $GITLAB_REGISTRY_PATH --user $GITLAB_REGISTRY_USER --pass $GITLAB_REGISTRY_TOKEN
-        - stamusctl compose init tests --version 0.9.3-gitlab
+        - stamusctl compose init tests --version 0.9.7-gitlab
         - cat config/values.yaml | yq -e '.stamus.project == "tests"'
-        - cat config/version | yq -e '. == "0.9.3"'
-        - stamusctl compose init tests --version 0.9.4-gitlab
+        - cat config/version | yq -e '. == "0.9.7"'
+        - stamusctl compose init tests --version opensearch2
         - cat config/values.yaml | yq -e '.stamus.project == "tests"'
-        - cat config/version | yq -e '. == "0.9.4"'
+        - cat config/version | yq -e '. == "1.0.0"'
 
 test config get keys:
     stage: integration
