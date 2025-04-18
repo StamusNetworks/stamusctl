@@ -25,24 +25,15 @@ func KeysHandler(templatePath string, isMd bool) error {
 	rows := []table.Row{}
 	for _, name := range params.GetOrdered() {
 		param := params.Get(name)
-		choices := ""
-		if param.Choices != nil {
-			for nb, choice := range param.Choices {
-				choices = choices + choice.AsString()
-				if nb != len(param.Choices)-1 {
-					choices = choices + ", "
-					if nb%4 == 3 {
-						choices = choices + "\n"
-					}
-				}
-			}
+		if param.Type != "optional" {
+			rows = append(rows, table.Row{name, param.Default.AsString(), param.Usage})
 		}
-		rows = append(rows, table.Row{name, param.Type, param.Default.AsString(), choices})
 	}
 	// Print
 	t := table.NewWriter()
 	t.SetStyle(table.StyleRounded)
-	header := table.Row{"Key", "Type", "Default", "Choices"}
+	header := table.Row{"Key", "Default", "Usage"}
+	// KDU
 	t.SetOutputMirror(os.Stdout)
 	t.AppendHeader(header)
 	t.AppendRows(rows)

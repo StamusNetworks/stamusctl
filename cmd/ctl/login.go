@@ -99,8 +99,11 @@ func LoginHandler(registryInfo models.RegistryInfo) error {
 	}
 
 	// Save credentials
-	stamus.SaveLogin(registryInfo)
+	err = stamus.SaveLogin(registryInfo)
 
+	if err != nil {
+		logging.Sugar.Error("Error saving credentials:", err)
+	}
 	logging.Sugar.Info("Login successful")
 
 	return nil
