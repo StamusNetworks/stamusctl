@@ -2,6 +2,7 @@ package config
 
 import (
 	// Core
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -60,7 +61,6 @@ func SetHandler(params SetHandlerInputs) error {
 	if err != nil {
 		return err
 	}
-
 	// Save the configuration
 	outputAsFile, err := models.CreateFile(params.Config, "values.yaml")
 	if err != nil {
@@ -68,7 +68,9 @@ func SetHandler(params SetHandlerInputs) error {
 	}
 	err = config.SaveConfigTo(outputAsFile, false, false)
 	if err != nil {
-		return err
+		if !errors.Is(err, models.ErrorEmptyFolder) {
+			return err
+		}
 	}
 	// Apply the configuration
 	if params.Apply {

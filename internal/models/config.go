@@ -2,6 +2,7 @@ package models
 
 import (
 	// Common
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -296,6 +297,8 @@ func (f *Config) SetValuesFromFiles(fromFiles string) error {
 	return nil
 }
 
+var ErrorEmptyFolder = errors.New("error deleting empty folders")
+
 // Cleans the config folder
 func (f *Config) Clean(folder *File) error {
 	// Clean destination folder
@@ -305,7 +308,7 @@ func (f *Config) Clean(folder *File) error {
 	}
 	err = deleteEmptyFolders(folder.Path)
 	if err != nil {
-		return err
+		return ErrorEmptyFolder
 	}
 	return nil
 }
