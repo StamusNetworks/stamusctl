@@ -5,8 +5,9 @@ import (
 	"errors"
 	"io"
 	"os"
-	"stamus-ctl/internal/app"
 	"testing"
+
+	"stamus-ctl/internal/app"
 
 	"github.com/go-playground/assert/v2"
 )
@@ -14,7 +15,7 @@ import (
 func TestGetOrCreateStamusConfigFile(t *testing.T) {
 	app.ConfigFolder = "~"
 
-	var testPath = ""
+	testPath := ""
 	var testPerm os.FileMode
 
 	osMkdirAll = func(path string, perm os.FileMode) error {
@@ -49,7 +50,7 @@ func TestGetOrCreateStamusConfigFile(t *testing.T) {
 func TestGetOrCreateStamusConfigFileErrorMkdir(t *testing.T) {
 	app.ConfigFolder = "~"
 
-	var testPath = ""
+	testPath := ""
 	var testPerm os.FileMode
 
 	osMkdirAll = func(path string, perm os.FileMode) error {
@@ -70,7 +71,7 @@ func TestGetOrCreateStamusConfigFileErrorMkdir(t *testing.T) {
 func TestGetOrCreateStamusConfigFileErrorOpen(t *testing.T) {
 	app.ConfigFolder = "~"
 
-	var testPath = ""
+	testPath := ""
 	var testPerm os.FileMode
 
 	osMkdirAll = func(path string, perm os.FileMode) error {

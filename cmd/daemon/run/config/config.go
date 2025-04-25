@@ -63,7 +63,6 @@ func setHandler(c *gin.Context) {
 		return
 	}
 	c.JSON(200, gin.H{"message": "ok"})
-
 }
 
 // getConfigListHandler godoc

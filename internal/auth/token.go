@@ -3,9 +3,10 @@ package auth
 import (
 	"context"
 	"encoding/base64"
+	"strings"
+
 	"stamus-ctl/internal/app"
 	"stamus-ctl/internal/logging"
-	"strings"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/gin-gonic/gin"
@@ -37,7 +38,7 @@ func WatchForToken(pathToWatch string) {
 					if err != nil {
 						logging.LoggerWithContextToSpanContext(ctx).Sugar().Error("failed to read token file", err)
 					}
-					token = string(tokenFromFile[:])
+					token = string(tokenFromFile)
 					logging.LoggerWithContextToSpanContext(ctx).Info("updated token")
 				}
 			case err, ok := <-watcher.Errors:
@@ -57,7 +58,6 @@ func WatchForToken(pathToWatch string) {
 }
 
 func AuthMiddleware() gin.HandlerFunc {
-
 	return func(c *gin.Context) {
 		if token == "" {
 			c.Next()
@@ -84,7 +84,7 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		split = strings.Split(string(data[:]), ":")
+		split = strings.Split(string(data), ":")
 		if len(split) != 2 {
 			c.AbortWithStatusJSON(401, gin.H{"message": "bad token formating after decoding"})
 			return

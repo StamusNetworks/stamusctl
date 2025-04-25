@@ -1,0 +1,7 @@
+{
+    "recommendations": [
+      "vitest.explorer",
+      "ryanluker.vscode-coverage-gutters",
+      "golang.go"
+    ]
+  }

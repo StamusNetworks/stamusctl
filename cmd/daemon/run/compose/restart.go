@@ -58,5 +58,4 @@ func restartContainersHandler(c *gin.Context) {
 		return
 	}
 	c.JSON(200, gin.H{"message": "restart successful"})
-
 }

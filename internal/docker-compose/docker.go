@@ -9,7 +9,6 @@ import (
 )
 
 func RetrieveValideInterfacesFromDockerContainer() ([]string, error) {
-
 	alreadyHasBusybox, _ := docker.PullImageIfNotExisted("docker.io/library/", "busybox:latest")
 
 	output, _ := docker.RunContainer("busybox", []string{

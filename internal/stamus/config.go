@@ -3,6 +3,7 @@ package stamus
 import (
 	"encoding/json"
 	"os"
+
 	"stamus-ctl/internal/app"
 	"stamus-ctl/internal/models"
 
@@ -59,13 +60,14 @@ func (conf *Config) setStamusConfig() error {
 	}
 	return nil
 }
+
 func GetConfigsList() ([]string, error) {
 	// Get list of configs in app.ConfigsFolder
 	entries, err := afero.ReadDir(app.FS, app.ConfigsFolder)
 	if err != nil {
 		// Create folder if it does not exist
 		if os.IsNotExist(err) {
-			err = app.FS.MkdirAll(app.ConfigsFolder, 0755)
+			err = app.FS.MkdirAll(app.ConfigsFolder, 0o755)
 			if err != nil {
 				return nil, err
 			}

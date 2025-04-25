@@ -1014,7 +1014,8 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "destination": {
-                    "description": "Destination is the path relative to the container root (` + "`" + `/` + "`" + `) where the\nSource is mounted inside the container.",
+                    "description": "Destination is the path relative to the container root (` + "`" +
+	`/` + "`" + `) where the\nSource is mounted inside the container.",
                     "type": "string"
                 },
                 "driver": {
@@ -1022,11 +1023,13 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "mode": {
-                    "description": "Mode is a comma separated list of options supplied by the user when\ncreating the bind/volume mount.\n\nThe default is platform-specific (` + "`" + `\"z\"` + "`" + ` on Linux, empty on Windows).",
+                    "description": "Mode is a comma separated list of options supplied by the user when\ncreating the bind/volume mount.\n\nThe default is platform-specific (` +
+	"`" + `\"z\"` + "`" + ` on Linux, empty on Windows).",
                     "type": "string"
                 },
                 "name": {
-                    "description": "Name is the name reference to the underlying data defined by ` + "`" + `Source` + "`" + `\ne.g., the volume name.",
+                    "description": "Name is the name reference to the underlying data defined by ` +
+	"`" + `Source` + "`" + `\ne.g., the volume name.",
                     "type": "string"
                 },
                 "propagation": {
@@ -1042,11 +1045,14 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "source": {
-                    "description": "Source is the source location of the mount.\n\nFor volumes, this contains the storage location of the volume (within\n` + "`" + `/var/lib/docker/volumes/` + "`" + `). For bind-mounts, and ` + "`" + `npipe` + "`" + `, this contains\nthe source (host) part of the bind-mount. For ` + "`" + `tmpfs` + "`" + ` mount points, this\nfield is empty.",
+                    "description": "Source is the source location of the mount.\n\nFor volumes, this contains the storage location of the volume (within\n` +
+	"`" + `/var/lib/docker/volumes/` + "`" + `). For bind-mounts, and ` + "`" + `npipe` + "`" +
+	`, this contains\nthe source (host) part of the bind-mount. For ` + "`" + `tmpfs` + "`" + ` mount points, this\nfield is empty.",
                     "type": "string"
                 },
                 "type": {
-                    "description": "Type is the type of mount, see ` + "`" + `Type\u003cfoo\u003e` + "`" + ` definitions in\ngithub.com/docker/docker/api/types/mount.Type",
+                    "description": "Type is the type of mount, see ` + "`" + `Type\u003cfoo\u003e` +
+	"`" + ` definitions in\ngithub.com/docker/docker/api/types/mount.Type",
                     "allOf": [
                         {
                             "$ref": "#/definitions/mount.Type"

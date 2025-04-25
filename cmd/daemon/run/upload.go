@@ -4,6 +4,7 @@ import (
 	// Custom
 
 	"path/filepath"
+
 	"stamus-ctl/internal/app"
 	"stamus-ctl/internal/logging"
 
@@ -51,7 +52,7 @@ func uploadHandler(c *gin.Context) {
 	folderPath := filepath.Dir(completePath)
 
 	// Create directory if it doesn't exist
-	err = app.FS.MkdirAll(folderPath, 0755)
+	err = app.FS.MkdirAll(folderPath, 0o755)
 	if err != nil {
 		c.String(500, "Directory creation error: "+err.Error())
 		return

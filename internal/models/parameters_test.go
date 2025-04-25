@@ -55,7 +55,10 @@ func TestAddAsParameter(t *testing.T) {
 }
 
 func TestAddAsFlags(t *testing.T) {
-	param1 := &Parameter{Name: "param1", Type: "string", Variable: CreateVariableString("value1")}
+	param1 := &Parameter{
+		Name: "param1", Type: "string",
+		Variable: CreateVariableString("value1"),
+	}
 	param2 := &Parameter{Name: "param2", Type: "int", Variable: CreateVariableInt(2)}
 
 	params := &Parameters{
@@ -77,8 +80,14 @@ func TestAddAsFlags(t *testing.T) {
 }
 
 func TestValidateAll(t *testing.T) {
-	validParam := &Parameter{Type: "string", Variable: CreateVariableString("value1"), ValidateFunc: func(v Variable) bool { return true }}
-	invalidParam := &Parameter{Type: "int", Variable: CreateVariableInt(2), ValidateFunc: func(v Variable) bool { return false }}
+	validParam := &Parameter{
+		Type: "string", Variable: CreateVariableString("value1"),
+		ValidateFunc: func(v Variable) bool { return true },
+	}
+	invalidParam := &Parameter{
+		Type: "int", Variable: CreateVariableInt(2),
+		ValidateFunc: func(v Variable) bool { return false },
+	}
 
 	tests := []struct {
 		name    string
@@ -312,7 +321,6 @@ func TestSetToDefaults(t *testing.T) {
 }
 
 func TestProcessOptionnalParams(t *testing.T) {
-
 	param1 := &Parameter{
 		Name: "param1",
 		Type: "optional",

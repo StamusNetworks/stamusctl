@@ -3,8 +3,9 @@ package models
 import (
 	"fmt"
 	"sort"
-	"stamus-ctl/internal/logging"
 	"strings"
+
+	"stamus-ctl/internal/logging"
 
 	"github.com/spf13/cobra"
 )
@@ -117,7 +118,8 @@ func (p *Parameters) ProcessOptionnalParams(interactive bool) error {
 	}
 	// Sort by specificity
 	sort.Slice(optionalParams, func(i, j int) bool {
-		return len(strings.Split(optionalParams[i], ".")) < len(strings.Split(optionalParams[j], "."))
+		return len(strings.Split(optionalParams[i], ".")) <
+			len(strings.Split(optionalParams[j], "."))
 	})
 	// Ask for optional parameters, filtering optional parameters and concerned parameters from instance
 	for len(optionalParams) != 0 {
@@ -174,7 +176,7 @@ func (p *Parameters) MergeValues(toMerge *Parameters) *Parameters {
 	return p
 }
 
-// Sets paramaters values to given values
+// Sets parameters values to given values
 func (p *Parameters) SetValues(values map[string]*Variable) {
 	for key, value := range values {
 		if (*p)[key] == nil {

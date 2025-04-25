@@ -6,8 +6,6 @@ import (
 	"github.com/briandowns/spinner"
 )
 
-var ()
-
 func NewSpinner(prefix, finalMSG string) *spinner.Spinner {
 	s := spinner.New(spinner.CharSets[7], 100*time.Millisecond)
 	s.Prefix = prefix

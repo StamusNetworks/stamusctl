@@ -1,10 +1,19 @@
 {
-	"[go]": {
-		"editor.defaultFormatter": "golang.go",
-		"editor.formatOnType": true,
-		"editor.formatOnSave": true
+	"go.coverOnSave": false,
+	"go.coverOnSingleTest": true,
+	"go.coverOnSingleTestFile": true,
+	"go.coverShowCounts": false,
+	"go.lintTool": "golangci-lint",
+	"go.formatTool": "gofumpt",
+	"go.useLanguageServer": true,
+	"go.toolsEnvVars": {
+		"GOFUMPT_SPLIT_LONG_LINES": "on"
 	},
-	"editor.codeActionsOnSave": {
-		"source.fixAll": "always" // use always for both manual and auto saves
-	}
+	"gopls": {
+		"formatting.gofumpt": true,
+	},
+	"vitest.cliArguments": "pnpx vitest --coverage",
+	"coverage-gutters.showLineCoverage": true,
+	"coverage-gutters.showRulerCoverage": true,
+	"editor.bracketPairColorization.enabled": true
 }

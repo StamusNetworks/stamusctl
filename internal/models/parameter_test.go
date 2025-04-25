@@ -54,9 +54,11 @@ func TestVariable_AsString(t *testing.T) {
 func strPtr(s string) *string {
 	return &s
 }
+
 func boolPtr(b bool) *bool {
 	return &b
 }
+
 func intPtr(i int) *int {
 	return &i
 }
@@ -335,6 +337,7 @@ func TestParameter_AddAsFlag(t *testing.T) {
 		})
 	}
 }
+
 func TestParameter_AddStringFlag(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -402,7 +405,8 @@ func TestParameter_AddStringFlag(t *testing.T) {
 			}
 
 			if flag.Value.String() != *tt.parameter.Default.String {
-				t.Errorf("expected flag value %s, got %s", *tt.parameter.Default.String, flag.Value.String())
+				t.Errorf("expected flag value %s, got %s",
+					*tt.parameter.Default.String, flag.Value.String())
 			}
 
 			if tt.parameter.Shorthand != "" && flag.Shorthand != tt.parameter.Shorthand {
@@ -411,6 +415,7 @@ func TestParameter_AddStringFlag(t *testing.T) {
 		})
 	}
 }
+
 func TestParameter_AddBoolFlag(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -478,7 +483,8 @@ func TestParameter_AddBoolFlag(t *testing.T) {
 			}
 
 			if flag.Value.String() != strconv.FormatBool(*tt.parameter.Default.Bool) {
-				t.Errorf("expected flag value %v, got %v", *tt.parameter.Default.Bool, flag.Value.String())
+				t.Errorf("expected flag value %v, got %v",
+					*tt.parameter.Default.Bool, flag.Value.String())
 			}
 
 			if tt.parameter.Shorthand != "" && flag.Shorthand != tt.parameter.Shorthand {
@@ -487,6 +493,7 @@ func TestParameter_AddBoolFlag(t *testing.T) {
 		})
 	}
 }
+
 func TestParameter_AddIntFlag(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -554,7 +561,8 @@ func TestParameter_AddIntFlag(t *testing.T) {
 			}
 
 			if flag.Value.String() != strconv.Itoa(*tt.parameter.Default.Int) {
-				t.Errorf("expected flag value %d, got %s", *tt.parameter.Default.Int, flag.Value.String())
+				t.Errorf("expected flag value %d, got %s",
+					*tt.parameter.Default.Int, flag.Value.String())
 			}
 
 			if tt.parameter.Shorthand != "" && flag.Shorthand != tt.parameter.Shorthand {
@@ -563,6 +571,7 @@ func TestParameter_AddIntFlag(t *testing.T) {
 		})
 	}
 }
+
 func TestParameter_validateChoices(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -628,12 +637,15 @@ func TestParameter_validateChoices(t *testing.T) {
 func isEqualStrings(variable, expected Variable) bool {
 	return variable.String == nil || *variable.String == *expected.String
 }
+
 func isEqualBools(variable, expected Variable) bool {
 	return variable.Bool == nil || *variable.Bool == *expected.Bool
 }
+
 func isEqualInts(variable, expected Variable) bool {
 	return variable.Int == nil || *variable.Int == *expected.Int
 }
+
 func isEqual(variable, expected Variable) bool {
 	return isEqualStrings(variable, expected) && isEqualBools(variable, expected) && isEqualInts(variable, expected)
 }

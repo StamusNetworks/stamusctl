@@ -84,6 +84,7 @@ func GetConfigsFolder(name string) string {
 func IsCtl() bool {
 	return CtlName == "stamusctl"
 }
+
 func isUnderTest() bool {
 	for _, arg := range os.Args {
 		if strings.HasPrefix(arg, "-test.") {
@@ -92,6 +93,7 @@ func isUnderTest() bool {
 	}
 	return false
 }
+
 func isMemFSDisabled() bool {
 	return os.Getenv("DISABLE_MEM_FS") == "true"
 }

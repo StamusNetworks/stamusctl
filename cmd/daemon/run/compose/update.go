@@ -48,5 +48,4 @@ func updateHandler(c *gin.Context) {
 		return
 	}
 	c.JSON(200, gin.H{"message": "Configuration updated successfully"})
-
 }

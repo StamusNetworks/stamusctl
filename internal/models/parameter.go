@@ -3,9 +3,10 @@ package models
 import (
 	"fmt"
 	"slices"
-	"stamus-ctl/internal/logging"
 	"strconv"
 	"strings"
+
+	"stamus-ctl/internal/logging"
 
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
@@ -248,10 +249,12 @@ func (p *Parameter) SetVariable(value Variable) *Parameter {
 	p.Variable = value
 	return p
 }
+
 func (p *Parameter) SetDefault(value Variable) *Parameter {
 	p.Default = value
 	return p
 }
+
 func (p *Parameter) Copy() *Parameter {
 	return &Parameter{
 		Name:      p.Name,
@@ -323,9 +326,11 @@ func (p *Parameter) AskUser() error {
 func CreateVariableString(value string) Variable {
 	return Variable{String: &value}
 }
+
 func CreateVariableBool(value bool) Variable {
 	return Variable{Bool: &value}
 }
+
 func CreateVariableInt(value int) Variable {
 	return Variable{Int: &value}
 }
@@ -368,7 +373,6 @@ func selectPrompt(p *Parameter, choices []string) (string, error) {
 		},
 	}
 	_, result, err := prompt.Run()
-
 	if err != nil {
 		return "", fmt.Errorf("prompt cancelled")
 	}

@@ -143,7 +143,10 @@ func getKeysHandler() error {
 		if usage[len(usage)-1] == '?' {
 			usage = usage[:len(usage)-1]
 		}
-		rows = append(rows, table.Row{paramNameComplete, param.Type, param.Default.AsString(), param.Variable.AsString(), usage})
+		rows = append(rows, table.Row{
+			paramNameComplete, param.Type,
+			param.Default.AsString(), param.Variable.AsString(), usage,
+		})
 	}
 	// Print
 	t := table.NewWriter()

@@ -23,13 +23,13 @@ func GetExecVersion(executable string, flags ...string) (*semver.Version, error)
 	var stdout bytes.Buffer
 	cmd.Stdout = &stdout
 
-	//Run cmd
+	// Run cmd
 	if err := cmd.Run(); err != nil {
 		logging.Sugar.Errorw("cannot fetch version.", "error", err, "exec", executable)
 		return nil, fmt.Errorf("cannot %s fetch version", executable)
 	}
 
-	//Format output
+	// Format output
 	output := stdout.String()
 	splited := strings.Split(output, " ")
 	extracted := strings.Trim(splited[len(splited)-1], "\n")

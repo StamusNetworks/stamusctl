@@ -3,8 +3,9 @@ package models
 import (
 	"bytes"
 	"fmt"
-	"stamus-ctl/internal/app"
 	"strings"
+
+	"stamus-ctl/internal/app"
 
 	"github.com/spf13/afero"
 	"github.com/spf13/viper"

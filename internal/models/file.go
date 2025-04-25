@@ -5,9 +5,10 @@ import (
 
 	"fmt"
 	"log"
+	"strings"
+
 	"stamus-ctl/internal/app"
 	"stamus-ctl/internal/logging"
-	"strings"
 
 	"github.com/spf13/viper"
 	// External

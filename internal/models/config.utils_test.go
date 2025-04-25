@@ -1,8 +1,9 @@
 package models
 
 import (
-	"stamus-ctl/internal/app"
 	"testing"
+
+	"stamus-ctl/internal/app"
 
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
@@ -63,7 +64,7 @@ func TestRemoveEmptyStrings(t *testing.T) {
 
 func TestIsDirEmpty(t *testing.T) {
 	// Test when directory is empty
-	err := app.FS.Mkdir("/TestIsDirEmpty/emptydir", 0755)
+	err := app.FS.Mkdir("/TestIsDirEmpty/emptydir", 0o755)
 	assert.NoError(t, err)
 
 	isEmpty, err := isDirEmpty("/TestIsDirEmpty/emptydir")
@@ -71,7 +72,7 @@ func TestIsDirEmpty(t *testing.T) {
 	assert.True(t, isEmpty)
 
 	// Test when directory is not empty
-	err = afero.WriteFile(app.FS, "/TestIsDirEmpty/emptydir/file.txt", []byte("content"), 0644)
+	err = afero.WriteFile(app.FS, "/TestIsDirEmpty/emptydir/file.txt", []byte("content"), 0o644)
 	assert.NoError(t, err)
 
 	isEmpty, err = isDirEmpty("/TestIsDirEmpty/emptydir")
@@ -86,7 +87,7 @@ func TestIsDirEmpty(t *testing.T) {
 
 func TestRemoveDirIfEmpty(t *testing.T) {
 	// Test when directory is empty
-	err := app.FS.Mkdir("/TestRemoveDirIfEmpty/emptydir", 0755)
+	err := app.FS.Mkdir("/TestRemoveDirIfEmpty/emptydir", 0o755)
 	assert.NoError(t, err)
 
 	err = removeDirIfEmpty("/TestRemoveDirIfEmpty/emptydir")
@@ -97,10 +98,10 @@ func TestRemoveDirIfEmpty(t *testing.T) {
 	assert.False(t, exists)
 
 	// Test when directory is not empty
-	err = app.FS.Mkdir("/TestRemoveDirIfEmpty/notemptydir", 0755)
+	err = app.FS.Mkdir("/TestRemoveDirIfEmpty/notemptydir", 0o755)
 	assert.NoError(t, err)
 
-	err = afero.WriteFile(app.FS, "/TestRemoveDirIfEmpty/notemptydir/file.txt", []byte("content"), 0644)
+	err = afero.WriteFile(app.FS, "/TestRemoveDirIfEmpty/notemptydir/file.txt", []byte("content"), 0o644)
 	assert.NoError(t, err)
 
 	err = removeDirIfEmpty("/TestRemoveDirIfEmpty/notemptydir")
@@ -117,7 +118,7 @@ func TestRemoveDirIfEmpty(t *testing.T) {
 
 func TestDeleteEmptyFolders(t *testing.T) {
 	// Test when directory is empty
-	err := app.FS.Mkdir("/TestDeleteEmptyFolders/emptydir", 0755)
+	err := app.FS.Mkdir("/TestDeleteEmptyFolders/emptydir", 0o755)
 	assert.NoError(t, err)
 
 	err = deleteEmptyFolders("/TestDeleteEmptyFolders/emptydir")
@@ -128,10 +129,10 @@ func TestDeleteEmptyFolders(t *testing.T) {
 	assert.True(t, exists)
 
 	// Test when directory is not empty
-	err = app.FS.Mkdir("/TestDeleteEmptyFolders/notemptydir", 0755)
+	err = app.FS.Mkdir("/TestDeleteEmptyFolders/notemptydir", 0o755)
 	assert.NoError(t, err)
 
-	err = afero.WriteFile(app.FS, "/TestDeleteEmptyFolders/notemptydir/file.txt", []byte("content"), 0644)
+	err = afero.WriteFile(app.FS, "/TestDeleteEmptyFolders/notemptydir/file.txt", []byte("content"), 0o644)
 	assert.NoError(t, err)
 
 	err = deleteEmptyFolders("/TestDeleteEmptyFolders/notemptydir")
@@ -142,7 +143,7 @@ func TestDeleteEmptyFolders(t *testing.T) {
 	assert.True(t, exists)
 
 	// Test nested empty directories
-	err = app.FS.MkdirAll("/TestDeleteEmptyFolders/nested/emptydir/dir", 0755)
+	err = app.FS.MkdirAll("/TestDeleteEmptyFolders/nested/emptydir/dir", 0o755)
 	assert.NoError(t, err)
 
 	err = deleteEmptyFolders("/TestDeleteEmptyFolders/nested")
@@ -161,10 +162,10 @@ func TestDeleteEmptyFolders(t *testing.T) {
 	assert.True(t, exists)
 
 	// Test nested directories with files
-	err = app.FS.MkdirAll("/TestDeleteEmptyFolders/nested/notemptydir", 0755)
+	err = app.FS.MkdirAll("/TestDeleteEmptyFolders/nested/notemptydir", 0o755)
 	assert.NoError(t, err)
 
-	err = afero.WriteFile(app.FS, "/TestDeleteEmptyFolders/nested/notemptydir/file.txt", []byte("content"), 0644)
+	err = afero.WriteFile(app.FS, "/TestDeleteEmptyFolders/nested/notemptydir/file.txt", []byte("content"), 0o644)
 	assert.NoError(t, err)
 
 	err = deleteEmptyFolders("/TestDeleteEmptyFolders/nested")
@@ -181,10 +182,10 @@ func TestDeleteEmptyFolders(t *testing.T) {
 
 func TestDeleteEmptyFiles(t *testing.T) {
 	// Test when directory has no empty files
-	err := app.FS.Mkdir("/TestDeleteEmptyFiles/dir", 0755)
+	err := app.FS.Mkdir("/TestDeleteEmptyFiles/dir", 0o755)
 	assert.NoError(t, err)
 
-	err = afero.WriteFile(app.FS, "/TestDeleteEmptyFiles/dir/file.txt", []byte("content"), 0644)
+	err = afero.WriteFile(app.FS, "/TestDeleteEmptyFiles/dir/file.txt", []byte("content"), 0o644)
 	assert.NoError(t, err)
 
 	err = deleteEmptyFiles("/TestDeleteEmptyFiles/dir")
@@ -195,7 +196,7 @@ func TestDeleteEmptyFiles(t *testing.T) {
 	assert.True(t, exists)
 
 	// Test when directory has empty files
-	err = afero.WriteFile(app.FS, "/TestDeleteEmptyFiles/dir/emptyfile.txt", []byte(""), 0644)
+	err = afero.WriteFile(app.FS, "/TestDeleteEmptyFiles/dir/emptyfile.txt", []byte(""), 0o644)
 	assert.NoError(t, err)
 
 	err = deleteEmptyFiles("/TestDeleteEmptyFiles/dir")
@@ -206,7 +207,7 @@ func TestDeleteEmptyFiles(t *testing.T) {
 	assert.False(t, exists)
 
 	// Test when directory is empty
-	err = app.FS.Mkdir("/TestDeleteEmptyFiles/emptydir", 0755)
+	err = app.FS.Mkdir("/TestDeleteEmptyFiles/emptydir", 0o755)
 	assert.NoError(t, err)
 
 	err = deleteEmptyFiles("/TestDeleteEmptyFiles/emptydir")
@@ -220,24 +221,25 @@ func TestDeleteEmptyFiles(t *testing.T) {
 	err = deleteEmptyFiles("/TestDeleteEmptyFiles/nonexistentdir")
 	assert.Error(t, err)
 }
+
 func TestGetAllFiles(t *testing.T) {
 	// Setup test directories and files
-	err := app.FS.Mkdir("/TestGetAllFiles/testdir", 0755)
+	err := app.FS.Mkdir("/TestGetAllFiles/testdir", 0o755)
 	assert.NoError(t, err)
 
-	err = afero.WriteFile(app.FS, "/TestGetAllFiles/testdir/file1.txt", []byte("content"), 0644)
+	err = afero.WriteFile(app.FS, "/TestGetAllFiles/testdir/file1.txt", []byte("content"), 0o644)
 	assert.NoError(t, err)
 
-	err = afero.WriteFile(app.FS, "/TestGetAllFiles/testdir/file2.tpl", []byte("content"), 0644)
+	err = afero.WriteFile(app.FS, "/TestGetAllFiles/testdir/file2.tpl", []byte("content"), 0o644)
 	assert.NoError(t, err)
 
-	err = afero.WriteFile(app.FS, "/TestGetAllFiles/testdir/file3.tpl", []byte("content"), 0644)
+	err = afero.WriteFile(app.FS, "/TestGetAllFiles/testdir/file3.tpl", []byte("content"), 0o644)
 	assert.NoError(t, err)
 
-	err = app.FS.Mkdir("/TestGetAllFiles/testdir/subdir", 0755)
+	err = app.FS.Mkdir("/TestGetAllFiles/testdir/subdir", 0o755)
 	assert.NoError(t, err)
 
-	err = afero.WriteFile(app.FS, "/TestGetAllFiles/testdir/subdir/file4.tpl", []byte("content"), 0644)
+	err = afero.WriteFile(app.FS, "/TestGetAllFiles/testdir/subdir/file4.tpl", []byte("content"), 0o644)
 	assert.NoError(t, err)
 
 	// Test getting all .tpl files
@@ -271,13 +273,13 @@ func TestProcessTemplate(t *testing.T) {
 	logger := zap.NewExample().Sugar()
 
 	// Setup test directories and files
-	err := app.FS.Mkdir("/TestProcessTemplate/input", 0755)
+	err := app.FS.Mkdir("/TestProcessTemplate/input", 0o755)
 	assert.NoError(t, err)
 
-	err = afero.WriteFile(app.FS, "/TestProcessTemplate/input/template.txt", []byte("Hello, {{ .Name }}!"), 0644)
+	err = afero.WriteFile(app.FS, "/TestProcessTemplate/input/template.txt", []byte("Hello, {{ .Name }}!"), 0o644)
 	assert.NoError(t, err)
 
-	err = app.FS.Mkdir("/TestProcessTemplate/output", 0755)
+	err = app.FS.Mkdir("/TestProcessTemplate/output", 0o755)
 	assert.NoError(t, err)
 
 	data := map[string]interface{}{
@@ -290,7 +292,8 @@ func TestProcessTemplate(t *testing.T) {
 	info, err := app.FS.Stat("/TestProcessTemplate/input/template.txt")
 	assert.NoError(t, err)
 
-	err = processTemplate(data, tpls, "/TestProcessTemplate/input/template.txt", "/TestProcessTemplate/input", "/TestProcessTemplate/output", info, logger)
+	err = processTemplate(data, tpls, "/TestProcessTemplate/input/template.txt",
+		"/TestProcessTemplate/input", "/TestProcessTemplate/output", info, logger)
 	assert.NoError(t, err)
 
 	// Verify the output file
@@ -303,13 +306,14 @@ func TestProcessTemplate(t *testing.T) {
 	assert.Equal(t, "Hello, World!\n", string(content))
 
 	// Test processing a directory
-	err = app.FS.Mkdir("/TestProcessTemplate/input2/dir", 0755)
+	err = app.FS.Mkdir("/TestProcessTemplate/input2/dir", 0o755)
 	assert.NoError(t, err)
 
 	info, err = app.FS.Stat("/TestProcessTemplate/input2/dir")
 	assert.NoError(t, err)
 
-	err = processTemplate(data, tpls, "/TestProcessTemplate/input2/dir", "/TestProcessTemplate/input2", "/TestProcessTemplate/output", info, logger)
+	err = processTemplate(data, tpls, "/TestProcessTemplate/input2/dir",
+		"/TestProcessTemplate/input2", "/TestProcessTemplate/output", info, logger)
 	assert.NoError(t, err)
 
 	// Verify the output directory

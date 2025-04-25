@@ -47,14 +47,14 @@ func createConfig(configName, pcap string) (container.Config, container.HostConf
 
 	dir, err := os.Getwd()
 	if err != nil {
-
 		return container.Config{}, container.HostConfig{}, network.NetworkingConfig{}, nil
 	}
 
 	config := container.Config{
 		Image:      "jasonish/suricata:master-amd64-profiling",
 		Entrypoint: []string{"/docker-entrypoint.sh"},
-		Cmd:        []string{"-vvv -k none -r /replay/" + pcapName + " --runmode autofp -l /var/log/suricata --set sensor-name=" + pcapName},
+		Cmd: []string{"-vvv -k none -r /replay/" + pcapName +
+			" --runmode autofp -l /var/log/suricata --set sensor-name=" + pcapName},
 	}
 
 	hostConfig := container.HostConfig{
@@ -99,7 +99,6 @@ func runContainer(configName, pcap string) (string, error) {
 	cli := initCli()
 	ctx := context.Background()
 	config, hostConfig, networkConfig, err := createConfig(configName, pcap)
-
 	if err != nil {
 		logger.With("error", err).Error("container configs")
 		return "", err
@@ -162,7 +161,6 @@ func runContainer(configName, pcap string) (string, error) {
 }
 
 func PcapHandler(params ReadPcapParams) error {
-
 	if _, err := app.FS.Stat(params.Config); os.IsNotExist(err) {
 		return errors.New("instance '" + params.Config + "' don't exist")
 	}

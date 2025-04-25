@@ -1,8 +1,9 @@
 package utils
 
 import (
-	"stamus-ctl/internal/logging"
 	"strings"
+
+	"stamus-ctl/internal/logging"
 )
 
 func ExtractArgs(args []string) map[string]string {

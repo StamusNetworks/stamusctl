@@ -203,7 +203,7 @@ func runArbitraryScript(path string, config string) (*strings.Builder, error) {
 	arbitrary.Stdout = runOutput
 	arbitrary.Stderr = os.Stderr
 	// Change execution rights
-	err := app.FS.Chmod(path, 0755)
+	err := app.FS.Chmod(path, 0o755)
 	if err != nil {
 		return nil, err
 	}

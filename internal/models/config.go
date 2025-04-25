@@ -184,7 +184,7 @@ func (f *Config) SaveConfigTo(dest *File, isUpgrade, isInstall bool) error {
 	templateData := NewTemplate(f.project, f.file.Path).AsMap()
 
 	// Merge data
-	var data = map[string]any{}
+	data := map[string]any{}
 	for key, value := range configData {
 		data[key] = value
 	}
@@ -219,8 +219,8 @@ func (f *Config) SaveConfigTo(dest *File, isUpgrade, isInstall bool) error {
 }
 
 func (f *Config) GetData() (map[string]any, error) {
-	var data = map[string]any{}
-	var configData = map[string]any{}
+	data := map[string]any{}
+	configData := map[string]any{}
 	for key, param := range *f.parameters {
 		value, err := param.GetValue()
 		if err != nil {
@@ -315,9 +315,9 @@ func (f *Config) Clean(folder *File) error {
 
 // Save parameters values to config file
 func (f *Config) saveParamsTo(dest *File) error {
-	//Clear the file
+	// Clear the file
 	app.FS.Remove(dest.completePath())
-	//ReCreate the file
+	// ReCreate the file
 	file, err := app.FS.Create(dest.completePath())
 	if err != nil {
 		logging.Sugar.Info("Error creating config file", err)
@@ -325,14 +325,14 @@ func (f *Config) saveParamsTo(dest *File) error {
 	}
 	defer file.Close()
 
-	// Instanciate config to dest file
+	// Instantiate config to dest file
 	conf, err := ConfigFromFile(dest)
 	if err != nil {
 		logging.Sugar.Info("Error creating config instance", err)
 		return err
 	}
 	conf.parameters = f.parameters
-	//Get current config parameters values
+	// Get current config parameters values
 	paramsValues := make(map[string]any)
 	for key, param := range *conf.parameters {
 		value, err := param.GetValue()
@@ -403,6 +403,7 @@ func (f *Config) SetSeed(value string) {
 func generateSeed() string {
 	return generateRandomString(16)
 }
+
 func (f *Config) GetOrSetSeed() string {
 	seed := f.file.GetViper().GetString("stamus.seed")
 	if seed == "" {

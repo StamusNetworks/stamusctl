@@ -11,19 +11,21 @@ import (
 	"stamus-ctl/internal/app"
 )
 
-var osMkdirAll = os.MkdirAll
-var osOpenFile = os.OpenFile
-var ioReadAll = io.ReadAll
+var (
+	osMkdirAll = os.MkdirAll
+	osOpenFile = os.OpenFile
+	ioReadAll  = io.ReadAll
+)
 
 func getOrCreateStamusConfigFile() (*os.File, error) {
 	// Create ~/stamus directory
-	err := osMkdirAll(app.ConfigFolder, 0755)
+	err := osMkdirAll(app.ConfigFolder, 0o755)
 	if err != nil {
 		return nil, err
 	}
 
 	// Open or create ~/stamus/config.json
-	f, err := osOpenFile(filepath.Join(app.ConfigFolder, "config.json"), os.O_RDWR|os.O_CREATE, 0755)
+	f, err := osOpenFile(filepath.Join(app.ConfigFolder, "config.json"), os.O_RDWR|os.O_CREATE, 0o755)
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +35,7 @@ func getOrCreateStamusConfigFile() (*os.File, error) {
 
 func tryGetStamusConfigFile() (*os.File, error) {
 	// Open or create ~/stamus/config.json
-	f, err := osOpenFile(filepath.Join(app.ConfigFolder, "config.json"), os.O_RDONLY, 0755)
+	f, err := osOpenFile(filepath.Join(app.ConfigFolder, "config.json"), os.O_RDONLY, 0o755)
 	if err != nil {
 		return nil, err
 	}

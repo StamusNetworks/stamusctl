@@ -2,8 +2,9 @@ package models
 
 import (
 	"log"
-	"stamus-ctl/internal/app"
 	"testing"
+
+	"stamus-ctl/internal/app"
 
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
@@ -66,7 +67,7 @@ func TestSaveParamsTo_LatestVersion(t *testing.T) {
 
 	// Create a version file
 	versionPath := "/latest/version"
-	err = afero.WriteFile(app.FS, versionPath, []byte("1.0.0"), 0644)
+	err = afero.WriteFile(app.FS, versionPath, []byte("1.0.0"), 0o644)
 	assert.NoError(t, err)
 
 	// Create a Config instance
@@ -109,13 +110,14 @@ func TestSaveParamsTo_LatestVersion(t *testing.T) {
 	assert.Equal(t, "test_project", viperInstance.GetString("stamus.project"))
 	assert.Equal(t, "/1.0.0", viperInstance.GetString("stamus.config"))
 }
+
 func TestSetValuesFromFiles(t *testing.T) {
 	// Create a dummy content file
 	contentFile1 := "i'm some dummy content"
-	err := afero.WriteFile(app.FS, "./folder/file1.txt", []byte(contentFile1), 0644)
+	err := afero.WriteFile(app.FS, "./folder/file1.txt", []byte(contentFile1), 0o644)
 	assert.NoError(t, err)
 	contentFile2 := "and i'm some other dummy content"
-	err = afero.WriteFile(app.FS, "./folder/file2.txt", []byte(contentFile2), 0644)
+	err = afero.WriteFile(app.FS, "./folder/file2.txt", []byte(contentFile2), 0o644)
 	assert.NoError(t, err)
 
 	// Create a Config instance
@@ -140,6 +142,7 @@ func TestSetValuesFromFiles(t *testing.T) {
 	assert.Equal(t, contentFile1, config.arbitrary.AsMap()["param1"])
 	assert.Equal(t, contentFile2, config.arbitrary.AsMap()["param2"])
 }
+
 func TestSetValuesFromFile(t *testing.T) {
 	// Create a dummy values file
 	valuesContent := `
@@ -150,7 +153,7 @@ stamus:
     config: ./folder2
     project: test_project
 `
-	err := afero.WriteFile(app.FS, "./folder/values.yaml", []byte(valuesContent), 0644)
+	err := afero.WriteFile(app.FS, "./folder/values.yaml", []byte(valuesContent), 0o644)
 	assert.NoError(t, err)
 	configContent := `
 param1:
@@ -162,7 +165,7 @@ param2:
     type: "int"
     default: 42
 `
-	err = afero.WriteFile(app.FS, "./folder2/config.yaml", []byte(configContent), 0644)
+	err = afero.WriteFile(app.FS, "./folder2/config.yaml", []byte(configContent), 0o644)
 	assert.NoError(t, err)
 
 	// Create a Config instance
@@ -193,6 +196,7 @@ param2:
 	assert.Equal(t, "123", config.parameters.GetValues()["param2"])
 	assert.Equal(t, "arbiteval", config.arbitrary.AsMap()["arbite"])
 }
+
 func TestGetData(t *testing.T) {
 	// Create a Config instance
 	config := &Config{
@@ -222,14 +226,15 @@ func TestGetData(t *testing.T) {
 	assert.Equal(t, 42, data["Values.param2"])
 	assert.Equal(t, "arbiteval", data["Values.arbite"])
 }
+
 func TestSaveConfigTo(t *testing.T) {
 	// Destination file
 	destFile, err := CreateFile("/dest", "config.yaml")
 	assert.NoError(t, err)
 	destFile.InstanciateViper()
-	err = afero.WriteFile(app.FS, "./dest/values.yaml", []byte(""), 0644)
+	err = afero.WriteFile(app.FS, "./dest/values.yaml", []byte(""), 0o644)
 	assert.NoError(t, err)
-	err = afero.WriteFile(app.FS, "./folder/values.yaml", []byte(""), 0644)
+	err = afero.WriteFile(app.FS, "./folder/values.yaml", []byte(""), 0o644)
 	assert.NoError(t, err)
 
 	// Create a Config instance
@@ -273,6 +278,7 @@ func TestSaveConfigTo(t *testing.T) {
 	assert.Equal(t, "test_project", destFile.GetViper().GetString("stamus.project"))
 	assert.Equal(t, "folder", destFile.GetViper().GetString("stamus.config"))
 }
+
 func TestExtractParams(t *testing.T) {
 	// Create a dummy config file
 	configContent := `
@@ -287,7 +293,7 @@ param2:
 includes:
   - include.yaml
 `
-	err := afero.WriteFile(app.FS, "./folder/config.yaml", []byte(configContent), 0644)
+	err := afero.WriteFile(app.FS, "./folder/config.yaml", []byte(configContent), 0o644)
 	assert.NoError(t, err)
 
 	// Create a dummy include file
@@ -297,7 +303,7 @@ param3:
   type: "string"
   default: "default"
 `
-	err = afero.WriteFile(app.FS, "./folder/include.yaml", []byte(includeContent), 0644)
+	err = afero.WriteFile(app.FS, "./folder/include.yaml", []byte(includeContent), 0o644)
 	assert.NoError(t, err)
 
 	// Create a Config instance

@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+
 	"stamus-ctl/internal/app"
 	"stamus-ctl/internal/logging"
 
@@ -192,7 +193,7 @@ func copyFromContainer(cli *client.Client, ctx context.Context, containerID, src
 			}
 		case tar.TypeReg:
 			logger := logging.Sugar.With("target", target, "srcPath", srcPath, "containerID", containerID)
-			if err := app.FS.MkdirAll(filepath.Dir(target), 0755); err != nil {
+			if err := app.FS.MkdirAll(filepath.Dir(target), 0o755); err != nil {
 				return err
 			}
 			outFile, err := app.FS.Create(target)

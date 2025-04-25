@@ -15,6 +15,7 @@ var Config = models.Parameter{
 	Usage:        "Configuration path",
 	ValidateFunc: utils.ValidatePath,
 }
+
 var IsDefaultParam = models.Parameter{
 	Name:      "default",
 	Shorthand: "d",
@@ -38,6 +39,7 @@ var Values = models.Parameter{
 	Default:   models.CreateVariableString(""),
 	Usage:     "Values file to use",
 }
+
 var Template = models.Parameter{
 	Name:      "template",
 	Shorthand: "t",
@@ -46,6 +48,7 @@ var Template = models.Parameter{
 	Usage:     "Template folder to use",
 	Hidden:    true,
 }
+
 var Bind = models.Parameter{
 	Name:      "bind",
 	Shorthand: "b",
@@ -61,18 +64,21 @@ var Format = models.Parameter{
 	Type:    "string",
 	Default: models.CreateVariableString("{{.}}"),
 }
+
 var Reload = models.Parameter{
 	Name:    "reload",
 	Usage:   "Reload the configuration, don't keep arbitrary parameters",
 	Type:    "bool",
 	Default: models.CreateVariableBool(false),
 }
+
 var Apply = models.Parameter{
 	Name:    "apply",
 	Usage:   "Apply the new configuration",
 	Type:    "bool",
 	Default: models.CreateVariableBool(false),
 }
+
 var FromFile = models.Parameter{
 	Name:      "fromFile",
 	Shorthand: "F",
@@ -95,11 +101,13 @@ var Registry = models.Parameter{
 	Type:  "string",
 	Usage: "Registry to use",
 }
+
 var Username = models.Parameter{
 	Name:  "user",
 	Type:  "string",
 	Usage: "Registry username",
 }
+
 var Password = models.Parameter{
 	Name:  "pass",
 	Type:  "string",

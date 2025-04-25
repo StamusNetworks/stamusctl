@@ -38,7 +38,6 @@ func createConfig(name string, cmd []string, volumes []string, net string) (cont
 }
 
 func RunContainer(name string, cmd []string, volumes []string, net string) (string, error) {
-
 	logger := logging.Sugar.With("name", name, "cmd", cmd, "volumes", volumes, "net", net)
 	config, hostConfig, networkConfig := createConfig(name, cmd, volumes, net)
 

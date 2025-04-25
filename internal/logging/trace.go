@@ -8,8 +8,10 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-var Tracer trace.Tracer
-var TracerProvider trace.TracerProvider
+var (
+	Tracer         trace.Tracer
+	TracerProvider trace.TracerProvider
+)
 
 func NewTraceProvider() *tracesdk.TracerProvider {
 	exporter, err := stdouttrace.New()

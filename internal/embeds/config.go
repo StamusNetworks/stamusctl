@@ -3,6 +3,7 @@ package embeds
 import (
 	"embed"
 	"runtime/debug"
+
 	"stamus-ctl/internal/app"
 	"stamus-ctl/internal/models"
 	"stamus-ctl/internal/utils"
@@ -19,7 +20,8 @@ func InitClearNDRFolder(path string) {
 		panic(err)
 	}
 	if !clearndrConfigExist && app.Embed.IsTrue() {
-		err = models.ExtractEmbedTo("clearndr", AllConf, app.TemplatesFolder+"clearndr/embedded/")
+		err = models.ExtractEmbedTo("clearndr", AllConf,
+			app.TemplatesFolder+"clearndr/embedded/")
 		if err != nil {
 			debug.PrintStack()
 			panic(err)

@@ -7,9 +7,7 @@ import (
 )
 
 func DeleteDockerImageByName(registry, name string) (bool, error) {
-
 	id, err := GetImageIdFromName(registry, name)
-
 	if err != nil {
 		logging.Sugar.Warnw("image id not found", "error", err)
 		return false, err

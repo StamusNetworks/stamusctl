@@ -3,8 +3,9 @@ package models
 import (
 	"embed"
 	"log"
-	"stamus-ctl/internal/app"
 	"strings"
+
+	"stamus-ctl/internal/app"
 
 	"github.com/spf13/afero"
 )
@@ -17,11 +18,11 @@ func ExtractEmbedTo(embedName string, embed embed.FS, outputFolder string) error
 		if err != nil {
 			return err
 		}
-		err = app.FS.MkdirAll(outputFolder+"/"+extractPath(file), 0755)
+		err = app.FS.MkdirAll(outputFolder+"/"+extractPath(file), 0o755)
 		if err != nil {
 			return err
 		}
-		err = afero.WriteFile(app.FS, outputFolder+"/"+extractPath(file)+"/"+extractFileName(file), data, 0644)
+		err = afero.WriteFile(app.FS, outputFolder+"/"+extractPath(file)+"/"+extractFileName(file), data, 0o644)
 		if err != nil {
 			return err
 		}

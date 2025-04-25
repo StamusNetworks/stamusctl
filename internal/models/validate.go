@@ -33,7 +33,7 @@ func ValidateMemoryUsage(memory Variable) bool {
 }
 
 func ValidateRestartMode(restart Variable) bool {
-	//Exists
+	// Exists
 	if restart.String == nil {
 		return false
 	}

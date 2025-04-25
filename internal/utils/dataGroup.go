@@ -1,8 +1,9 @@
 package utils
 
 import (
-	"stamus-ctl/internal/models"
 	"strings"
+
+	"stamus-ctl/internal/models"
 )
 
 // Utility function to group values from the config to nested maps
@@ -17,6 +18,7 @@ func GroupValues(params *models.Parameters, args []string) map[string]interface{
 	}
 	return groupedValues
 }
+
 func addToGroup(parts []string, value string, group map[string]interface{}) {
 	if len(parts) == 1 {
 		group[parts[0]] = value

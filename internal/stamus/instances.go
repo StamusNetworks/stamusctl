@@ -3,19 +3,22 @@ package stamus
 import (
 	"bytes"
 	"os/exec"
+	"strings"
+
 	"stamus-ctl/internal/app"
 	compose "stamus-ctl/internal/docker-compose"
-	"strings"
 
 	"github.com/spf13/afero"
 )
 
-type Folder string
-type Infos struct {
-	IsUp    bool
-	Project string `json:"project"`
-	Version string `json:"version"`
-}
+type (
+	Folder string
+	Infos  struct {
+		IsUp    bool
+		Project string `json:"project"`
+		Version string `json:"version"`
+	}
+)
 type Instances map[Folder]Infos
 
 func GetInstances() (Instances, error) {

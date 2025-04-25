@@ -3,12 +3,13 @@ package models
 import (
 	"io/ioutil"
 	"log"
-	"stamus-ctl/internal/app"
-	"stamus-ctl/internal/docker"
-	"stamus-ctl/internal/logging"
 	"strings"
 	"time"
 	"unicode"
+
+	"stamus-ctl/internal/app"
+	"stamus-ctl/internal/docker"
+	"stamus-ctl/internal/logging"
 )
 
 // Get the choices for a given variable

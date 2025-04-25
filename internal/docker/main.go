@@ -26,7 +26,8 @@ type IClient interface {
 		containerName string,
 	) (container.CreateResponse, error)
 	ContainerStart(ctx context.Context, containerID string, options container.StartOptions) error
-	ContainerWait(ctx context.Context, containerID string, condition container.WaitCondition) (<-chan container.WaitResponse, <-chan error)
+	ContainerWait(ctx context.Context, containerID string, condition container.WaitCondition) (
+		<-chan container.WaitResponse, <-chan error)
 	ContainerLogs(ctx context.Context, container string, options container.LogsOptions) (io.ReadCloser, error)
 	ContainerRemove(ctx context.Context, containerID string, options container.RemoveOptions) error
 }
@@ -37,7 +38,6 @@ var (
 )
 
 func init() {
-
 	docker, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	cli = docker
 
@@ -45,5 +45,4 @@ func init() {
 		debug.PrintStack()
 		panic(err)
 	}
-
 }

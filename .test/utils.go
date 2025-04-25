@@ -127,7 +127,8 @@ func compareFolderContent(folder1 map[string]string, folder2 map[string]string) 
 		if !ok {
 			return fmt.Errorf("file %s is missing in directory", name)
 		}
-		if RemoveLinesWithSeed(strings.TrimSuffix(content1, "\n")) != RemoveLinesWithSeed(strings.TrimSuffix(content2, "\n")) {
+		if RemoveLinesWithSeed(strings.TrimSuffix(content1, "\n")) !=
+			RemoveLinesWithSeed(strings.TrimSuffix(content2, "\n")) {
 			log.Println("Content diff for", name, "content1", content1, "content2", content2)
 			return fmt.Errorf("file content mismatch for %s \nContent diff:\n%s", name, diff.Diff(content1, content2))
 		}

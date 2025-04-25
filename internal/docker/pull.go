@@ -34,7 +34,6 @@ func PullImageIfNotExisted(registry string, name string) (bool, error) {
 	)
 
 	reader, err := cli.ImagePull(ctx, registry+name, image.PullOptions{})
-
 	if err != nil {
 		logging.SpinnerStop(s)
 		logger.Debugw("image failed to pull", "error", err)

@@ -3,11 +3,12 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"strings"
+
 	"stamus-ctl/internal/app"
 	"stamus-ctl/internal/models"
 	"stamus-ctl/internal/stamus"
 	"stamus-ctl/internal/utils"
-	"strings"
 )
 
 func GetVersion(config string) string {

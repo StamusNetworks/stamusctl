@@ -37,5 +37,4 @@ func TestPullImageIfNotExisted(t *testing.T) {
 	result, err = PullImageIfNotExisted("toto", "")
 	assert.Equal(t, false, result)
 	assert.Equal(t, "mock error", err.Error())
-
 }

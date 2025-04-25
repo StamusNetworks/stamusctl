@@ -30,7 +30,7 @@ func (f *Config) ExtractValues() map[string]*Variable {
 	// Extract parameters list
 	parametersList := f.file.GetViper().AllKeys()
 	// Extract values
-	var paramMap = make(map[string]*Variable)
+	paramMap := make(map[string]*Variable)
 	for _, parameter := range parametersList {
 		str := f.file.GetViper().GetString(parameter)
 		boolean := f.file.GetViper().GetBool(parameter)
@@ -68,9 +68,11 @@ func (f *Config) extracParamOverview(paramName string) Parameter {
 func (f *Config) getStringParamValue(name string, param string) string {
 	return f.file.GetViper().GetString(fmt.Sprintf("%s.%s", name, param))
 }
+
 func (f *Config) getBoolParamValue(name string, param string) bool {
 	return f.file.GetViper().GetBool(fmt.Sprintf("%s.%s", name, param))
 }
+
 func (f *Config) getIntParamValue(name string, param string) int {
 	return f.file.GetViper().GetInt(fmt.Sprintf("%s.%s", name, param))
 }

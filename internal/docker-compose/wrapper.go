@@ -130,7 +130,6 @@ func modifyFileFlag(c *cobra.Command) {
 func makeCustomRunner(
 	runE func(cmd *cobra.Command, args []string) error,
 ) func(cmd *cobra.Command, args []string) error {
-
 	return func(cmd *cobra.Command, args []string) error {
 		// Get folder flag value
 		configFlag := cmd.Flags().Lookup("config")

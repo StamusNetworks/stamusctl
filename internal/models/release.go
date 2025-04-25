@@ -75,6 +75,7 @@ func (s *Release) SetName(name string) *Release {
 	s.Name = name
 	return s
 }
+
 func (s *Release) SetLocation(location string) *Release {
 	s.Location = location
 	return s

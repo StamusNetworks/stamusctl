@@ -5,9 +5,10 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"path/filepath"
+	"time"
+
 	"stamus-ctl/internal/app"
 	"stamus-ctl/pkg"
-	"time"
 
 	"github.com/docker/docker/api/types"
 	"github.com/spf13/afero"
@@ -84,7 +85,7 @@ func getServices(path string) ([]string, error) {
 	if err != nil {
 		return []string{}, err
 	}
-	// Instanciate viper with file content
+	// Instantiate viper with file content
 	v := viper.New()
 	v.SetConfigType("yaml")
 	v.ReadConfig(bytes.NewBuffer(content))
@@ -116,9 +117,12 @@ func createContainer(service string) types.Container {
 		Ports:      []types.Port{{PrivatePort: 80, PublicPort: 8080, Type: "tcp"}},
 		SizeRw:     1000,
 		SizeRootFs: 2000,
-		Labels:     map[string]string{"com.docker.compose.service": service, "com.docker.compose.project": "mocked"},
-		State:      "running",
-		Status:     "Up 1 second",
+		Labels: map[string]string{
+			"com.docker.compose.service": service,
+			"com.docker.compose.project": "mocked",
+		},
+		State:  "running",
+		Status: "Up 1 second",
 		HostConfig: struct {
 			NetworkMode string            `json:",omitempty"`
 			Annotations map[string]string `json:",omitempty"`

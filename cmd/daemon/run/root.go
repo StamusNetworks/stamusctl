@@ -134,5 +134,4 @@ func SetupRouter(logger func(string)) *gin.Engine {
 
 	// r.RunUnix("./daemon.sock")
 	return r
-
 }

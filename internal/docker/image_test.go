@@ -8,7 +8,6 @@ import (
 )
 
 func TestImageName(t *testing.T) {
-
 	result := ImageName(image.Summary{
 		RepoTags: []string{"test"},
 	})
@@ -22,7 +21,6 @@ func TestImageName(t *testing.T) {
 }
 
 func TestGetImagesName(t *testing.T) {
-
 	result := GetImagesName([]image.Summary{{
 		RepoTags: []string{"test"},
 	}})

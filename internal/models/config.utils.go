@@ -5,10 +5,11 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"stamus-ctl/internal/app"
-	"stamus-ctl/internal/logging"
 	"strings"
 	"text/template"
+
+	"stamus-ctl/internal/app"
+	"stamus-ctl/internal/logging"
 
 	"github.com/Masterminds/sprig/v3"
 	"github.com/spf13/afero"
@@ -166,7 +167,9 @@ func processTemplates(inputFolder string, outputFolder string, data map[string]i
 	return nil
 }
 
-func processTemplate(data map[string]interface{}, tpls []string, path, inputFolder, outputFolder string, info os.FileInfo, logger *zap.SugaredLogger) error {
+func processTemplate(data map[string]interface{}, tpls []string,
+	path, inputFolder, outputFolder string, info os.FileInfo, logger *zap.SugaredLogger,
+) error {
 	// Pass through non-template files
 	if filepath.Ext(info.Name()) == ".tpl" {
 		return nil
@@ -226,7 +229,7 @@ func processTemplate(data map[string]interface{}, tpls []string, path, inputFold
 
 	// Set permissions for shell scripts
 	if filepath.Ext(path) == ".sh" {
-		err = app.FS.Chmod(destPath, 0755)
+		err = app.FS.Chmod(destPath, 0o755)
 		if err != nil {
 			logger.Error(err)
 			return err

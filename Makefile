@@ -41,6 +41,11 @@ test-cli:
 test:
 	CGO_ENABLED=0 go test ./... -cover
 
+cover:
+	go test -coverprofile=profile.cov.tmp ./...
+	cat profile.cov.tmp | grep -v "_mocks.go" | grep -v "stamus-ctl/cmd" | grep -v "main.go" | grep -v "docs.go" > cover.out
+	go tool cover -func cover.out
+
 daemon:
 	CGO_ENABLED=0 go build -v -ldflags '${LDFLAGS}' -o ${DIST_DIR}/${DAEMON_NAME} ./cmd
 
@@ -55,6 +60,17 @@ build-swaggo-image:
 
 update-swagger: build-swaggo-image
 	docker run --rm -it -v .:/code swag-daemon:latest
+
+lint:
+	golangci-lint run --timeout 5m
+
+fmt:
+	GOFUMPT_SPLIT_LONG_LINES="on" gofumpt -w -s .
+	goimports -w .
+
+fmt-check:
+	GOFUMPT_SPLIT_LONG_LINES="on" gofumpt -l .
+	goimports -l .
 
 # This step is needed in tests to have embeds loaded in some xdg paths
 init-embeds:

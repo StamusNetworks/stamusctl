@@ -78,7 +78,10 @@ func (m *mockCli) ImagePull(ctx context.Context, refStr string, options image.Pu
 	return io.NopCloser(stringReader), nil
 }
 
-func (m *mockCli) ContainerCreate(ctx context.Context, config *container.Config, hostConfig *container.HostConfig, networkingConfig *network.NetworkingConfig, platform *ocispec.Platform, containerName string) (container.CreateResponse, error) {
+func (m *mockCli) ContainerCreate(ctx context.Context, config *container.Config,
+	hostConfig *container.HostConfig, networkingConfig *network.NetworkingConfig,
+	platform *ocispec.Platform, containerName string,
+) (container.CreateResponse, error) {
 	if m.failContainerCreate {
 		return container.CreateResponse{}, errors.New("mock error")
 	}
@@ -96,7 +99,9 @@ func (m *mockCli) ContainerStart(ctx context.Context, containerID string, option
 	return nil
 }
 
-func (m *mockCli) ContainerWait(ctx context.Context, containerID string, condition container.WaitCondition) (<-chan container.WaitResponse, <-chan error) {
+func (m *mockCli) ContainerWait(ctx context.Context, containerID string,
+	condition container.WaitCondition,
+) (<-chan container.WaitResponse, <-chan error) {
 	response := make(chan container.WaitResponse)
 	err := make(chan error)
 

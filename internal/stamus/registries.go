@@ -4,13 +4,16 @@ import (
 	"stamus-ctl/internal/models"
 )
 
-type Registry string
-type User string
-type Token string
+type (
+	Registry string
+	User     string
+	Token    string
+)
 
-type Registries map[Registry]Logins
-type Logins map[User]Token
-
+type (
+	Registries map[Registry]Logins
+	Logins     map[User]Token
+)
 
 func SaveLogin(registryInfo models.RegistryInfo) error {
 	// Get config content

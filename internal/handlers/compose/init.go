@@ -3,12 +3,13 @@ package handlers
 import (
 	"os"
 	"path/filepath"
+	"strings"
+
 	"stamus-ctl/internal/app"
 	"stamus-ctl/internal/embeds"
 	"stamus-ctl/internal/logging"
 	"stamus-ctl/internal/models"
 	"stamus-ctl/internal/stamus"
-	"strings"
 
 	confHandler "stamus-ctl/internal/handlers/config"
 
@@ -71,7 +72,7 @@ func InitHandler(isCli bool, params InitHandlerInputs) error {
 			}
 		}
 	}
-	// Instanciate config
+	// Instantiate config
 	var templatePath string
 	if params.TemplateFolder == "" {
 		templatePath = filepath.Join(destPath, params.Version)
@@ -183,7 +184,7 @@ func pullLatestTemplate(destPath string, project, version string) error {
 	}
 	// Pull latest config
 	if len(stamusConf.Registries.AsList()) != 0 {
-		//Logged in
+		// Logged in
 		for _, registryInfo := range stamusConf.Registries.AsList() {
 			err = registryInfo.PullConfig(destPath, project, version)
 			if err == nil {
@@ -201,15 +202,15 @@ func pullLatestTemplate(destPath string, project, version string) error {
 	return err
 }
 
-// Instanciate config from folder or backup folders
+// Instantiate config from folder or backup folders
 func instanciateConfig(folderPath string, backupFolderPath string) (*models.Config, error) {
-	// Try to instanciate from folder
+	// Try to instantiate from folder
 	config, err := instanciateConfigFromPath(folderPath)
 	if err == nil {
 		return config, nil
 	}
 	if app.Embed.IsTrue() {
-		// Try to instanciate from backup folder
+		// Try to instantiate from backup folder
 		config, err = instanciateConfigFromPath(backupFolderPath)
 		if err == nil {
 			return config, nil
@@ -219,7 +220,7 @@ func instanciateConfig(folderPath string, backupFolderPath string) (*models.Conf
 	return nil, err
 }
 
-// Instanciate config from path
+// Instantiate config from path
 func instanciateConfigFromPath(folderPath string) (*models.Config, error) {
 	confFile, err := models.CreateFile(folderPath, "config.yaml")
 	if err != nil {

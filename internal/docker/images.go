@@ -31,7 +31,6 @@ func GetImagesName(images []image.Summary) []string {
 
 func GetInstalledImagesName() ([]string, error) {
 	images, err := cli.ImageList(ctx, image.ListOptions{All: true})
-
 	if err != nil {
 		return nil, err
 	}

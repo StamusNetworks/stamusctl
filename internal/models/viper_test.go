@@ -3,8 +3,9 @@ package models
 import (
 	"fmt"
 	"path/filepath"
-	"stamus-ctl/internal/app"
 	"testing"
+
+	"stamus-ctl/internal/app"
 
 	"github.com/spf13/afero"
 )
@@ -52,7 +53,8 @@ func TestInstanciateViperFunc(t *testing.T) {
 				}
 
 				// Check if the config file was created
-				exists, err := afero.Exists(app.FS, filepath.Join(test.Path, fmt.Sprintf("%s.%s", test.Name, test.Type)))
+				exists, err := afero.Exists(app.FS, filepath.Join(test.Path,
+					fmt.Sprintf("%s.%s", test.Name, test.Type)))
 				if err != nil {
 					t.Fatalf("failed to check if file exists: %v", err)
 				}
