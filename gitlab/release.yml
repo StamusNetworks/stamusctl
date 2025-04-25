@@ -4,7 +4,8 @@ refresh-app-of-apps:
         - test daemon
     variables:
         APP: stamusd
-        BRANCH: $CI_COMMIT_REF_NAME
+        ACTION: update
+        BRANCH: $CI_COMMIT_BRANCH
         SHA: $CI_COMMIT_SHORT_SHA
         PROJECT: $CI_PROJECT_NAME
         NAMESPACE: $CI_PROJECT_NAMESPACE
@@ -12,6 +13,34 @@ refresh-app-of-apps:
     trigger:
         project: devel/devops/app-of-app
         strategy: depend
+    rules:
+        - if: $CI_COMMIT_BRANCH == "main"
+          when: never
+        - if: $CI_COMMIT_BRANCH
+    environment:
+        name: review/$CI_COMMIT_REF_SLUG
+        url: https://stamusctl-doc.$CI_COMMIT_BRANCH.$CI_PROJECT_PATH_SLUG.test-stamusctl-doc.stamus-networks.net
+        on_stop: delete-env-from-app-of-apps
+
+delete-env-from-app-of-apps:
+    stage: deploy
+    variables:
+        ACTION: delete
+        APP: stamusd
+        BRANCH: $CI_COMMIT_BRANCH
+        SHA: $CI_COMMIT_SHORT_SHA
+        PROJECT: $CI_PROJECT_NAME
+        NAMESPACE: $CI_PROJECT_NAMESPACE
+        SLUG: $CI_PROJECT_PATH_SLUG
+    trigger:
+        project: devel/devops/app-of-app
+        strategy: depend
+    needs:
+        - refresh-app-of-apps
+    when: manual
+    environment:
+        name: review/$CI_COMMIT_REF_SLUG
+        action: stop
 
 release-to-github:
     stage: release
@@ -19,8 +48,8 @@ release-to-github:
     needs:
         - full test w test config
     rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
-      when: on_success
+        - if: '$CI_COMMIT_BRANCH == "main"'
+          when: on_success
     script:
         - git config --global user.email $GITLAB_USER_EMAIL
         - git config --global user.name $GITLAB_USER_NAME
@@ -38,8 +67,8 @@ create-tags:
     needs:
         - full test w test config
     rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
-      when: on_success
+        - if: '$CI_COMMIT_BRANCH == "main"'
+          when: on_success
     script:
         - git config --global user.email $GITLAB_USER_EMAIL
         - git config --global user.name $GITLAB_USER_NAME
@@ -48,47 +77,47 @@ create-tags:
         - git push --tags https://repo-token:$ACCESS_TOKEN@$CI_SERVER_HOST/$CI_PROJECT_PATH.git HEAD:main
 
 upload stamusctl:
-  stage: release
-  image: curlimages/curl:latest
-  dependencies:
-    - build cli
-  rules:
-    - if: $CI_COMMIT_TAG
-  script:
-    - 'curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file stamusctl "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/stamusctl/$CI_COMMIT_TAG/stamusctl"'
-  needs:
-    - build cli
+    stage: release
+    image: curlimages/curl:latest
+    dependencies:
+        - build cli
+    rules:
+        - if: $CI_COMMIT_TAG
+    script:
+        - 'curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file stamusctl "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/stamusctl/$CI_COMMIT_TAG/stamusctl"'
+    needs:
+        - build cli
 
 upload stamusd:
-  stage: release
-  image: curlimages/curl:latest
-  dependencies:
-    - build daemon
-  rules:
-    - if: $CI_COMMIT_TAG
-  script:
-    - 'curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file stamusd "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/stamusctl/$CI_COMMIT_TAG/stamusd"'
-  needs:
-    - build daemon
+    stage: release
+    image: curlimages/curl:latest
+    dependencies:
+        - build daemon
+    rules:
+        - if: $CI_COMMIT_TAG
+    script:
+        - 'curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file stamusd "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/stamusctl/$CI_COMMIT_TAG/stamusd"'
+    needs:
+        - build daemon
 
 create release:
-  stage: release
-  image: registry.gitlab.com/gitlab-org/release-cli:latest
-  rules:
-    - if: $CI_COMMIT_TAG
-  script:
-    - echo "running release_job"
-  release:
-    tag_name: '$CI_COMMIT_TAG'
-    description: '$CI_COMMIT_TAG'
-    assets:
-        links:
-        - name: 'stamusctl'
-          url: '${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/stamusctl/$CI_COMMIT_TAG/stamusctl'
-          link_type: 'package'
-        - name: 'stamusd'
-          url: '${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/stamusctl/$CI_COMMIT_TAG/stamusd'
-          link_type: 'package'
-  needs:
-    - upload stamusctl
-    - upload stamusd
+    stage: release
+    image: registry.gitlab.com/gitlab-org/release-cli:latest
+    rules:
+        - if: $CI_COMMIT_TAG
+    script:
+        - echo "running release_job"
+    release:
+        tag_name: '$CI_COMMIT_TAG'
+        description: '$CI_COMMIT_TAG'
+        assets:
+            links:
+                - name: 'stamusctl'
+                  url: '${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/stamusctl/$CI_COMMIT_TAG/stamusctl'
+                  link_type: 'package'
+                - name: 'stamusd'
+                  url: '${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/stamusctl/$CI_COMMIT_TAG/stamusd'
+                  link_type: 'package'
+    needs:
+        - upload stamusctl
+        - upload stamusd
