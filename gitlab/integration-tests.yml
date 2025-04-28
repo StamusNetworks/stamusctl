@@ -3,9 +3,6 @@ full test w test config:
     image: docker:24.0.5
     tags:
         - k8s-small
-    rules:
-        - if: $CI_COMMIT_BRANCH
-          when: on_success
     variables:
         DOCKER_HOST: tcp://docker:2376
         DOCKER_TLS_CERTDIR: '/certs'
@@ -29,15 +26,15 @@ full test w test config:
         - ./stamusctl config set globals.restartmode=always
         - ./stamusctl compose up -d
         - docker inspect nginx | jq -e '.[0].HostConfig.RestartPolicy.Name == "always"'
+    rules:
+        - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+        - if: $CI_COMMIT_BRANCH == "main"
 
 full test w debug image:
     stage: integration
     image: $CI_REGISTRY_IMAGE/cli:$CI_COMMIT_REF_NAME-$CI_COMMIT_SHORT_SHA
     tags:
         - k8s-small
-    rules:
-        - if: $CI_COMMIT_BRANCH
-          when: on_success
     variables:
         DOCKER_HOST: tcp://docker:2376
         DOCKER_TLS_CERTDIR: '/certs'
@@ -57,15 +54,15 @@ full test w debug image:
         - stamusctl config set globals.restartmode=always
         - stamusctl compose up -d
         - docker inspect nginx | jq -e '.[0].HostConfig.RestartPolicy.Name == "always"'
+    rules:
+        - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+        - if: $CI_COMMIT_BRANCH == "main"
 
 test upgrade:
     stage: integration
     image: $CI_REGISTRY_IMAGE/cli:$CI_COMMIT_REF_NAME-$CI_COMMIT_SHORT_SHA
     tags:
         - k8s-small
-    rules:
-        - if: $CI_COMMIT_BRANCH
-          when: on_success
     variables:
         DOCKER_HOST: tcp://docker:2376
         DOCKER_TLS_CERTDIR: '/certs'
@@ -84,15 +81,15 @@ test upgrade:
         - stamusctl compose init tests --version opensearch2
         - cat config/values.yaml | yq -e '.stamus.project == "tests"'
         - cat config/version | yq -e '. == "1.0.0"'
+    rules:
+        - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+        - if: $CI_COMMIT_BRANCH == "main"
 
 test config get keys:
     stage: integration
     image: docker:24.0.5
     tags:
         - k8s-small
-    rules:
-        - if: $CI_COMMIT_BRANCH
-          when: on_success
     variables:
         DOCKER_HOST: tcp://docker:2376
         DOCKER_TLS_CERTDIR: '/certs'
@@ -112,16 +109,15 @@ test config get keys:
         - ./stamusctl compose init tests --default
         - ./stamusctl config get keys
         - ./stamusctl config get keys | grep 'websocket.response' || exit 1
-
+    rules:
+        - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+        - if: $CI_COMMIT_BRANCH == "main"
 
 test clear instance:
     stage: integration
     image: docker:24.0.5
     tags:
         - k8s-small
-    rules:
-        - if: $CI_COMMIT_BRANCH
-          when: on_success
     variables:
         DOCKER_HOST: tcp://docker:2376
         DOCKER_TLS_CERTDIR: '/certs'
@@ -141,16 +137,15 @@ test clear instance:
         - ./stamusctl compose init tests --default
         - ./stamusctl compose up -d
         - ./stamusctl config clear
-
+    rules:
+        - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+        - if: $CI_COMMIT_BRANCH == "main"
 
 test config get list:
     stage: integration
     image: docker:24.0.5
     tags:
         - k8s-small
-    rules:
-        - if: $CI_COMMIT_BRANCH
-          when: on_success
     variables:
         DOCKER_HOST: tcp://docker:2376
         DOCKER_TLS_CERTDIR: '/certs'
@@ -171,4 +166,6 @@ test config get list:
         - ./stamusctl config  list | grep 'down' || exit 1
         - ./stamusctl compose up -d
         - ./stamusctl config  list | grep 'up' || exit 1
-
+    rules:
+        - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+        - if: $CI_COMMIT_BRANCH == "main"

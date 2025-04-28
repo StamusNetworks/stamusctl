@@ -13,6 +13,9 @@ test cli:
         - build cli
     script:
         - STAMUS_APP_NAME=stamusctl ./stamusctl
+    rules:
+        - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+        - if: $CI_COMMIT_BRANCH == "main"
 
 test daemon:
     image: busybox
@@ -25,6 +28,9 @@ test daemon:
         - build daemon
     script:
         - STAMUS_APP_NAME=stamusd ./stamusd
+    rules:
+        - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+        - if: $CI_COMMIT_BRANCH == "main"
 
 compose init:
     image: busybox
@@ -42,6 +48,9 @@ compose init:
         - STAMUS_APP_NAME=stamusctl EMBED_MODE=true ./cli compose init --default nginx.exec=nginx
         - chmod +x $(pwd)/scripts/compare.sh
         - $(pwd)/scripts/compare.sh config ./outputs/compose-init
+    rules:
+        - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+        - if: $CI_COMMIT_BRANCH == "main"
 
 compose init conf flag:
     image: busybox
@@ -59,6 +68,9 @@ compose init conf flag:
         - STAMUS_APP_NAME=stamusctl EMBED_MODE=true ./cli compose init --default nginx.exec=nginx --config zgueg
         - chmod +x $(pwd)/scripts/compare.sh
         - $(pwd)/scripts/compare.sh zgueg ./outputs/compose-init
+    rules:
+        - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+        - if: $CI_COMMIT_BRANCH == "main"
 
 compose init set:
     image: busybox
@@ -76,6 +88,9 @@ compose init set:
         - STAMUS_APP_NAME=stamusctl EMBED_MODE=true ./cli compose init --default nginx.exec=nginx websocket.response=lel
         - chmod +x $(pwd)/scripts/compare.sh
         - $(pwd)/scripts/compare.sh config ./outputs/compose-init-set
+    rules:
+        - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+        - if: $CI_COMMIT_BRANCH == "main"
 
 compose init optional:
     image: busybox
@@ -93,6 +108,9 @@ compose init optional:
         - STAMUS_APP_NAME=stamusctl EMBED_MODE=true ./cli compose init --default nginx=false
         - chmod +x $(pwd)/scripts/compare.sh
         - $(pwd)/scripts/compare.sh config ./outputs/compose-init-optional
+    rules:
+        - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+        - if: $CI_COMMIT_BRANCH == "main"
 
 compose init arbitrary:
     image: busybox
@@ -110,6 +128,9 @@ compose init arbitrary:
         - STAMUS_APP_NAME=stamusctl EMBED_MODE=true ./cli compose init --default nginx.exec=nginx websocket.port=6969
         - chmod +x $(pwd)/scripts/compare.sh
         - $(pwd)/scripts/compare.sh config ./outputs/compose-init-arbitrary
+    rules:
+        - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+        - if: $CI_COMMIT_BRANCH == "main"
 
 compose config set:
     image: busybox
@@ -128,6 +149,9 @@ compose config set:
         - STAMUS_APP_NAME=stamusctl EMBED_MODE=true ./cli config set websocket.response=lel
         - chmod +x $(pwd)/scripts/compare.sh
         - $(pwd)/scripts/compare.sh config ./outputs/compose-init-set
+    rules:
+        - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+        - if: $CI_COMMIT_BRANCH == "main"
 
 compose config reload:
     image: busybox
@@ -147,6 +171,9 @@ compose config reload:
         - STAMUS_APP_NAME=stamusctl EMBED_MODE=true ./cli config set --reload
         - chmod +x $(pwd)/scripts/compare.sh
         - $(pwd)/scripts/compare.sh config ./outputs/compose-init
+    rules:
+        - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+        - if: $CI_COMMIT_BRANCH == "main"
 
 config flag set:
     image: busybox
@@ -165,3 +192,6 @@ config flag set:
         - STAMUS_APP_NAME=stamusctl EMBED_MODE=true ./cli config set websocket.response=lel --config zgueg
         - chmod +x $(pwd)/scripts/compare.sh
         - $(pwd)/scripts/compare.sh zgueg ./outputs/compose-init-set
+    rules:
+        - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+        - if: $CI_COMMIT_BRANCH == "main"

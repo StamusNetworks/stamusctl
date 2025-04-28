@@ -5,7 +5,7 @@ refresh-app-of-apps:
     variables:
         APP: stamusd
         ACTION: update
-        BRANCH: $CI_COMMIT_BRANCH
+        BRANCH: $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME
         SHA: $CI_COMMIT_SHORT_SHA
         PROJECT: $CI_PROJECT_NAME
         NAMESPACE: $CI_PROJECT_NAMESPACE
@@ -14,12 +14,12 @@ refresh-app-of-apps:
         project: devel/devops/app-of-app
         strategy: depend
     rules:
-        - if: $CI_COMMIT_BRANCH == "main"
+        - if: $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME == "main"
           when: never
-        - if: $CI_COMMIT_BRANCH
+        - if: $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME
     environment:
         name: review/$CI_COMMIT_REF_SLUG
-        url: https://stamusctl-doc.$CI_COMMIT_BRANCH.$CI_PROJECT_PATH_SLUG.test-stamusctl-doc.stamus-networks.net
+        url: https://stamusd.$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME.$CI_PROJECT_PATH_SLUG.stamus-networks.net
         on_stop: delete-env-from-app-of-apps
 
 delete-env-from-app-of-apps:
@@ -27,7 +27,7 @@ delete-env-from-app-of-apps:
     variables:
         ACTION: delete
         APP: stamusd
-        BRANCH: $CI_COMMIT_BRANCH
+        BRANCH: $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME
         SHA: $CI_COMMIT_SHORT_SHA
         PROJECT: $CI_PROJECT_NAME
         NAMESPACE: $CI_PROJECT_NAMESPACE
@@ -37,6 +37,10 @@ delete-env-from-app-of-apps:
         strategy: depend
     needs:
         - refresh-app-of-apps
+    rules:
+        - if: $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME == "main"
+          when: never
+        - if: $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME
     when: manual
     environment:
         name: review/$CI_COMMIT_REF_SLUG
@@ -59,22 +63,6 @@ release-to-github:
         - git branch --set-upstream-to github/trunk
         - git pull --rebase
         - git push github HEAD:trunk
-
-create-tags:
-    stage: release
-    image: bitnami/git
-    allow_failure: true
-    needs:
-        - full test w test config
-    rules:
-        - if: '$CI_COMMIT_BRANCH == "main"'
-          when: on_success
-    script:
-        - git config --global user.email $GITLAB_USER_EMAIL
-        - git config --global user.name $GITLAB_USER_NAME
-        - tag=$(cat VERSION)
-        - git tag "$tag"
-        - git push --tags https://repo-token:$ACCESS_TOKEN@$CI_SERVER_HOST/$CI_PROJECT_PATH.git HEAD:main
 
 upload stamusctl:
     stage: release
@@ -100,24 +88,27 @@ upload stamusd:
     needs:
         - build daemon
 
-create release:
-    stage: release
-    image: registry.gitlab.com/gitlab-org/release-cli:latest
-    rules:
-        - if: $CI_COMMIT_TAG
+create release with semantic-release:
+    stage: deploy
+    image: node:22
+    before_script:
+        - corepack enable
+        - corepack prepare pnpm@latest --activate
+        - pnpm config set store-dir .pnpm-store
+    cache:
+        key:
+            files:
+                - pnpm-lock.yaml
+        paths:
+            - .pnpm-store
+    variables:
+        GITLAB_TOKEN: $ACCESS_TOKEN
     script:
-        - echo "running release_job"
-    release:
-        tag_name: '$CI_COMMIT_TAG'
-        description: '$CI_COMMIT_TAG'
-        assets:
-            links:
-                - name: 'stamusctl'
-                  url: '${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/stamusctl/$CI_COMMIT_TAG/stamusctl'
-                  link_type: 'package'
-                - name: 'stamusd'
-                  url: '${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/stamusctl/$CI_COMMIT_TAG/stamusd'
-                  link_type: 'package'
-    needs:
-        - upload stamusctl
-        - upload stamusd
+        - git config user.email $GITLAB_USER_EMAIL
+        - git config user.name $GITLAB_USER_NAME
+        - pnpm i
+        - export NEXT_VERSION=$(pnpm run release --no-ci --dry-run | grep -oP 'The next release version is \K[0-9]+\.[0-9]+\.[0-9]+[-A-Za-z0-9.]+')
+        - pnpm run release --no-ci
+    rules:
+        - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+        - if: $CI_COMMIT_BRANCH == "main"

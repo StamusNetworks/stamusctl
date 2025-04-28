@@ -20,3 +20,19 @@ daemon tests:
         - k8s
     script:
         - go test ./.test
+
+lint-commits:
+    tags:
+        - k8s-small
+    image: registry.hub.docker.com/library/node:22-alpine
+    stage: lint
+    needs: []
+    before_script:
+        - apk add --no-cache git
+        - npm install --save-dev @commitlint/config-conventional @commitlint/cli
+    variables:
+        GIT_DEPTH: 0
+    script:
+        - npx commitlint --from ${CI_MERGE_REQUEST_DIFF_BASE_SHA} --to ${CI_COMMIT_SHA}
+    rules:
+        - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'

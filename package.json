@@ -1,0 +1,24 @@
+{
+	"private": true,
+	"version": "1.0.0",
+	"scripts": {
+		"lint-commit:all": "commitlint -f $(git rev-list HEAD | tail -n 1) -t HEAD",
+		"lint-commit:one": "commitlint -l",
+		"lint-commit:tag": "commitlint -l",
+		"commit": "commit",
+		"release": "semantic-release"
+	},
+	"devDependencies": {
+		"@commitlint/cli": "^19.8.0",
+		"@commitlint/config-conventional": "^19.8.0",
+		"@commitlint/prompt-cli": "^19.8.0",
+		"@semantic-release/changelog": "^6.0.3",
+		"@semantic-release/commit-analyzer": "^13.0.1",
+		"@semantic-release/git": "^10.0.1",
+		"@semantic-release/gitlab": "^13.2.4",
+		"@semantic-release/release-notes-generator": "^14.0.3",
+		"semantic-release": "^24.2.3",
+		"standard-version": "^9.5.0"
+	},
+	"packageManager": "pnpm@10.8.1+sha512.c50088ba998c67b8ca8c99df8a5e02fd2ae2e2b29aaf238feaa9e124248d3f48f9fb6db2424949ff901cffbb5e0f0cc1ad6aedb602cd29450751d11c35023677"
+}
