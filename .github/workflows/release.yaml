@@ -1,6 +1,13 @@
-name: Build go binaries
-
-on: push
+name: Build and Release
+on:
+    push:
+        branches:
+            - main
+            - trunk
+    pull_request:
+        branches:
+            - main
+            - trunk
 
 jobs:
     build-stamusctl:
@@ -44,43 +51,48 @@ jobs:
               with:
                   name: stamusd-${{matrix.os}}-${{matrix.arch}}
                   path: dist/*
-
-    create-tag:
-        runs-on: ${{ matrix.runner }}
+    release:
+        name: Release
         needs: [build-stamusctl, build-stamusdaemon]
+
+        runs-on: ${{ matrix.runner }}
         strategy:
             matrix:
                 include:
                     - { runner: ubuntu-latest, os: linux, arch: amd64, go-version: 1.22 }
 
+        # permissions:
+        #     contents: write # to be able to publish a GitHub release
+        #     issues: write # to be able to comment on released issues
+        #     pull-requests: write # to be able to comment on released pull requests
         steps:
-            - name: Checkout repository
+            - name: Checkout
               uses: actions/checkout@v4
-
-            - name: get tag version
-              id: get_tag_version
-              run: |
-                  cat VERSION
-                  echo "version=$(cat VERSION)" >> $GITHUB_OUTPUT
+              with:
+                  fetch-depth: 0
+                  persist-credentials: false
 
             - name: Download stamusctl
               uses: actions/download-artifact@v4
               with:
                   name: stamusctl-${{matrix.os}}-${{matrix.arch}}
-
             - name: Download stamusd
               uses: actions/download-artifact@v4
               with:
                   name: stamusd-${{matrix.os}}-${{matrix.arch}}
 
-            - name: Release snapshot
-              id: release-snapshot
-              uses: softprops/action-gh-release@v2
-              if: github.ref == 'refs/heads/main'
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
               with:
-                  tag_name: ${{ steps.get_tag_version.outputs.version }}
-                  draft: false
-                  prerelease: false
-                  files: |
-                      stamusctl-${{matrix.os}}-${{matrix.arch}}
-                      stamusd-${{matrix.os}}-${{matrix.arch}}
+                  node-version: 'lts/*'
+            - uses: pnpm/action-setup@v4
+            - name: Install dependencies
+              run: pnpm install
+
+            - name: Release
+              env:
+                  GITHUB_TOKEN: ${{ secrets.PUSH }}
+                  RUNNER: ${{ matrix.runner }}
+                  OS: ${{ matrix.os }}
+                  ARCH: ${{ matrix.arch }}
+              run: pnpm run release --no-ci
