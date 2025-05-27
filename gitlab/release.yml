@@ -49,20 +49,24 @@ delete-env-from-app-of-apps:
 release-to-github:
     stage: release
     image: bitnami/git
-    needs:
-        - full test w test config
     rules:
-        - if: '$CI_COMMIT_BRANCH == "main"'
-          when: on_success
+        - if: $CI_COMMIT_BRANCH
     script:
         - git config --global user.email $GITLAB_USER_EMAIL
         - git config --global user.name $GITLAB_USER_NAME
         - git remote add github "https://$GITHUB_USERNAME:$GITHUB_PAT@github.com/StamusNetworks/stamusctl.git"
-        - git fetch github
-        - git checkout -b github-trunk
-        - git branch --set-upstream-to github/trunk
-        - git pull --rebase
-        - git push github HEAD:trunk
+        - git push -u --no-thin -f github HEAD:refs/heads/$CI_COMMIT_BRANCH
+
+release-to-github-from-mr:
+    stage: release
+    image: bitnami/git
+    rules:
+        - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+    script:
+        - git config --global user.email $GITLAB_USER_EMAIL
+        - git config --global user.name $GITLAB_USER_NAME
+        - git remote add github "https://$GITHUB_USERNAME:$GITHUB_PAT@github.com/StamusNetworks/stamusctl.git"
+        - git push -u --no-thin -f github HEAD:refs/heads/$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME
 
 upload stamusctl:
     stage: release
