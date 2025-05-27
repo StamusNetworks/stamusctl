@@ -34,13 +34,17 @@ var ComposeFlags = models.ComposeFlags{
 		[]string{"file"},
 		[]string{"volumes", "remove-orphans"},
 	),
+	"restart": models.CreateComposeFlags(
+		[]string{"file"},
+		[]string{},
+	),
 	"ps": models.CreateComposeFlags(
 		[]string{"file"},
 		[]string{"services", "quiet", "format"},
 	),
 	"logs": models.CreateComposeFlags(
 		[]string{"file"},
-		[]string{"timestamps", "tail", "since", "until"},
+		[]string{"timestamps", "tail", "since", "until", "follow", "details"},
 	),
 	"pull": models.CreateComposeFlags(
 		[]string{"file"},
@@ -119,6 +123,7 @@ func WrappedCmd(composeFlags models.ComposeFlags) ([]*cobra.Command, map[string]
 func modifyFileFlag(c *cobra.Command) {
 	// Modify flags
 	c.Flags().Lookup("file").Hidden = true
+	c.Flags().Lookup("file").Shorthand = ""
 	stamusFlags.Config.AddAsFlag(c, false)
 	// Save the command
 	currentRunE := c.RunE
