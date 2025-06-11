@@ -38,6 +38,10 @@ var ComposeFlags = models.ComposeFlags{
 		[]string{"file"},
 		[]string{},
 	),
+	"exec": models.CreateComposeFlags(
+		[]string{"file"},
+		[]string{"detach", "privileged", "user", "workdir", "env", "no-TTY", "dry-run", "index"},
+	),
 	"ps": models.CreateComposeFlags(
 		[]string{"file"},
 		[]string{"services", "quiet", "format"},
