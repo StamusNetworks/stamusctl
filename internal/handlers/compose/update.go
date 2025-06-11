@@ -3,6 +3,7 @@ package handlers
 import (
 	// Common
 
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -178,9 +179,11 @@ func UpdateHandler(params UpdateHandlerParams) error {
 	// Save the configuration
 	err = newConfig.SaveConfigTo(confFile, true, false)
 	if err != nil {
-		logger.Error(err)
+		if !errors.Is(err, models.ErrorEmptyFolder) {
+			logger.Error(err)
 
-		return err
+			return err
+		}
 	}
 
 	// Run post-run script

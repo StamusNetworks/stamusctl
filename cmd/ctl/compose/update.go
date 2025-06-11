@@ -26,6 +26,8 @@ func updateCmd() *cobra.Command {
 	// Add flags
 	flags.Version.AddAsFlag(cmd, false)
 	flags.Config.AddAsFlag(cmd, false)
+	flags.Template.AddAsFlag(cmd, false)
+
 	return cmd
 }
 
@@ -39,12 +41,17 @@ func updateHandler(_ *cobra.Command, args []string) {
 	if err != nil {
 		return
 	}
+	templateFolder, err := flags.Template.GetValue()
+	if err != nil {
+		return
+	}
+
 	// Call handler
 	params := handlers.UpdateHandlerParams{
 		Version:        version.(string),
 		Config:         config.(string),
+		TemplateFolder: templateFolder.(string),
 		Args:           args,
-		TemplateFolder: "",
 	}
 
 	handlers.UpdateHandler(params)

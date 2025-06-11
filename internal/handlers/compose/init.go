@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -142,7 +143,9 @@ func InitHandler(isCli bool, params InitHandlerInputs) error {
 
 	logger.Debug("Save config to: ", outputFile)
 	if err = config.SaveConfigTo(outputFile, false, true); err != nil {
-		return err
+		if !errors.Is(err, models.ErrorEmptyFolder) {
+			return err
+		}
 	}
 
 	// Bind files
