@@ -26,7 +26,7 @@
         ldflags = [
           "-X stamus-ctl/internal/app.Arch=${system}"
           "-X stamus-ctl/internal/app.Commit=dev"
-          "-X stamus-ctl/internal/app.Version=0.7.3"
+          "-X stamus-ctl/internal/app.Version=unstable"
           "-X stamus-ctl/internal/logging.envType=prd"
           "-extldflags=-static"
         ];

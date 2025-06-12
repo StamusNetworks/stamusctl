@@ -12,7 +12,7 @@ HOST_ARCH:=$(shell go env GOARCH)
 
 TARGET_ARCH?=linux/amd64
 
-VERSION=$(shell git describe --tags --abbrev=0)
+VERSION:=$(if $(VERSION),$(VERSION),$(shell git describe --tags --abbrev=0))
 GIT_COMMIT:=$(if $(GIT_COMMIT),$(GIT_COMMIT),$(shell git rev-parse HEAD))
 
 GOPATH?=$(shell if test -x `which go`; then go env GOPATH; else echo "$(HOME)/go"; fi)
