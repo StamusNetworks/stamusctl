@@ -56,21 +56,21 @@ func InitHandler(isCli bool, params InitHandlerInputs) error {
 			Registry: params.Registry,
 		}
 		err := registryInfo.PullConfig(destPath, params.Project, params.Version)
+		if err != nil && err.Error() == "Error response from daemon: manifest unknown" {
+			logger.Fatal(params.Project + ":" + params.Version + " template not found in registry " +
+				params.Registry + ". Please check the registry or use a different version.")
+		}
 		if err != nil {
-			logger.Error(err)
-			if !app.Embed.IsTrue() {
-				logger.Info("using embeds")
-				return err
-			}
+			logger.Warn(err)
 		}
 	} else {
 		err := pullLatestTemplate(destPath, params.Project, params.Version)
+		if err != nil && err.Error() == "Error response from daemon: manifest unknown" {
+			logger.Fatal(params.Project + ":" + params.Version + " template not found in registry " +
+				params.Registry + ". Please check the registry or use a different version.")
+		}
 		if err != nil {
-			logger.Error(err)
-			if !app.Embed.IsTrue() {
-				logger.Info("using embeds")
-				return err
-			}
+			logger.Warn(err)
 		}
 	}
 	// Instantiate config
