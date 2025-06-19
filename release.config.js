@@ -54,12 +54,17 @@ module.exports = {
 				message: 'ci(release): release ${nextRelease.version}\n\n${nextRelease.notes}',
 			},
 		],
-		[
-			'@semantic-release/exec',
-			{
-				verifyReleaseCmd: 'echo "version=${nextRelease.version}" >> $GITHUB_OUTPUT',
-			},
-		],
+		...(isGitLab
+			? []
+			: [
+					[
+						'@semantic-release/exec',
+						{
+							verifyReleaseCmd:
+								'echo "version=${nextRelease.version}" >> $GITHUB_OUTPUT',
+						},
+					],
+				]),
 		...(isGitLab ? [gitlab] : [github]), // Dynamically select GitLab or GitHub
 	],
 }
