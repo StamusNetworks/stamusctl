@@ -55,13 +55,18 @@ func InitHandler(isCli bool, params InitHandlerInputs) error {
 		registryInfo := models.RegistryInfo{
 			Registry: params.Registry,
 		}
-		err := registryInfo.PullConfig(destPath, params.Project, params.Version)
+		err := registryInfo.PullConfigAndUnwrap(destPath, params.Project, params.Version)
 		if err != nil && err.Error() == "Error response from daemon: manifest unknown" {
 			logger.Fatal(params.Project + ":" + params.Version + " template not found in registry " +
 				params.Registry + ". Please check the registry or use a different version.")
 		}
 		if err != nil {
-			logger.Warn(err)
+			if errors.Is(err, models.ErrPullingImage) {
+				logger.Warn("error pulling template. Will try using from local images. If you want to pull from remote, check your internet connection and retry.")
+			} else {
+				logger.Error("error pulling template: ", err)
+				return err
+			}
 		}
 	} else {
 		err := pullLatestTemplate(destPath, params.Project, params.Version)
@@ -70,7 +75,12 @@ func InitHandler(isCli bool, params InitHandlerInputs) error {
 				params.Registry + ". Please check the registry or use a different version.")
 		}
 		if err != nil {
-			logger.Warn(err)
+			if errors.Is(err, models.ErrPullingImage) {
+				logger.Warn("error pulling template. Will try using from local images. If you want to pull from remote, check your internet connection and retry.")
+			} else {
+				logger.Error("error pulling template: ", err)
+				return err
+			}
 		}
 	}
 	// Instantiate config
@@ -189,7 +199,7 @@ func pullLatestTemplate(destPath string, project, version string) error {
 	if len(stamusConf.Registries.AsList()) != 0 {
 		// Logged in
 		for _, registryInfo := range stamusConf.Registries.AsList() {
-			err = registryInfo.PullConfig(destPath, project, version)
+			err = registryInfo.PullConfigAndUnwrap(destPath, project, version)
 			if err == nil {
 				return nil
 			} else {
@@ -201,7 +211,7 @@ func pullLatestTemplate(destPath string, project, version string) error {
 	infos := models.RegistryInfo{
 		Registry: app.DefaultRegistry,
 	}
-	err = infos.PullConfig(destPath, project, version)
+	err = infos.PullConfigAndUnwrap(destPath, project, version)
 	return err
 }
 

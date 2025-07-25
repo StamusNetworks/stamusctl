@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -49,21 +50,17 @@ func (r *RegistryInfo) ValidateAllRegistry() error {
 	return nil
 }
 
-func (r *RegistryInfo) PullConfig(destPath string, project, version string) error {
-	imageName := "/" + project + ":" + version
-	imageUrl := r.Registry + imageName
+var (
+	ErrMarshalingAuthConfig = errors.New("Error marshaling auth config")
+	ErrPullingImage         = errors.New("Error pulling image")
+)
 
-	logger := logging.Sugar.With("imageUrl", imageUrl, "imageName", imageName)
+func (r *RegistryInfo) TryPullConfig(ctx context.Context, cli *client.Client, imageName, imageURL string) error {
+	logger := logging.Sugar.With("imageURL", imageURL, "imageName", imageName)
 
 	logger.Debug("Try pulling")
 
 	// Create docker client
-	ctx := context.Background()
-	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
-	if err != nil {
-		return err
-	}
-	defer cli.Close()
 
 	// Create auth config
 	pullOptions := image.PullOptions{}
@@ -74,7 +71,7 @@ func (r *RegistryInfo) PullConfig(destPath string, project, version string) erro
 		}
 		encodedJSON, err := json.Marshal(authConfig)
 		if err != nil {
-			return err
+			return ErrMarshalingAuthConfig
 		}
 		authStr := base64.URLEncoding.EncodeToString(encodedJSON)
 		pullOptions = image.PullOptions{
@@ -83,10 +80,9 @@ func (r *RegistryInfo) PullConfig(destPath string, project, version string) erro
 	}
 
 	// Pull image
-	out, err := cli.ImagePull(ctx, imageUrl, pullOptions)
+	out, err := cli.ImagePull(ctx, imageURL, pullOptions)
 	if err != nil {
-		logger.Debug("Pull failed")
-		return err
+		return ErrPullingImage
 	}
 	defer out.Close()
 
@@ -102,6 +98,7 @@ func (r *RegistryInfo) PullConfig(destPath string, project, version string) erro
 
 		if err := json.Unmarshal(line, &pullResp); err != nil {
 			fmt.Fprintf(os.Stderr, "\rError unmarshalling progress detail: %v", err)
+
 			continue // Skip lines that can't be unmarshalled
 		}
 
@@ -111,9 +108,37 @@ func (r *RegistryInfo) PullConfig(destPath string, project, version string) erro
 	}
 	logger.Info("Got configuration")
 
+	return nil
+}
+
+func (r *RegistryInfo) PullConfigAndUnwrap(destPath string, project, version string) error {
+	ctx := context.Background()
+
+	imageName := "/" + project + ":" + version
+	imageURL := r.Registry + imageName
+
+	logger := logging.Sugar.With("imageURL", imageURL, "imageName", imageName)
+
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		return err
+	}
+	defer cli.Close()
+	err = r.TryPullConfig(ctx, cli, imageName, imageURL)
+	if err != nil {
+		if errors.Is(err, ErrMarshalingAuthConfig) {
+			logger.Info("Error marshaling auth config")
+			return err
+		}
+		if errors.Is(err, ErrPullingImage) {
+			logger.Info("Error pulling image")
+			return err
+		}
+	}
+
 	// Run container
 	resp, err := cli.ContainerCreate(ctx, &container.Config{
-		Image: imageUrl,
+		Image: imageURL,
 		Cmd:   []string{"sleep 60"},
 	}, nil, nil, nil, "")
 	if err != nil {

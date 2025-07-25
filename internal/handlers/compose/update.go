@@ -75,7 +75,7 @@ func UpdateHandler(params UpdateHandlerParams) error {
 		registryInfo := models.RegistryInfo{
 			Registry: registry,
 		}
-		err = registryInfo.PullConfig(destPath, project, versionVal)
+		err = registryInfo.PullConfigAndUnwrap(destPath, project, versionVal)
 		if err != nil {
 			logger.Error(err)
 			if !app.Embed.IsTrue() {
