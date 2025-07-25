@@ -132,7 +132,6 @@ func (r *RegistryInfo) PullConfigAndUnwrap(destPath string, project, version str
 		}
 		if errors.Is(err, ErrPullingImage) {
 			logger.Info("Error pulling image")
-			return err
 		}
 	}
 

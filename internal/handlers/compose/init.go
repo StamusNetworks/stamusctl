@@ -64,8 +64,11 @@ func InitHandler(isCli bool, params InitHandlerInputs) error {
 			if errors.Is(err, models.ErrPullingImage) {
 				logger.Warn("error pulling template. Will try using from local images. If you want to pull from remote, check your internet connection and retry.")
 			} else {
-				logger.Error("error pulling template: ", err)
-				return err
+				if !app.Embed.IsTrue() {
+					logger.Error("error pulling template: ", err)
+
+					return err
+				}
 			}
 		}
 	} else {
@@ -78,8 +81,11 @@ func InitHandler(isCli bool, params InitHandlerInputs) error {
 			if errors.Is(err, models.ErrPullingImage) {
 				logger.Warn("error pulling template. Will try using from local images. If you want to pull from remote, check your internet connection and retry.")
 			} else {
-				logger.Error("error pulling template: ", err)
-				return err
+				if !app.Embed.IsTrue() {
+					logger.Error("error pulling template: ", err)
+
+					return err
+				}
 			}
 		}
 	}
