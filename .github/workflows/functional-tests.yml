@@ -1,0 +1,111 @@
+name: Functional Tests
+
+on:
+    workflow_call:
+
+jobs:
+    test-cli:
+        name: Test CLI
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Download CLI artifact
+              uses: actions/download-artifact@v4
+              with:
+                  name: stamusctl
+                  path: .
+
+            - name: Make CLI executable
+              run: chmod +x stamusctl
+
+            - name: Test CLI
+              run: STAMUS_APP_NAME=stamusctl ./stamusctl
+
+    test-daemon:
+        name: Test Daemon
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Download daemon artifact
+              uses: actions/download-artifact@v4
+              with:
+                  name: stamusd
+                  path: .
+
+            - name: Make daemon executable
+              run: chmod +x stamusd
+
+            - name: Test daemon
+              run: STAMUS_APP_NAME=stamusd ./stamusd
+
+    compose-init:
+        name: Test Compose Init
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Download test artifacts
+              uses: actions/download-artifact@v4
+              with:
+                  name: test-outputs
+                  path: .
+
+            - name: Make CLI executable
+              run: chmod +x cli
+
+            - name: Test compose init
+              run: |
+                  STAMUS_APP_NAME=stamusctl EMBED_MODE=true ./cli compose init --default nginx.exec=nginx suricata.interfaces=eth0
+                  chmod +x $(pwd)/scripts/compare.sh
+                  ls -la
+                  pwd
+                  $(pwd)/scripts/compare.sh config ./outputs/compose-init
+
+    compose-init-config-flag:
+        name: Test Compose Init with Config Flag
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Download test artifacts
+              uses: actions/download-artifact@v4
+              with:
+                  name: test-outputs
+                  path: .
+
+            - name: Make CLI executable
+              run: chmod +x cli
+
+            - name: Test compose init with config flag
+              run: |
+                  STAMUS_APP_NAME=stamusctl EMBED_MODE=true ./cli compose init --default nginx.exec=nginx --config testConfigOut suricata.interfaces=eth0
+                  chmod +x $(pwd)/scripts/compare.sh
+                  $(pwd)/scripts/compare.sh testConfigOut ./outputs/compose-init
+
+    compose-init-set:
+        name: Test Compose Init with Set
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Download test artifacts
+              uses: actions/download-artifact@v4
+              with:
+                  name: test-outputs
+                  path: .
+
+            - name: Make CLI executable
+              run: chmod +x cli
+
+            - name: Test compose init with set
+              run: |
+                  STAMUS_APP_NAME=stamusctl EMBED_MODE=true ./cli compose init --default nginx.exec=nginx websocket.response=lel suricata.interfaces=eth0
+                  chmod +x $(pwd)/scripts/compare.sh
+                  $(pwd)/scripts/compare.sh config ./outputs/compose-init-set

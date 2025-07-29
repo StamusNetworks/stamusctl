@@ -1,0 +1,85 @@
+name: Build
+
+on:
+    workflow_call:
+
+jobs:
+    build-cli:
+        name: Build CLI
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup Go
+              uses: actions/setup-go@v5
+              with:
+                  go-version-file: go.mod
+                  cache: true
+
+            - name: Build CLI
+              run: make cli
+
+            - name: Upload CLI artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: stamusctl
+                  path: dist/stamusctl
+                  retention-days: 1
+
+    build-daemon:
+        name: Build Daemon
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup Go
+              uses: actions/setup-go@v5
+              with:
+                  go-version-file: go.mod
+                  cache: true
+
+            - name: Build daemon
+              run: make daemon
+
+            - name: Upload daemon artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: stamusd
+                  path: dist/stamusd
+                  retention-days: 1
+
+    build-test:
+        name: Build Test
+        runs-on: ubuntu-latest
+        if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/trunk'
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup Go
+              uses: actions/setup-go@v5
+              with:
+                  go-version-file: go.mod
+                  cache: true
+
+            - name: Prepare test environment
+              run: |
+                  chmod +x $(pwd)/scripts/move.sh
+                  $(pwd)/scripts/move.sh
+                  mv .test/outputs outputs
+
+            - name: Build test CLI
+              run: |
+                  make test-cli
+                  mv dist/stamusctl cli
+
+            - name: Upload test artifacts
+              uses: actions/upload-artifact@v4
+              with:
+                  name: test-outputs
+                  path: |
+                      outputs
+                      cli
+                  retention-days: 1

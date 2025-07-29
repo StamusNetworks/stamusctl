@@ -1,0 +1,44 @@
+name: CI Pipeline
+
+on:
+    push:
+        branches: ['**'] # Run on push to any branch
+    pull_request:
+        branches: ['**'] # Run on PRs from any branch
+
+permissions:
+    contents: write
+    packages: write
+
+jobs:
+    tests:
+        name: Tests and Linting
+        uses: ./.github/workflows/tests.yml
+
+    build:
+        name: Build
+        uses: ./.github/workflows/build.yml
+        needs: [tests]
+
+    docker:
+        name: Docker Build
+        uses: ./.github/workflows/docker.yml
+        needs: [tests]
+
+    functional-tests:
+        name: Functional Tests
+        uses: ./.github/workflows/functional-tests.yml
+        needs: [build]
+
+    integration-tests:
+        name: Integration Tests
+        uses: ./.github/workflows/integration-tests.yml
+        needs: [build]
+
+    release:
+        name: Release
+        uses: ./.github/workflows/release.yml
+        needs: [build, functional-tests, integration-tests]
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/trunk'
+        secrets:
+            PUSH: ${{ secrets.PUSH }}

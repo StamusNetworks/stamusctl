@@ -1,0 +1,69 @@
+name: Tests and Linting
+
+on:
+    workflow_call:
+
+jobs:
+    unit-tests:
+        name: Unit Tests
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup Go
+              uses: actions/setup-go@v5
+              with:
+                  go-version-file: go.mod
+                  cache: true
+
+            - name: Run unit tests
+              run: |
+                  go test -coverprofile=profile.cov.tmp ./...
+                  cat profile.cov.tmp | grep -v "_mocks.go" > cover.out
+                  go tool cover -func cover.out
+
+            - name: Upload coverage reports
+              uses: codecov/codecov-action@v4
+              with:
+                  file: ./cover.out
+                  token: ${{ secrets.CODECOV_TOKEN }}
+
+    daemon-tests:
+        name: Daemon Tests
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup Go
+              uses: actions/setup-go@v5
+              with:
+                  go-version-file: go.mod
+                  cache: true
+
+            - name: Run daemon tests
+              run: go test ./.test
+
+    lint-commits:
+        name: Lint Commits
+        runs-on: ubuntu-latest
+        if: github.event_name == 'pull_request'
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '22'
+
+            - name: Install commitlint
+              run: |
+                  npm install --save-dev @commitlint/config-conventional @commitlint/cli
+
+            - name: Lint commits
+              run: |
+                  npx commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.sha }}

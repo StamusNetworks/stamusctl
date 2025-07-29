@@ -1,13 +1,15 @@
-name: Build and Release
+name: Release
+
 on:
-    push:
-        branches:
-            - main
-            - trunk
-    pull_request:
-        branches:
-            - main
-            - trunk
+    workflow_call:
+        secrets:
+            PUSH:
+                description: 'GitHub token with push permissions'
+                required: true
+
+permissions:
+    contents: write
+    packages: write
 
 jobs:
     get-version:
@@ -33,7 +35,9 @@ jobs:
               id: get_version
               env:
                   GITHUB_TOKEN: ${{ secrets.PUSH }}
-              run: pnpm run release --no-ci --dry-run
+              run: |
+                  echo $"{GITHUB_TOKEN}"
+                  pnpm run release --no-ci --dry-run
 
             - name: Display
               run: echo "The next version is ${{ steps.get_version.outputs.version }}"

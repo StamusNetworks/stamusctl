@@ -1,0 +1,134 @@
+name: Integration Tests
+
+on:
+    workflow_call:
+
+jobs:
+    full-test-config:
+        name: Full Test with Test Config
+        runs-on: ubuntu-latest
+        services:
+            docker:
+                image: docker:24.0.5-dind
+                options: --privileged
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Download CLI artifact
+              uses: actions/download-artifact@v4
+              with:
+                  name: stamusctl
+                  path: .
+
+            - name: Make CLI executable
+              run: chmod +x stamusctl
+
+            - name: Install dependencies
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y jq
+
+            - name: Login to registry and test
+              run: |
+                  ./stamusctl compose init tests --default
+                  ./stamusctl compose up -d
+                  docker inspect nginx | jq -e '.[0].HostConfig.RestartPolicy.Name == "unless-stopped"'
+                  ./stamusctl compose down
+                  ./stamusctl config set globals.restartmode=always
+                  ./stamusctl compose up -d
+                  docker inspect nginx | jq -e '.[0].HostConfig.RestartPolicy.Name == "always"'
+
+    test-config-get-keys:
+        name: Test Config Get Keys
+        runs-on: ubuntu-latest
+        services:
+            docker:
+                image: docker:24.0.5-dind
+                options: --privileged
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Download CLI artifact
+              uses: actions/download-artifact@v4
+              with:
+                  name: stamusctl
+                  path: .
+
+            - name: Make CLI executable
+              run: chmod +x stamusctl
+
+            - name: Install dependencies
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y jq
+
+            - name: Test config get keys
+              run: |
+                  ./stamusctl compose init tests --default
+                  ./stamusctl config get keys
+                  ./stamusctl config get keys | grep 'websocket.response' || exit 1
+
+    test-clear-instance:
+        name: Test Clear Instance
+        runs-on: ubuntu-latest
+        services:
+            docker:
+                image: docker:24.0.5-dind
+                options: --privileged
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Download CLI artifact
+              uses: actions/download-artifact@v4
+              with:
+                  name: stamusctl
+                  path: .
+
+            - name: Make CLI executable
+              run: chmod +x stamusctl
+
+            - name: Install dependencies
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y jq
+
+            - name: Test clear instance
+              run: |
+                  ./stamusctl compose init tests --default
+                  ./stamusctl compose up -d
+                  ./stamusctl config clear
+
+    test-config-get-list:
+        name: Test Config Get List
+        runs-on: ubuntu-latest
+        services:
+            docker:
+                image: docker:24.0.5-dind
+                options: --privileged
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Download CLI artifact
+              uses: actions/download-artifact@v4
+              with:
+                  name: stamusctl
+                  path: .
+
+            - name: Make CLI executable
+              run: chmod +x stamusctl
+
+            - name: Install dependencies
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y jq
+
+            - name: Test config get list
+              run: |
+                  ./stamusctl compose init tests --default
+                  ./stamusctl config list | grep 'down' || exit 1
+                  ./stamusctl compose up -d
+                  ./stamusctl config list | grep 'up' || exit 1

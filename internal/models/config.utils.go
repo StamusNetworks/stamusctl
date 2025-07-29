@@ -135,7 +135,16 @@ func nestMap(input map[string]interface{}) map[string]interface{} {
 					currentMap[part] = make(map[string]interface{})
 				}
 				// Move to the next level in the map
-				currentMap = currentMap[part].(map[string]interface{})
+				if nextMap, ok := currentMap[part].(map[string]interface{}); ok {
+					currentMap = nextMap
+				} else {
+					// If not, create a new map and assign it
+					logging.Sugar.Error("Creating new map for part:", part,
+						zap.Any("currentMap[part]", currentMap[part]))
+					newMap := make(map[string]interface{})
+					currentMap[part] = newMap
+					currentMap = newMap
+				}
 			}
 		}
 	}

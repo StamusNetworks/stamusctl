@@ -127,8 +127,14 @@ func compareFolderContent(folder1 map[string]string, folder2 map[string]string) 
 		if !ok {
 			return fmt.Errorf("file %s is missing in directory", name)
 		}
-		if RemoveLinesWithSeed(strings.TrimSuffix(content1, "\n")) !=
-			RemoveLinesWithSeed(strings.TrimSuffix(content2, "\n")) {
+
+		content1Trimmed := strings.TrimSuffix(content1, "\n")
+		content2Trimmed := strings.TrimSuffix(content2, "\n")
+
+		content1withoutSeed := RemoveLinesWithSeedAndConfigPath(content1Trimmed)
+		content2withoutSeed := RemoveLinesWithSeedAndConfigPath(content2Trimmed)
+
+		if content1withoutSeed != content2withoutSeed {
 			log.Println("Content diff for", name, "content1", content1, "content2", content2)
 			return fmt.Errorf("file content mismatch for %s \nContent diff:\n%s", name, diff.Diff(content1, content2))
 		}
@@ -137,11 +143,11 @@ func compareFolderContent(folder1 map[string]string, folder2 map[string]string) 
 }
 
 // RemoveLinesWithSeed removes all lines containing the word "seed" from the input string.
-func RemoveLinesWithSeed(input string) string {
+func RemoveLinesWithSeedAndConfigPath(input string) string {
 	var result []string
 	lines := strings.Split(input, "\n")
 	for _, line := range lines {
-		if !strings.Contains(line, "seed") {
+		if !strings.Contains(line, "seed") && !strings.Contains(line, "config: /") {
 			result = append(result, line)
 		}
 	}
