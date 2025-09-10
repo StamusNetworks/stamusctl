@@ -191,11 +191,21 @@ func (p *Parameter) validateChoices() bool {
 			for _, choice := range p.Choices {
 				asStrings = append(asStrings, *choice.String)
 			}
-			// Add as list
-			def := strings.Join(asStrings, ",")
-			asStrings = append(asStrings, def)
-			// Check
-			isOk := slices.Contains(asStrings, *p.Variable.String)
+			// Support comma-separated values: split and validate each against choices
+			val := strings.TrimSpace(*p.Variable.String)
+			if strings.Contains(val, ",") {
+				parts := strings.Split(val, ",")
+				for i := range parts {
+					parts[i] = strings.TrimSpace(parts[i])
+					if !slices.Contains(asStrings, parts[i]) {
+						logging.Sugar.Info("Error: Must be one of:", asStrings)
+						return false
+					}
+				}
+				return true
+			}
+			// Single value case
+			isOk := slices.Contains(asStrings, val)
 			if !isOk {
 				logging.Sugar.Info("Error: Must be one of:", asStrings)
 			}
