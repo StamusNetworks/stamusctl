@@ -9,19 +9,24 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"runtime/debug"
 	"strings"
 
 	// Internal
 
-	"stamus-ctl/internal/app"
-	"stamus-ctl/internal/docker"
+    "stamus-ctl/internal/app"
+    composewrap "stamus-ctl/internal/docker-compose"
+    "stamus-ctl/internal/docker"
 	"stamus-ctl/internal/logging"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
+	"github.com/spf13/afero"
+	"gopkg.in/yaml.v3"
 )
 
 type ReadPcapParams struct {
@@ -41,7 +46,7 @@ func initCli() *client.Client {
 	return cli
 }
 
-func createConfig(configName, pcap string) (container.Config, container.HostConfig, network.NetworkingConfig, error) {
+func createConfig(configName, pcap string, image string) (container.Config, container.HostConfig, network.NetworkingConfig, error) {
 	splitted := strings.Split(pcap, "/")
 	pcapName := splitted[len(splitted)-1]
 
@@ -51,7 +56,7 @@ func createConfig(configName, pcap string) (container.Config, container.HostConf
 	}
 
 	config := container.Config{
-		Image:      "jasonish/suricata:master-amd64-profiling",
+		Image:      image,
 		Entrypoint: []string{"/docker-entrypoint.sh"},
 		Cmd: []string{"-vvv -k none -r /replay/" + pcapName +
 			" --runmode autofp -l /var/log/suricata --set sensor-name=" + pcapName},
@@ -98,13 +103,19 @@ func runContainer(configName, pcap string) (string, error) {
 	logger := logging.Sugar.With("name", "suricata-readpcap")
 	cli := initCli()
 	ctx := context.Background()
-	config, hostConfig, networkConfig, err := createConfig(configName, pcap)
+	// Resolve suricata image from compose or fallback to default
+	image, err := resolveSuricataImage(configName)
+	if err != nil {
+		logger.With("error", err).Warn("image resolution failed; using default")
+	}
+	config, hostConfig, networkConfig, err := createConfig(configName, pcap, image)
 	if err != nil {
 		logger.With("error", err).Error("container configs")
 		return "", err
 	}
 
-	_, err = docker.PullImageIfNotExisted("jasonish/", "suricata:master-amd64-profiling")
+	reg, name := splitImageRef(image)
+	_, err = docker.PullImageIfNotExisted(reg, name)
 	if err != nil {
 		logger.With("error", err).Error("image pull")
 		return "", err
@@ -158,6 +169,95 @@ func runContainer(configName, pcap string) (string, error) {
 		_, _ = out.Read(dat)
 		fmt.Fprint(w, string(dat))
 	}
+}
+
+// resolveSuricataImage attempts to read the Suricata image from the instance compose file.
+// Falls back to default if not found or on error.
+func resolveSuricataImage(configPath string) (string, error) {
+	// Optional override via env for emergencies
+	logger := logging.Sugar.With("name", "resolve-suricata-image")
+	if env := os.Getenv("STAMUSCTL_SURICATA_IMAGE"); strings.TrimSpace(env) != "" {
+		return env, nil
+	}
+
+	// 1) Try effective compose config (handles multi-file setups)
+	if img := resolveImageViaComposeConfig(configPath); img != "" {
+		logger.With("image", img).Debug("resolved via docker compose config")
+		return img, nil
+	}
+
+    // 2) Fallback: parse a single compose file for services.suricata.image
+    compose := composewrap.GetComposeFilePath(configPath)
+	logger.With("compose", compose).Debug("found compose file")
+
+	b, err := afero.ReadFile(app.FS, compose)
+	if err != nil {
+		return defaultSuricataImage, err
+	}
+
+	type svc struct {
+		Image string `yaml:"image"`
+	}
+	var payload struct {
+		Services map[string]svc `yaml:"services"`
+	}
+	if err := yaml.Unmarshal(b, &payload); err != nil {
+		return defaultSuricataImage, err
+	}
+	if payload.Services == nil {
+		return defaultSuricataImage, errors.New("compose missing services")
+	}
+	s, ok := payload.Services["suricata"]
+	if !ok || strings.TrimSpace(s.Image) == "" {
+		return defaultSuricataImage, errors.New("suricata image not found in compose")
+	}
+	logger.With("image", s.Image).Debug("resolved suricata image")
+	return s.Image, nil
+}
+
+// resolveImageViaComposeConfig runs `docker compose -f <file> config` to get the fully
+// resolved compose configuration, then extracts services.suricata.image.
+func resolveImageViaComposeConfig(configPath string) string {
+    composeFile := composewrap.GetComposeFilePath(configPath)
+	// Run from the compose file directory and reference the file by basename
+	fileDir := filepath.Dir(composeFile)
+	fileName := filepath.Base(composeFile)
+	logging.Sugar.With("dir", fileDir, "file", fileName).Debug("resolving via compose config")
+	cmd := exec.Command("docker", "compose", "-f", fileName, "config")
+	cmd.Dir = fileDir
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		logging.Sugar.With("error", err).With("out", string(out)).Info("docker compose config")
+		return ""
+	}
+	type svc struct {
+		Image string `yaml:"image"`
+	}
+	var payload struct {
+		Services map[string]svc `yaml:"services"`
+	}
+	if err := yaml.Unmarshal(out, &payload); err != nil {
+		return ""
+	}
+	if s, ok := payload.Services["suricata"]; ok {
+		if strings.TrimSpace(s.Image) != "" {
+			return s.Image
+		}
+	}
+	return ""
+}
+
+var defaultSuricataImage = "jasonish/suricata:master-amd64"
+
+// splitImageRef splits an image reference into a registry-like prefix and the remainder name:tag.
+// Example: "ghcr.io/org/repo:tag" -> ("ghcr.io/org/", "repo:tag"); "jasonish/suricata:tag" -> ("jasonish/", "suricata:tag")
+// If there is no slash, returns ("", image).
+func splitImageRef(image string) (string, string) {
+	idx := strings.LastIndex(image, "/")
+	if idx == -1 {
+		return "", image
+	}
+	return image[:idx+1], image[idx+1:]
 }
 
 func PcapHandler(params ReadPcapParams) error {
