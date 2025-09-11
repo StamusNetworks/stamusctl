@@ -40,6 +40,15 @@ jobs:
             - name: Checkout code
               uses: actions/checkout@v4
 
+            - name: Compute ref slug
+              id: ref
+              shell: bash
+              run: |
+                  ref="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
+                  slug=$(echo "$ref" | tr '[:upper:]' '[:lower:]' | sed -E 's#[^a-z0-9._-]+#-#g; s#-+#-#g; s#^[-.]++##; s#[-.]++$##')
+                  echo "branch=$ref" >> "$GITHUB_OUTPUT"
+                  echo "slug=$slug" >> "$GITHUB_OUTPUT"
+
             - name: Set up Docker Buildx
               uses: docker/setup-buildx-action@v3
 
@@ -56,9 +65,14 @@ jobs:
               with:
                   images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/cli
                   tags: |
-                      type=ref,event=branch
-                      type=ref,event=pr
-                      type=sha,prefix={{branch}}-
+                      # explicit branch tag (slugged) for both push and PR
+                      type=raw,value=${{ steps.ref.outputs.slug }},enable=true
+                      # PR number tag on PR events
+                      type=raw,value=pr-${{ github.event.pull_request.number }},enable=${{ startsWith(github.ref, 'refs/pull/') }}
+                      # branch-slug + short sha
+                      type=raw,value=${{ steps.ref.outputs.slug }}-${{ github.sha }},enable=true
+                      # plain sha tag
+                      type=sha
 
             - name: Build and push CLI image
               uses: docker/build-push-action@v5
@@ -84,6 +98,15 @@ jobs:
             - name: Checkout code
               uses: actions/checkout@v4
 
+            - name: Compute ref slug
+              id: ref
+              shell: bash
+              run: |
+                  ref="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
+                  slug=$(echo "$ref" | tr '[:upper:]' '[:lower:]' | sed -E 's#[^a-z0-9._-]+#-#g; s#-+#-#g; s#^[-.]++##; s#[-.]++$##')
+                  echo "branch=$ref" >> "$GITHUB_OUTPUT"
+                  echo "slug=$slug" >> "$GITHUB_OUTPUT"
+
             - name: Set up Docker Buildx
               uses: docker/setup-buildx-action@v3
 
@@ -100,9 +123,10 @@ jobs:
               with:
                   images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/daemon
                   tags: |
-                      type=ref,event=branch
-                      type=ref,event=pr
-                      type=sha,prefix={{branch}}-
+                      type=raw,value=${{ steps.ref.outputs.slug }},enable=true
+                      type=raw,value=pr-${{ github.event.pull_request.number }},enable=${{ startsWith(github.ref, 'refs/pull/') }}
+                      type=raw,value=${{ steps.ref.outputs.slug }}-${{ github.sha }},enable=true
+                      type=sha
 
             - name: Build and push daemon image
               uses: docker/build-push-action@v5
