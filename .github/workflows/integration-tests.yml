@@ -33,11 +33,13 @@ jobs:
               run: |
                   ./stamusctl compose init tests --default
                   ./stamusctl compose up -d
-                  docker inspect nginx | jq -e '.[0].HostConfig.RestartPolicy.Name == "unless-stopped"'
+                  CID=$(docker compose -f config/docker-compose.yaml ps -q nginx)
+                  docker inspect "$CID" | jq -e '.[0].HostConfig.RestartPolicy.Name == "unless-stopped"'
                   ./stamusctl compose down
                   ./stamusctl config set globals.restartmode=always
                   ./stamusctl compose up -d
-                  docker inspect nginx | jq -e '.[0].HostConfig.RestartPolicy.Name == "always"'
+                  CID=$(docker compose -f config/docker-compose.yaml ps -q nginx)
+                  docker inspect "$CID" | jq -e '.[0].HostConfig.RestartPolicy.Name == "always"'
 
     test-config-get-keys:
         name: Test Config Get Keys
