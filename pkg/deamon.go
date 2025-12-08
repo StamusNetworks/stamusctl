@@ -75,3 +75,16 @@ type RestartRequest struct {
 type PsResponse struct {
 	Containers []types.Container `json:"containers"`
 }
+
+// Health
+type HealthResponse struct {
+	Status  string `json:"status"`  // Status of the daemon (e.g., "ok")
+	Message string `json:"message"` // Additional message
+}
+type ReadinessResponse struct {
+	Status string `json:"status"`
+	// Overall readiness status (e.g., "ready", "not_ready")
+	Message         string            `json:"message"`          // Additional message
+	Checks          map[string]string `json:"checks"`           // Individual check results
+	DockerConnected bool              `json:"docker_connected"` // Docker daemon connectivity status
+}
