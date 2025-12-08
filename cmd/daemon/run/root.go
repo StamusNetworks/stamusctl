@@ -10,6 +10,7 @@ import (
 	docs "stamus-ctl/cmd/daemon/docs"
 	"stamus-ctl/cmd/daemon/run/compose"
 	"stamus-ctl/cmd/daemon/run/config"
+	"stamus-ctl/cmd/daemon/run/health"
 	"stamus-ctl/cmd/daemon/run/troubleshoot"
 	"stamus-ctl/internal/auth"
 	"stamus-ctl/internal/logging"
@@ -108,6 +109,10 @@ func SetupRouter(logger func(string)) *gin.Engine {
 	if viper.GetString("tokenpath") != "" {
 		go auth.WatchForToken(viper.GetString("tokenpath"))
 	}
+
+	// Health endpoints (no auth required for Kubernetes probes)
+	logger("Setup health endpoints")
+	health.NewHealth(r)
 
 	// Middleware
 	r.Use(gin.Recovery())
