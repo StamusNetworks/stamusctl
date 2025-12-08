@@ -13,7 +13,11 @@ func DeleteDockerImageByName(registry, name string) (bool, error) {
 		return false, err
 	}
 
-	if _, err = cli.ImageRemove(ctx, id, image.RemoveOptions{}); err != nil {
+	err = WithRetrySimple(func() error {
+		_, removeErr := cli.ImageRemove(ctx, id, image.RemoveOptions{})
+		return removeErr
+	}, "image-remove")
+	if err != nil {
 		return false, err
 	}
 
