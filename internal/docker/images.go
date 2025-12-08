@@ -30,7 +30,12 @@ func GetImagesName(images []image.Summary) []string {
 }
 
 func GetInstalledImagesName() ([]string, error) {
-	images, err := cli.ImageList(ctx, image.ListOptions{All: true})
+	var images []image.Summary
+	err := WithRetrySimple(func() error {
+		var listErr error
+		images, listErr = cli.ImageList(ctx, image.ListOptions{All: true})
+		return listErr
+	}, "list-images")
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +68,12 @@ func GetImageIdFromName(registry, name string) (string, error) {
 	logger := logging.Sugar.With("registry", registry, "name", name, "location", "GetImageIdFromName")
 
 	logger.Debug("searching for imageID")
-	images, err := cli.ImageList(ctx, image.ListOptions{All: true})
+	var images []image.Summary
+	err := WithRetrySimple(func() error {
+		var listErr error
+		images, listErr = cli.ImageList(ctx, image.ListOptions{All: true})
+		return listErr
+	}, "list-images-for-id")
 	if err != nil {
 		return "", err
 	}

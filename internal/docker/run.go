@@ -41,13 +41,21 @@ func RunContainer(name string, cmd []string, volumes []string, net string) (stri
 	logger := logging.Sugar.With("name", name, "cmd", cmd, "volumes", volumes, "net", net)
 	config, hostConfig, networkConfig := createConfig(name, cmd, volumes, net)
 
-	resp, err := cli.ContainerCreate(ctx, &config, &hostConfig, &networkConfig, nil, "")
+	var resp container.CreateResponse
+	err := WithRetrySimple(func() error {
+		var createErr error
+		resp, createErr = cli.ContainerCreate(ctx, &config, &hostConfig, &networkConfig, nil, "")
+		return createErr
+	}, "container-create")
 	if err != nil {
 		logger.With("error", err).Error("container create")
 		return "", err
 	}
 
-	if err := cli.ContainerStart(ctx, resp.ID, container.StartOptions{}); err != nil {
+	err = WithRetrySimple(func() error {
+		return cli.ContainerStart(ctx, resp.ID, container.StartOptions{})
+	}, "container-start")
+	if err != nil {
 		logger.With("error", err).Error("container start")
 		return "", err
 	}
@@ -62,22 +70,34 @@ func RunContainer(name string, cmd []string, volumes []string, net string) (stri
 	case <-statusCh:
 	}
 
-	out, err := cli.ContainerLogs(ctx, resp.ID, container.LogsOptions{ShowStdout: true})
+	var out bytes.Buffer
+	err = WithRetrySimple(func() error {
+		reader, logsErr := cli.ContainerLogs(ctx, resp.ID, container.LogsOptions{
+			ShowStdout: true,
+		})
+		if logsErr != nil {
+			return logsErr
+		}
+		defer reader.Close()
+
+		out.Reset()
+		_, readErr := out.ReadFrom(reader)
+		return readErr
+	}, "container-logs")
 	if err != nil {
 		logger.With("error", err).Error("container logs")
 		return "", err
 	}
 
-	buf := new(bytes.Buffer)
-	buf.ReadFrom(out)
-
-	output := buf.String()
+	output := out.String()
 
 	logger.Debugw("run output", "output", output)
 
-	err = cli.ContainerRemove(ctx, resp.ID, container.RemoveOptions{RemoveVolumes: true, Force: true})
+	err = WithRetrySimple(func() error {
+		return cli.ContainerRemove(ctx, resp.ID, container.RemoveOptions{RemoveVolumes: true, Force: true})
+	}, "container-remove")
 	if err != nil {
-		logger.With("error", err).Error("container logs")
+		logger.With("error", err).Error("container remove")
 		return "", err
 	}
 
