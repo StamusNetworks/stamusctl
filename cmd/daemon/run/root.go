@@ -14,6 +14,7 @@ import (
 	"stamus-ctl/cmd/daemon/run/troubleshoot"
 	"stamus-ctl/internal/auth"
 	"stamus-ctl/internal/logging"
+	"stamus-ctl/internal/middleware"
 
 	// External
 
@@ -116,6 +117,8 @@ func SetupRouter(logger func(string)) *gin.Engine {
 
 	// Middleware
 	r.Use(gin.Recovery())
+	r.Use(middleware.SecurityHeadersMiddleware())
+	r.Use(middleware.CORSMiddleware())
 	if viper.GetString("tokenpath") != "" {
 		r.Use(otelgin.Middleware("stamusd", otelgin.WithTracerProvider(logging.TracerProvider)))
 	}
