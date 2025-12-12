@@ -11,6 +11,7 @@ import (
 	"stamus-ctl/internal/logging"
 	"stamus-ctl/internal/models"
 	"stamus-ctl/internal/stamus"
+	"stamus-ctl/internal/validation"
 
 	confHandler "stamus-ctl/internal/handlers/config"
 
@@ -44,6 +45,19 @@ func InitHandler(isCli bool, params InitHandlerInputs) error {
 		"TemplateFolder", params.TemplateFolder,
 		"Bind", params.Bind,
 	)
+
+	// Validate project name to prevent path traversal
+	if err := validation.ValidateProjectName(params.Project); err != nil {
+		logger.Errorf("invalid project name: %v", err)
+		return err
+	}
+
+	// Validate version string to prevent path traversal
+	if err := validation.ValidateVersion(params.Version); err != nil {
+		logger.Errorf("invalid version: %v", err)
+		return err
+	}
+
 	// Setup
 	embeds.InitClearNDRFolder(app.DefaultClearNDRPath)
 	// Get registry info
