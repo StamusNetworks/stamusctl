@@ -4,7 +4,6 @@ import (
 	// Core
 	"errors"
 	"fmt"
-	"path/filepath"
 	"strings"
 
 	// Internal
@@ -13,6 +12,7 @@ import (
 	wrapper "stamus-ctl/internal/handlers/wrapper"
 	"stamus-ctl/internal/models"
 	"stamus-ctl/internal/utils"
+	"stamus-ctl/internal/validation"
 	// External
 )
 
@@ -84,6 +84,12 @@ func SetHandler(params SetHandlerInputs) error {
 
 // For each argument, copy the input path to the output path
 func SetContentHandler(conf string, args []string) error {
+	// Validate base config path
+	sanitizedConf, err := validation.SanitizePath(conf, "")
+	if err != nil {
+		return fmt.Errorf("invalid config path: %w", err)
+	}
+
 	// For each argument
 	for _, arg := range args {
 		if arg == "" {
@@ -97,13 +103,34 @@ func SetContentHandler(conf string, args []string) error {
 		// Get paths
 		inputPath := split[0]
 		outputPath := split[1]
-		// Deamon specific, concatenate the config path
+
+		// Validate input path exists and is readable
+		sanitizedInput, err := validation.SanitizePath(inputPath, "")
+		if err != nil {
+			return fmt.Errorf("invalid input path '%s': %w", inputPath, err)
+		}
+
+		// Daemon specific, concatenate the config path
+		var finalOutputPath string
 		if !app.IsCtl() {
 			configPath := app.GetConfigsFolder(conf)
-			outputPath = filepath.Join(configPath, outputPath)
+			// Validate output path to prevent directory traversal
+			sanitizedOutput, err := validation.SanitizePath(outputPath, configPath)
+			if err != nil {
+				return fmt.Errorf("invalid output path '%s': %w", outputPath, err)
+			}
+			finalOutputPath = sanitizedOutput
+		} else {
+			// For CLI mode, validate output path relative to conf
+			sanitizedOutput, err := validation.SanitizePath(outputPath, sanitizedConf)
+			if err != nil {
+				return fmt.Errorf("invalid output path '%s': %w", outputPath, err)
+			}
+			finalOutputPath = sanitizedOutput
 		}
-		// Call handler
-		err := utils.Copy(inputPath, filepath.Join(conf, outputPath))
+
+		// Call handler with validated paths
+		err = utils.Copy(sanitizedInput, finalOutputPath)
 		if err != nil {
 			return err
 		}

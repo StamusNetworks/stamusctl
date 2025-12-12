@@ -3,6 +3,8 @@ package models
 import (
 	"regexp"
 	"slices"
+
+	"stamus-ctl/internal/logging"
 )
 
 // Check if the path is valid
@@ -44,13 +46,23 @@ func ValidateRestartMode(restart Variable) bool {
 
 func GetValidateFunc(name string) func(Variable) bool {
 	switch name {
+	case "":
+		// Empty string means no validation specified - allow all
+		return func(Variable) bool {
+			return true
+		}
 	case "memory":
 		return ValidateMemoryUsage
 	case "restart":
 		return ValidateRestartMode
 	default:
-		return func(Variable) bool {
-			return true
+		// Unknown validator type - log warning and reject
+		logging.Sugar.Warnf("Unknown validator type '%s' - validation will fail. Valid validators: memory, restart", name)
+		return func(v Variable) bool {
+			// For safety, unknown validators should fail validation
+			// This prevents typos in validator names from silently accepting invalid input
+			logging.Sugar.Warnf("Validation failed due to unknown validator type: %s", name)
+			return false
 		}
 	}
 }
