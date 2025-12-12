@@ -17,6 +17,7 @@ import (
 	// Internal
 	"stamus-ctl/internal/app"
 	"stamus-ctl/internal/logging"
+	"stamus-ctl/internal/validation"
 )
 
 // Config is a struct that represents a configuration file
@@ -131,6 +132,33 @@ func (f *Config) extractParam(parameter string) (*Parameter, error) {
 
 // Extract parameters and includes from the config file
 func (f *Config) ExtractParams() (*Parameters, []string, error) {
+	// Use a map to track visited files and prevent cycles
+	visited := make(map[string]bool)
+	return f.extractParamsWithTracking(visited, 0)
+}
+
+// extractParamsWithTracking is the internal implementation that tracks visited files and depth
+func (f *Config) extractParamsWithTracking(visited map[string]bool, depth int) (*Parameters, []string, error) {
+	// Check depth limit to prevent deep recursion
+	if depth > validation.MaxIncludeDepth {
+		return nil, nil, fmt.Errorf("maximum include depth of %d exceeded", validation.MaxIncludeDepth)
+	}
+
+	// Get absolute path for cycle detection
+	currentPath := f.file.completePath()
+	absPath, err := filepath.Abs(currentPath)
+	if err != nil {
+		absPath = currentPath // fallback to relative path
+	}
+
+	// Check if this file has already been processed (cycle detection)
+	if visited[absPath] {
+		return nil, nil, fmt.Errorf("circular include detected: %s", absPath)
+	}
+
+	// Mark this file as visited
+	visited[absPath] = true
+
 	// To return
 	var parameters Parameters = make(Parameters)
 	var includes []string = []string{}
@@ -156,8 +184,8 @@ func (f *Config) ExtractParams() (*Parameters, []string, error) {
 		if err != nil {
 			return nil, nil, err
 		}
-		// Extract parameters
-		fileParams, fileIncludes, err := conf.ExtractParams()
+		// Extract parameters recursively with tracking
+		fileParams, fileIncludes, err := conf.extractParamsWithTracking(visited, depth+1)
 		if err != nil {
 			return nil, nil, err
 		}

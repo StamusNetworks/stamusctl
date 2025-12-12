@@ -16,6 +16,31 @@ import (
 	"go.uber.org/zap"
 )
 
+// safeFuncMap returns a restricted set of template functions that are safe to use
+// It excludes dangerous functions that could leak information or execute code
+func safeFuncMap() template.FuncMap {
+	// Start with sprig functions
+	funcMap := sprig.FuncMap()
+
+	// Remove dangerous functions that could leak environment variables or execute code
+	dangerousFuncs := []string{
+		"env",              // Can leak environment variables
+		"expandenv",        // Can leak environment variables
+		"getHostByName",    // Can perform DNS lookups
+		"genPrivateKey",    // Cryptographic key generation
+		"genCA",            // Certificate authority generation
+		"genSelfSignedCert", // Certificate generation
+		"genSignedCert",    // Certificate generation
+		// Note: sprig v3 doesn't include "call" or "exec" functions, but we're defensive
+	}
+
+	for _, fn := range dangerousFuncs {
+		delete(funcMap, fn)
+	}
+
+	return funcMap
+}
+
 func deleteEmptyFiles(folderPath string) error {
 	err := afero.Walk(app.FS, folderPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -213,8 +238,8 @@ func processTemplate(data map[string]interface{}, tpls []string,
 		content = content + "\n"
 	}
 
-	// Process template
-	tmpl, err := template.New(filepath.Base(path)).Funcs(sprig.FuncMap()).Parse(content)
+	// Process template with safe function map
+	tmpl, err := template.New(filepath.Base(path)).Funcs(safeFuncMap()).Parse(content)
 	if err != nil {
 		logger.Error(err)
 		return err

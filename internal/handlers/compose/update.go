@@ -17,6 +17,7 @@ import (
 	"stamus-ctl/internal/logging"
 	"stamus-ctl/internal/models"
 	"stamus-ctl/internal/utils"
+	"stamus-ctl/internal/validation"
 
 	"github.com/spf13/viper"
 )
@@ -33,6 +34,12 @@ func UpdateHandler(params UpdateHandlerParams) error {
 	configPath := params.Config
 	args := params.Args
 	versionVal := params.Version
+
+	// Validate version string to prevent path traversal
+	if err := validation.ValidateVersion(versionVal); err != nil {
+		logging.Sugar.Errorf("invalid version: %v", err)
+		return fmt.Errorf("invalid version: %w", err)
+	}
 
 	// Get project
 	viperInstance := viper.New()
@@ -52,6 +59,12 @@ func UpdateHandler(params UpdateHandlerParams) error {
 	}
 	project := viperInstance.GetString("stamus.project")
 	registry := viperInstance.GetString("stamus.registry")
+
+	// Validate project name from config file
+	if err := validation.ValidateProjectName(project); err != nil {
+		logging.Sugar.Errorf("invalid project name in config: %v", err)
+		return fmt.Errorf("invalid project name: %w", err)
+	}
 
 	// Get registry info
 	destPath := filepath.Join(app.TemplatesFolder + project + "/")
@@ -93,8 +106,17 @@ func UpdateHandler(params UpdateHandlerParams) error {
 	}
 
 	// Execute update script
+	// Validate script paths to prevent arbitrary code execution
+	allowedScriptDirs := []string{app.TemplatesFolder}
 	prerunPath := filepath.Join(destPath, "sbin/pre-run")
 	postrunPath := filepath.Join(destPath, "sbin/post-run")
+
+	// Validate pre-run script path
+	if err := validation.ValidateScriptPath(prerunPath, allowedScriptDirs); err != nil {
+		logger.Warnf("Skipping pre-run script due to security validation failure: %v", err)
+		return fmt.Errorf("pre-run script path validation failed: %w", err)
+	}
+
 	runOutput, err := runArbitraryScript(prerunPath, configPath)
 	if err != nil {
 		return err
@@ -187,6 +209,12 @@ func UpdateHandler(params UpdateHandlerParams) error {
 	}
 
 	// Run post-run script
+	// Validate post-run script path
+	if err := validation.ValidateScriptPath(postrunPath, allowedScriptDirs); err != nil {
+		logger.Warnf("Skipping post-run script due to security validation failure: %v", err)
+		return fmt.Errorf("post-run script path validation failed: %w", err)
+	}
+
 	_, err = runArbitraryScript(postrunPath, configPath)
 	if err != nil {
 		logger.Error(err)
@@ -199,18 +227,31 @@ func UpdateHandler(params UpdateHandlerParams) error {
 }
 
 func runArbitraryScript(path string, config string) (*strings.Builder, error) {
-	// Execute arbitrary script
-	arbitrary := exec.Command(path, "--config", config)
+	// Verify script file exists
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		// Script doesn't exist - this is OK, just skip it
+		logging.Sugar.Debugf("Script does not exist, skipping: %s", path)
+		return new(strings.Builder), nil
+	}
+
+	// Validate config path to prevent injection
+	cleanConfig, err := validation.SanitizePath(config, "")
+	if err != nil {
+		return nil, fmt.Errorf("invalid config path: %w", err)
+	}
+
+	// Execute script with validated arguments
+	arbitrary := exec.Command(path, "--config", cleanConfig)
 	// Display output to terminal
 	runOutput := new(strings.Builder)
 	arbitrary.Stdout = runOutput
 	arbitrary.Stderr = os.Stderr
 	// Change execution rights
-	err := app.FS.Chmod(path, 0o755)
+	err = app.FS.Chmod(path, 0o755)
 	if err != nil {
 		return nil, err
 	}
-	// Run arbitrary script
+	// Run script
 	if err := arbitrary.Run(); err != nil {
 		return nil, err
 	}

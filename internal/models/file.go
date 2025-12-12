@@ -9,6 +9,7 @@ import (
 
 	"stamus-ctl/internal/app"
 	"stamus-ctl/internal/logging"
+	"stamus-ctl/internal/validation"
 
 	"github.com/spf13/viper"
 	// External
@@ -108,17 +109,32 @@ func (f *File) GetViper() *viper.Viper {
 
 // Empirical function to check if a path is valid
 func (f *File) isValidPath() error {
-	// Check if file already exists
-	if _, err := app.FS.Stat(f.completePath()); err == nil {
-		return nil
-	}
-
 	// Check parts
 	if f.Path == "" {
 		f.Path = "."
 	}
 	if f.Name == "" || f.Type == "" {
 		return fmt.Errorf("type %s is not valid", f.Type)
+	}
+
+	// Validate path to prevent traversal attacks (but don't modify the original path)
+	_, err := validation.SanitizePath(f.Path, "")
+	if err != nil {
+		return fmt.Errorf("invalid file path: %w", err)
+	}
+
+	// Validate name and type for dangerous characters
+	if strings.Contains(f.Name, "..") || strings.Contains(f.Name, "/") || strings.Contains(f.Name, "\\") {
+		return fmt.Errorf("invalid file name contains path traversal sequences: %s", f.Name)
+	}
+
+	if strings.Contains(f.Type, "..") || strings.Contains(f.Type, "/") || strings.Contains(f.Type, "\\") {
+		return fmt.Errorf("invalid file type contains path traversal sequences: %s", f.Type)
+	}
+
+	// Check if file already exists
+	if _, err := app.FS.Stat(f.completePath()); err == nil {
+		return nil
 	}
 
 	// Return error if not possible
