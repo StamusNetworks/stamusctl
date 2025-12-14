@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: stamus-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass license
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    volumes:
+      - redis-data:/data
+    networks:
+      - stamus-network
+
+  daemon:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.daemon
+    container_name: stamus-daemon
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+      - "9001:9001"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=license
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - stamus-network
+
+volumes:
+  redis-data:
+
+networks:
+  stamus-network:
+    driver: bridge

@@ -3,8 +3,10 @@ package run
 import (
 	// Common
 	"context"
+	"net/http"
 	"os"
 	"os/signal"
+	"time"
 
 	// Custom
 	docs "stamus-ctl/cmd/daemon/docs"
@@ -19,13 +21,21 @@ import (
 	// External
 
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
+	ratelimit "github.com/JGLTechnologies/gin-rate-limit"
 	swaggerfiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 	ginprometheus "github.com/zsais/go-gin-prometheus"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"go.opentelemetry.io/otel/trace"
+)
+
+const (
+	// RateLimitPerSecond defines the number of requests allowed per second per IP
+	RateLimitPerSecond = 5
 )
 
 func NewPrometheusServer(ctx context.Context) {
@@ -127,6 +137,7 @@ func SetupRouter(logger func(string)) *gin.Engine {
 	// Routes
 	logger("Setup routes")
 	v1 := r.Group("/api/v1")
+	v1.Use(RateLimiter())
 	{
 		v1.GET("/ping", ping)
 		v1.POST("/upload", uploadHandler)
@@ -142,4 +153,63 @@ func SetupRouter(logger func(string)) *gin.Engine {
 
 	// r.RunUnix("./daemon.sock")
 	return r
+}
+
+func getEnvFallback(key, fallback string) string {
+	if value, ok := os.LookupEnv(key); ok {
+		return value
+	}
+
+	return fallback
+}
+
+func errorHandler(c *gin.Context, info ratelimit.Info) {
+	c.String(http.StatusTooManyRequests, "Too many requests. Try again in "+time.Until(info.ResetTime).String())
+}
+
+func keyFunc(c *gin.Context) string {
+	return c.ClientIP()
+}
+
+// RateLimiter returns a gin middleware that limits the number of requests per IP address.
+// It attempts to use Redis for distributed rate limiting, but falls back to in-memory
+// rate limiting if Redis is unavailable.
+func RateLimiter() gin.HandlerFunc {
+	redisHost := getEnvFallback("REDIS_HOST", "localhost")
+	redisPort := getEnvFallback("REDIS_PORT", "6379")
+	redisPass := getEnvFallback("REDIS_PASSWORD", "license")
+
+	// Each ip can make 5 requests per second
+	client := redis.NewClient(&redis.Options{
+		Addr:     redisHost + ":" + redisPort,
+		Password: redisPass,
+		DB:       0, // use default DB
+	})
+
+	// Test Redis connection with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	var store ratelimit.Store
+	if err := client.Ping(ctx).Err(); err != nil {
+		// Redis unavailable - fall back to in-memory store
+		logging.Logger.Warn("Redis unavailable, falling back to in-memory rate limiter: " + err.Error())
+		store = ratelimit.InMemoryStore(&ratelimit.InMemoryOptions{
+			Rate:  time.Second,
+			Limit: RateLimitPerSecond,
+		})
+	} else {
+		// Redis available - use distributed rate limiting
+		logging.Logger.Info("Using Redis for distributed rate limiting at " + redisHost + ":" + redisPort)
+		store = ratelimit.RedisStore(&ratelimit.RedisOptions{
+			RedisClient: client,
+			Rate:        time.Second,
+			Limit:       RateLimitPerSecond,
+		})
+	}
+
+	return ratelimit.RateLimiter(store, &ratelimit.Options{
+		ErrorHandler: errorHandler,
+		KeyFunc:      keyFunc,
+	})
 }
