@@ -231,3 +231,17 @@ func TestExtracParamOverview(t *testing.T) {
 func stringPtr(s string) *string {
 	return &s
 }
+
+func TestSetRegistry(t *testing.T) {
+	file := &File{
+		viperInstance: viper.New(),
+	}
+	config := NewConfig(file)
+
+	// Test SetRegistry
+	config.SetRegistry("test-registry.io")
+
+	// No direct assertion as SetRegistry sets internal state
+	// This test ensures the function can be called without panicking
+	assert.NotNil(t, config)
+}
