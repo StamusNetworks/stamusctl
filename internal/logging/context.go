@@ -1,52 +1,47 @@
+// Package logging provides utilities for structured logging with OpenTelemetry integration.
 package logging
 
 import (
 	"context"
 	"net/http"
-	"time"
 
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
-func LoggerWithRequest(r *http.Request) otelzap.LoggerWithCtx {
-	config := zap.NewProductionConfig()
-	config.EncoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout(time.RFC3339)
-	logger, _ := config.Build()
-	span := trace.SpanContextFromContext(r.Context())
-	logger = logger.With(
-		zap.String("trace_id", span.TraceID().String()),
-		zap.String("span_id", span.SpanID().String()),
-		zap.String("request_uri", r.RequestURI),
-		zap.String("method", r.Method),
-		zap.String("remote_addr", r.RemoteAddr),
-		zap.String("url", r.URL.String()),
-		zap.String("referer", r.Header.Get("Referer")),
-		zap.String("user-agent", r.Header.Get("User-Agent")),
-		zap.String("x-request-id", r.Header.Get("X-Request-ID")),
+// LoggerWithRequest creates a logger with request context and tracing information.
+func LoggerWithRequest(request *http.Request) otelzap.LoggerWithCtx {
+	span := trace.SpanContextFromContext(request.Context())
+	logger := Logger.With(
+		zap.String("traceId", span.TraceID().String()),
+		zap.String("spanId", span.SpanID().String()),
+		zap.String("requestUri", request.RequestURI),
+		zap.String("method", request.Method),
+		zap.String("remoteAddr", request.RemoteAddr),
+		zap.String("url", request.URL.String()),
+		zap.String("referer", request.Header.Get("Referer")),
+		zap.String("user-agent", request.Header.Get("User-Agent")),
+		zap.String("x-request-id", request.Header.Get("X-Request-ID")),
 	)
-	return otelzap.New(logger).Ctx(r.Context())
+
+	return otelzap.New(logger).Ctx(request.Context())
 }
 
+// LoggerWithSpanContext creates a logger with trace and span ID from the given span context.
 func LoggerWithSpanContext(span trace.SpanContext) *zap.Logger {
-	config := zap.NewProductionConfig()
-	config.EncoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout(time.RFC3339)
-	logger, _ := config.Build()
-	return logger.With(
-		zap.String("trace_id", span.TraceID().String()),
-		zap.String("span_id", span.SpanID().String()),
+	return Logger.With(
+		zap.String("traceId", span.TraceID().String()),
+		zap.String("spanId", span.SpanID().String()),
 	)
 }
 
+// LoggerWithContextToSpanContext creates a logger with trace and span ID from the given context.
 func LoggerWithContextToSpanContext(ctx context.Context) *zap.Logger {
 	span := trace.SpanContextFromContext(ctx)
-	config := zap.NewProductionConfig()
-	config.EncoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout(time.RFC3339)
-	logger, _ := config.Build()
-	return logger.With(
-		zap.String("trace_id", span.TraceID().String()),
-		zap.String("span_id", span.SpanID().String()),
+
+	return Logger.With(
+		zap.String("traceId", span.TraceID().String()),
+		zap.String("spanId", span.SpanID().String()),
 	)
 }

@@ -1,9 +1,8 @@
 package logging
 
 import (
-	"stamus-ctl/internal/app"
+	"os"
 
-	"github.com/spf13/viper"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -11,27 +10,30 @@ import (
 
 var (
 	envType = "dev"
+	// Logger is the global zap logger instance used throughout the application.
 	Logger  *zap.Logger
+	// Sugar is the global sugared logger instance for convenient logging.
 	Sugar   *zap.SugaredLogger
 	levels  = [...]zapcore.Level{zap.WarnLevel, zap.InfoLevel, zap.DebugLevel}
 )
 
-func NewLogger() *zap.Logger {
-	verbosity := viper.GetInt("verbose")
+// NewLogger creates a new zap logger with optional file logging.
+func NewLogger(filelogger bool) *zap.Logger {
+	verbosity := 2
 	encoder := zapcore.EncoderConfig{
 		// Keys can be anything except the empty string.
-		TimeKey:        "T",
-		LevelKey:       "L",
-		NameKey:        "N",
-		CallerKey:      "C",
-		FunctionKey:    zapcore.OmitKey,
-		MessageKey:     "M",
-		StacktraceKey:  "S",
-		LineEnding:     zapcore.DefaultLineEnding,
+		TimeKey:        "timestamp",
 		EncodeTime:     zapcore.ISO8601TimeEncoder,
+		LevelKey:       "level",
+		NameKey:        "name",
+		CallerKey:      "caller",
+		FunctionKey:    zapcore.OmitKey,
+		MessageKey:     "msg",
+		StacktraceKey:  "stacktrace",
+		LineEnding:     zapcore.DefaultLineEnding,
+		EncodeLevel:    zapcore.CapitalColorLevelEncoder,
 		EncodeDuration: zapcore.StringDurationEncoder,
 		EncodeCaller:   zapcore.ShortCallerEncoder,
-		EncodeLevel:    zapcore.CapitalColorLevelEncoder,
 	}
 
 	if verbosity >= len(levels) {
@@ -39,42 +41,57 @@ func NewLogger() *zap.Logger {
 	}
 
 	if envType == "prd" {
+		verbosity = 1
+
 		encoder.StacktraceKey = zapcore.OmitKey
+	}
 
-		if app.Name == app.CtlName {
-			encoder.TimeKey = zapcore.OmitKey
+	consoleEncoder := zapcore.NewConsoleEncoder(encoder)
+
+	encoder.EncodeLevel = zapcore.CapitalLevelEncoder
+
+	jsonEncoder := zapcore.NewJSONEncoder(encoder)
+
+	level := zap.NewAtomicLevelAt(levels[verbosity])
+
+	var core zapcore.Core
+	if filelogger {
+		f, err := os.OpenFile("/var/log/stamus-ctl/stamus-ctl.log", os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+		if err != nil {
+			panic(err)
 		}
+
+		core = zapcore.NewTee(
+			zapcore.NewCore(jsonEncoder, zapcore.AddSync(f), level),
+			zapcore.NewCore(consoleEncoder, zapcore.AddSync(os.Stdout), level),
+		)
+	} else {
+		core = zapcore.NewCore(consoleEncoder, zapcore.AddSync(os.Stdout), level)
 	}
 
-	config := zap.Config{
-		Level:             zap.NewAtomicLevelAt(levels[verbosity]),
-		Development:       true,
-		Encoding:          "console",
-		EncoderConfig:     encoder,
-		OutputPaths:       []string{"stdout"},
-		ErrorOutputPaths:  []string{"stderr"},
-		DisableStacktrace: true,
-	}
+	log := zap.New(core)
+	defer func() {
+		_ = log.Sync()
+	}()
 
-	log, _ := config.Build()
-	defer log.Sync()
 	return log
 }
 
+// SetLogger initializes the global logger instances with OpenTelemetry integration.
 func SetLogger() {
-	Logger = NewLogger()
+	filelogger := os.Getenv("FILE_LOGGER") == "true"
+	Logger = NewLogger(filelogger)
 	Sugar = Logger.Sugar()
 
 	config := zap.NewProductionConfig()
 	logger, _ := config.Build()
 	otellogger := otelzap.New(logger)
 
+	zap.ReplaceGlobals(Logger)
 	otelzap.ReplaceGlobals(otellogger)
 }
 
 func init() {
-	noop := zap.NewNop()
-
-	Logger = noop
-	Sugar = noop.Sugar()
+	Logger = NewLogger(false)
+	Sugar = Logger.Sugar()
 }

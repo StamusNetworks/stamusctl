@@ -28,7 +28,6 @@ import (
 	ratelimit "github.com/JGLTechnologies/gin-rate-limit"
 	swaggerfiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
-	ginprometheus "github.com/zsais/go-gin-prometheus"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -38,15 +37,6 @@ const (
 	RateLimitPerSecond = 5
 )
 
-func NewPrometheusServer(ctx context.Context) {
-	engineProm := gin.New()
-
-	p := ginprometheus.NewPrometheus("gin")
-	p.Use(engineProm)
-
-	logging.LoggerWithContextToSpanContext(ctx).Info("Starting prometheus endpoint")
-	engineProm.Run(":9001")
-}
 
 // Ping godoc
 // @Summary ping example
@@ -70,7 +60,10 @@ func RunCmd() *cobra.Command {
 	_, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
-	logging.NewTraceProvider()
+	// Initialize OpenTelemetry tracing
+	collectorURL := getEnvFallback("OTEL_COLLECTOR_URL", "")
+	serviceName := getEnvFallback("OTEL_SERVICE_NAME", "stamus-ctl-daemon")
+	logging.InitTracer(collectorURL, serviceName)
 
 	viper.SetDefault("tokenpath", "")
 
@@ -101,7 +94,7 @@ func setupLogging() trace.Span {
 	c := context.Background()
 	ctx, span := logging.Tracer.Start(c, "main")
 	defer span.End()
-	go NewPrometheusServer(ctx)
+	go logging.NewPrometheusServer(ctx)
 	return span
 }
 
@@ -131,6 +124,8 @@ func SetupRouter(logger func(string)) *gin.Engine {
 	r.Use(middleware.CORSMiddleware())
 	if viper.GetString("tokenpath") != "" {
 		r.Use(otelgin.Middleware("stamusd", otelgin.WithTracerProvider(logging.TracerProvider)))
+		r.Use(logging.SetRequestIDInResponse())
+		r.Use(logging.LogRequestResponse())
 	}
 	r.Use(auth.AuthMiddleware())
 
