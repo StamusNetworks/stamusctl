@@ -394,3 +394,56 @@ func TestProcessOptionnalParams(t *testing.T) {
 		})
 	}
 }
+
+func TestGetParameters(t *testing.T) {
+	param1 := &Parameter{Type: "string", Variable: CreateVariableString("value1")}
+	param2 := &Parameter{Type: "int", Variable: CreateVariableInt(2)}
+	param3 := &Parameter{Type: "bool", Variable: CreateVariableBool(true)}
+
+	params := &Parameters{
+		"param1": param1,
+		"param2": param2,
+		"param3": param3,
+	}
+
+	tests := []struct {
+		name string
+		keys []string
+		want map[string]*Parameter
+	}{
+		{
+			name: "No keys provided",
+			keys: []string{},
+			want: map[string]*Parameter{
+				"param1": param1,
+				"param2": param2,
+				"param3": param3,
+			},
+		},
+		{
+			name: "Single key provided",
+			keys: []string{"param1"},
+			want: map[string]*Parameter{
+				"param1": param1,
+			},
+		},
+		{
+			name: "Key prefix provided",
+			keys: []string{"param"},
+			want: map[string]*Parameter{
+				"param1": param1,
+				"param2": param2,
+				"param3": param3,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := params.GetParameters(tt.keys...)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("GetParameters() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

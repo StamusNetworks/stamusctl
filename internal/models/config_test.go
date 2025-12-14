@@ -334,3 +334,50 @@ param3:
 	// Verify the includes
 	assert.Contains(t, includes, "include.yaml")
 }
+
+func TestDeleteFolder(t *testing.T) {
+	// Create a dummy folder
+	err := app.FS.MkdirAll("./test_folder", 0755)
+	assert.NoError(t, err)
+	err = afero.WriteFile(app.FS, "./test_folder/file.txt", []byte("test content"), 0644)
+	assert.NoError(t, err)
+
+	// Create a Config instance
+	file, err := CreateFile("./test_folder", "config.yaml")
+	assert.NoError(t, err)
+	config := &Config{
+		file: file,
+	}
+
+	// Verify folder exists
+	exists, err := afero.DirExists(app.FS, "./test_folder")
+	assert.NoError(t, err)
+	assert.True(t, exists)
+
+	// Call DeleteFolder
+	err = config.DeleteFolder()
+	assert.NoError(t, err)
+
+	// Verify folder was deleted
+	exists, err = afero.DirExists(app.FS, "./test_folder")
+	assert.NoError(t, err)
+	assert.False(t, exists)
+}
+
+func TestSetSeed(t *testing.T) {
+	config := &Config{}
+
+	// Test SetSeed
+	config.SetSeed("test-seed-value")
+	assert.Equal(t, "test-seed-value", config.GetSeed())
+}
+
+func TestCreateSeed(t *testing.T) {
+	config := &Config{}
+
+	// Test CreateSeed
+	seed := config.CreateSeed()
+	assert.NotEmpty(t, seed)
+	assert.Equal(t, 16, len(seed))
+	assert.Equal(t, seed, config.GetSeed())
+}
