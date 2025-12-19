@@ -45,6 +45,7 @@ jobs:
     compose-init:
         name: Test Compose Init
         runs-on: ubuntu-latest
+        if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/trunk'
         steps:
             - name: Checkout code
               uses: actions/checkout@v4
@@ -69,6 +70,7 @@ jobs:
     compose-init-config-flag:
         name: Test Compose Init with Config Flag
         runs-on: ubuntu-latest
+        if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/trunk'
         steps:
             - name: Checkout code
               uses: actions/checkout@v4
@@ -91,6 +93,7 @@ jobs:
     compose-init-set:
         name: Test Compose Init with Set
         runs-on: ubuntu-latest
+        if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/trunk'
         steps:
             - name: Checkout code
               uses: actions/checkout@v4
