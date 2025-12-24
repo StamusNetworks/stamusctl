@@ -209,3 +209,69 @@ func TestRelease_SetterChaining(t *testing.T) {
 	assert.Equal(t, "chained-service", release.Service)
 	assert.Equal(t, release, result)
 }
+
+func TestNormalizeVersion(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "trunk version",
+			input:    "1.1.0-trunk.1",
+			expected: "1.1.0",
+		},
+		{
+			name:     "beta version",
+			input:    "2.3.4-beta.2",
+			expected: "2.3.4",
+		},
+		{
+			name:     "alpha version",
+			input:    "1.0.0-alpha.1",
+			expected: "1.0.0",
+		},
+		{
+			name:     "rc version",
+			input:    "3.2.1-rc.3",
+			expected: "3.2.1",
+		},
+		{
+			name:     "dev version",
+			input:    "1.5.0-dev",
+			expected: "1.5.0",
+		},
+		{
+			name:     "snapshot version",
+			input:    "2.0.0-snapshot.123",
+			expected: "2.0.0",
+		},
+		{
+			name:     "stable version unchanged",
+			input:    "1.2.3",
+			expected: "1.2.3",
+		},
+		{
+			name:     "version with patch",
+			input:    "0.9.8",
+			expected: "0.9.8",
+		},
+		{
+			name:     "empty string",
+			input:    "",
+			expected: "",
+		},
+		{
+			name:     "latest",
+			input:    "latest",
+			expected: "latest",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := normalizeVersion(tt.input)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
