@@ -27,6 +27,7 @@ func updateCmd() *cobra.Command {
 	flags.Version.AddAsFlag(cmd, false)
 	flags.Config.AddAsFlag(cmd, false)
 	flags.Template.AddAsFlag(cmd, false)
+	flags.IsInteractive.AddAsFlag(cmd, false)
 
 	return cmd
 }
@@ -45,6 +46,10 @@ func updateHandler(_ *cobra.Command, args []string) {
 	if err != nil {
 		return
 	}
+	interactive, err := flags.IsInteractive.GetValue()
+	if err != nil {
+		return
+	}
 
 	// Call handler
 	params := handlers.UpdateHandlerParams{
@@ -52,6 +57,7 @@ func updateHandler(_ *cobra.Command, args []string) {
 		Config:         config.(string),
 		TemplateFolder: templateFolder.(string),
 		Args:           args,
+		Interactive:    interactive.(bool),
 	}
 
 	handlers.UpdateHandler(params)
