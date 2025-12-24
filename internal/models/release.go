@@ -9,6 +9,23 @@ import (
 	"stamus-ctl/internal/app"
 )
 
+// normalizeVersion strips beta/trunk/development suffixes from version strings
+// Examples: "1.1.0-trunk.1" -> "1.1.0", "1.2.3-beta.2" -> "1.2.3", "1.0.0" -> "1.0.0"
+func normalizeVersion(version string) string {
+	// Split on common beta/development indicators
+	suffixes := []string{"-trunk", "-beta", "-alpha", "-rc", "-dev", "-snapshot"}
+
+	normalizedVersion := version
+	for _, suffix := range suffixes {
+		if idx := strings.Index(normalizedVersion, suffix); idx != -1 {
+			normalizedVersion = normalizedVersion[:idx]
+			break
+		}
+	}
+
+	return normalizedVersion
+}
+
 type Release struct {
 	Name      string // the name given to the release
 	User      string // userid
@@ -34,7 +51,7 @@ func NewRelease(name, location, seed string, isUpgrade, isInstall bool) *Release
 		IsUpgrade: isUpgrade,
 		IsInstall: isInstall,
 		Seed:      seed,
-		Service:   app.StamusAppName + ":" + app.Version,
+		Service:   app.StamusAppName + ":" + normalizeVersion(app.Version),
 	}
 }
 
