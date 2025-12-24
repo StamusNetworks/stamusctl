@@ -27,6 +27,7 @@ type UpdateHandlerParams struct {
 	Args           []string
 	Version        string
 	TemplateFolder string
+	Interactive    bool
 }
 
 func UpdateHandler(params UpdateHandlerParams) error {
@@ -188,13 +189,24 @@ func UpdateHandler(params UpdateHandlerParams) error {
 		return err
 	}
 
-	// Ask for missing parameters
+	// Ask for missing parameters or use defaults
 	if app.IsCtl() {
-		err = newConfig.GetParams().AskMissing()
-		if err != nil {
-			logger.Error(err)
+		if params.Interactive {
+			// When --interactive flag is set, prompt for missing parameters (old behavior)
+			err = newConfig.GetParams().AskMissing()
+			if err != nil {
+				logger.Error(err)
 
-			return err
+				return err
+			}
+		} else {
+			// Default behavior: use defaults without prompting
+			err = newConfig.GetParams().SetToDefaults()
+			if err != nil {
+				logger.Error(err)
+
+				return err
+			}
 		}
 	}
 
