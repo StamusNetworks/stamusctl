@@ -24,6 +24,14 @@ var IsDefaultParam = models.Parameter{
 	Usage:     "Set to default settings",
 }
 
+var IsInteractive = models.Parameter{
+	Name:      "interactive",
+	Shorthand: "i",
+	Type:      "bool",
+	Default:   models.CreateVariableBool(false),
+	Usage:     "Prompt for missing configuration values",
+}
+
 var IsExpert = models.Parameter{
 	Name:      "expert",
 	Shorthand: "E",
