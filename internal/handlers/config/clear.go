@@ -5,21 +5,42 @@ import (
 
 	"fmt"
 	"os"
+	"path/filepath"
 
 	// Internal
 	"stamus-ctl/internal/app"
+	"stamus-ctl/internal/backup"
 	"stamus-ctl/internal/handlers/wrapper"
+	"stamus-ctl/internal/logging"
 	"stamus-ctl/internal/stamus"
 	"stamus-ctl/internal/validation"
+
+	// External
+	"go.uber.org/zap"
 )
 
 func Clear(conf string) error {
-	// File instance
+	// Get config name from path
+	configName := conf
 	if !app.IsCtl() {
 		conf = app.GetConfigsFolder(conf)
+	} else {
+		// Extract config name from path
+		configName = filepath.Base(conf)
 	}
+
+	// Create automatic backup before destructive operation
+	_, err := backup.CreateBackup(configName, backup.BackupTypeAuto, logging.Logger)
+	if err != nil {
+		// Log warning but continue with operation
+		logging.Logger.Warn("Failed to create backup before clear operation",
+			zap.String("config", configName),
+			zap.Error(err),
+		)
+	}
+
 	// Down containers
-	err := wrapper.HandleDown(conf, true, true)
+	err = wrapper.HandleDown(conf, true, true)
 	if err != nil {
 		return err
 	}

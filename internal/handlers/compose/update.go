@@ -14,12 +14,14 @@ import (
 
 	// Custom
 	"stamus-ctl/internal/app"
+	"stamus-ctl/internal/backup"
 	"stamus-ctl/internal/logging"
 	"stamus-ctl/internal/models"
 	"stamus-ctl/internal/utils"
 	"stamus-ctl/internal/validation"
 
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 )
 
 type UpdateHandlerParams struct {
@@ -34,6 +36,17 @@ func UpdateHandler(params UpdateHandlerParams) error {
 	configPath := params.Config
 	args := params.Args
 	versionVal := params.Version
+
+	// Create automatic backup before update operation
+	configName := filepath.Base(configPath)
+	_, err := backup.CreateBackup(configName, backup.BackupTypeAuto, logging.Logger)
+	if err != nil {
+		// Log warning but continue with operation
+		logging.Logger.Warn("Failed to create backup before compose update",
+			zap.String("config", configName),
+			zap.Error(err),
+		)
+	}
 
 	// Validate version string to prevent path traversal
 	if err := validation.ValidateVersion(versionVal); err != nil {
@@ -52,7 +65,7 @@ func UpdateHandler(params UpdateHandlerParams) error {
 	viperInstance.SetConfigType("yaml")
 	viperInstance.AddConfigPath(params.Config)
 	// Read the config file
-	err := viperInstance.ReadInConfig()
+	err = viperInstance.ReadInConfig()
 	if err != nil {
 		logging.Sugar.Error("cannot read config file: ", err)
 		return fmt.Errorf("cannot read config file: %w", err)

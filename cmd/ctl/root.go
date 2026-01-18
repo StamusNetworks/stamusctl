@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"stamus-ctl/cmd/ctl/backup"
 	"stamus-ctl/cmd/ctl/compose"
 	"stamus-ctl/cmd/ctl/config"
 	tmpl "stamus-ctl/cmd/ctl/template"
@@ -49,5 +50,6 @@ func rootCmd() *cobra.Command {
 	cmd.AddCommand(compose.ComposeCmd())
 	cmd.AddCommand(config.ConfigCmd())
 	cmd.AddCommand(tmpl.TemplateCmd())
+	cmd.AddCommand(backup.BackupCmd())
 	return cmd
 }
