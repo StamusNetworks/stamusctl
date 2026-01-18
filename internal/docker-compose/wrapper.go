@@ -9,6 +9,7 @@ import (
 
 	// Common
 	"stamus-ctl/internal/app"
+	"stamus-ctl/internal/backup"
 	stamusFlags "stamus-ctl/internal/handlers"
 	"stamus-ctl/internal/logging"
 	"stamus-ctl/internal/models"
@@ -22,6 +23,7 @@ import (
 	"github.com/docker/compose/v2/pkg/compose"
 	"github.com/docker/go-connections/tlsconfig"
 	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 )
 
 // Constants
@@ -144,6 +146,26 @@ func makeCustomRunner(
 		configFlag := cmd.Flags().Lookup("config")
 		conf := configFlag.Value.String()
 		composeFile := GetComposeFilePath(conf)
+
+		// Create automatic backup before compose down --volumes
+		if cmd.Name() == "down" {
+			volumesFlag := cmd.Flags().Lookup("volumes")
+			if volumesFlag != nil && volumesFlag.Value.String() == "true" {
+				// Extract config name from path
+				configName := filepath.Base(conf)
+
+				// Create backup
+				_, err := backup.CreateBackup(configName, backup.BackupTypeAuto, logging.Logger)
+				if err != nil {
+					// Log warning but continue with operation
+					logging.Logger.Warn("Failed to create backup before compose down --volumes",
+						zap.String("config", configName),
+						zap.Error(err),
+					)
+				}
+			}
+		}
+
 		// Set file flag
 		fileFlag := cmd.Flags().Lookup("file")
 		fileFlag.Value.Set(composeFile)

@@ -9,11 +9,15 @@ import (
 	// Internal
 
 	"stamus-ctl/internal/app"
+	"stamus-ctl/internal/backup"
 	wrapper "stamus-ctl/internal/handlers/wrapper"
+	"stamus-ctl/internal/logging"
 	"stamus-ctl/internal/models"
 	"stamus-ctl/internal/utils"
 	"stamus-ctl/internal/validation"
+
 	// External
+	"go.uber.org/zap"
 )
 
 type SetHandlerInputs struct {
@@ -74,6 +78,16 @@ func SetHandler(params SetHandlerInputs) error {
 	}
 	// Apply the configuration
 	if params.Apply {
+		// Create automatic backup before applying changes
+		_, err = backup.CreateBackup(params.Config, backup.BackupTypeAuto, logging.Logger)
+		if err != nil {
+			// Log warning but continue with operation
+			logging.Logger.Warn("Failed to create backup before config set --apply",
+				zap.String("config", params.Config),
+				zap.Error(err),
+			)
+		}
+
 		err = wrapper.HandleUp(params.Config)
 		if err != nil {
 			return err

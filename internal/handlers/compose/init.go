@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"stamus-ctl/internal/app"
+	"stamus-ctl/internal/backup"
 	"stamus-ctl/internal/embeds"
 	"stamus-ctl/internal/logging"
 	"stamus-ctl/internal/models"
@@ -16,6 +17,7 @@ import (
 	confHandler "stamus-ctl/internal/handlers/config"
 
 	"github.com/spf13/afero"
+	"go.uber.org/zap"
 )
 
 type InitHandlerInputs struct {
@@ -163,6 +165,24 @@ func InitHandler(isCli bool, params InitHandlerInputs) error {
 		return err
 	}
 
+	// Check if config already exists and create backup if so
+	configPath := params.Config
+	if !isCli {
+		configPath = app.GetConfigsFolder(params.Config)
+	}
+	if _, err := os.Stat(configPath); err == nil {
+		// Config exists, create backup before overwriting
+		configName := filepath.Base(params.Config)
+		_, backupErr := backup.CreateBackup(configName, backup.BackupTypeAuto, logging.Logger)
+		if backupErr != nil {
+			// Log warning but continue with operation
+			logging.Logger.Warn("Failed to create backup before compose init",
+				zap.String("config", configName),
+				zap.Error(backupErr),
+			)
+		}
+	}
+
 	// Save the configuration
 	logger.Debug("Create values.yaml")
 	outputFile, err := models.CreateFile(params.Config, "values.yaml")
@@ -188,7 +208,7 @@ func InitHandler(isCli bool, params InitHandlerInputs) error {
 
 	// Save instance
 	logger.Debug("Save instance")
-	var configPath string = params.Config
+	configPath = params.Config
 	if isCli {
 		currentPath, _ := os.Getwd()
 		configPath = filepath.Join(currentPath, params.Config)
