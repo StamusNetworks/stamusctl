@@ -169,7 +169,7 @@ func filterRemainingOptionalParams(optionalParams []string, optionalParam string
 
 func (p *Parameters) MergeValues(toMerge *Parameters) *Parameters {
 	for key, value := range *toMerge {
-		if (*p)[key] != nil {
+		if (*p)[key] != nil && !value.Variable.IsNil() {
 			(*p)[key].Variable = value.Variable
 		}
 	}
