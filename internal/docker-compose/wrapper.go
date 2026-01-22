@@ -174,6 +174,8 @@ func makeCustomRunner(
 		err := runE(cmd, args)
 		if err != nil {
 			logging.Sugar.Error(err)
+
+			return err
 		}
 		return nil
 	}
