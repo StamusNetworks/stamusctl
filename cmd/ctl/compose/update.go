@@ -1,15 +1,15 @@
 package compose
 
 import (
+	flags "stamus-ctl/internal/handlers"
+	handlers "stamus-ctl/internal/handlers/compose"
+
 	// Common
 
 	// External
 
 	"github.com/spf13/cobra"
-
 	// Custom
-	flags "stamus-ctl/internal/handlers"
-	handlers "stamus-ctl/internal/handlers/compose"
 )
 
 // Commands
@@ -18,10 +18,7 @@ func updateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "update",
 		Short: "Update compose configuration files",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			updateHandler(cmd, args)
-			return nil
-		},
+		RunE:  updateHandler,
 	}
 	// Add flags
 	flags.Version.AddAsFlag(cmd, false)
@@ -32,23 +29,23 @@ func updateCmd() *cobra.Command {
 	return cmd
 }
 
-func updateHandler(_ *cobra.Command, args []string) {
+func updateHandler(_ *cobra.Command, args []string) error {
 	// Validate flags
 	version, err := flags.Version.GetValue()
 	if err != nil {
-		return
+		return err
 	}
 	config, err := flags.Config.GetValue()
 	if err != nil {
-		return
+		return err
 	}
 	templateFolder, err := flags.Template.GetValue()
 	if err != nil {
-		return
+		return err
 	}
 	interactive, err := flags.IsInteractive.GetValue()
 	if err != nil {
-		return
+		return err
 	}
 
 	// Call handler
@@ -60,5 +57,5 @@ func updateHandler(_ *cobra.Command, args []string) {
 		Interactive:    interactive.(bool),
 	}
 
-	handlers.UpdateHandler(params)
+	return handlers.UpdateHandler(params)
 }

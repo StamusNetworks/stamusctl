@@ -3,16 +3,17 @@ package compose
 import (
 	// External
 
+	"stamus-ctl/internal/app"
+	"stamus-ctl/internal/logging"
+	"stamus-ctl/internal/utils"
 	"strings"
 
 	"github.com/spf13/cobra"
 
 	// Internal
-	"stamus-ctl/internal/app"
+
 	flags "stamus-ctl/internal/handlers"
 	handlers "stamus-ctl/internal/handlers/compose"
-	"stamus-ctl/internal/logging"
-	"stamus-ctl/internal/utils"
 )
 
 // Const
@@ -27,13 +28,11 @@ const (
 func initCmd() *cobra.Command {
 	// Command
 	cmd := &cobra.Command{
-		Use:   "init",
-		Short: "Init compose config file",
-		Long:  InitHelp,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			handler(cmd, args)
-			return nil
-		},
+		Use:          "init",
+		Short:        "Init compose config file",
+		Long:         InitHelp,
+		RunE:         handler,
+		SilenceUsage: true,
 	}
 	// Flags
 	flags.IsDefaultParam.AddAsFlag(cmd, false)
@@ -48,6 +47,7 @@ func initCmd() *cobra.Command {
 
 	// Commands
 	cmd.AddCommand(ClearNDRCmd())
+
 	return cmd
 }
 
@@ -59,9 +59,10 @@ func ClearNDRCmd() *cobra.Command {
 		Long:  InitHelp,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			args = append([]string{"clearndr"}, args...)
-			handler(cmd, args)
-			return nil
+
+			return handler(cmd, args)
 		},
+		SilenceUsage: true,
 	}
 	// Flags
 	flags.IsDefaultParam.AddAsFlag(cmd, false)
@@ -73,6 +74,7 @@ func ClearNDRCmd() *cobra.Command {
 	flags.Version.AddAsFlag(cmd, false)
 	flags.Bind.AddAsFlag(cmd, false)
 	flags.Registry.AddAsFlag(cmd, false)
+
 	return cmd
 }
 
@@ -154,5 +156,6 @@ func handler(_ *cobra.Command, args []string) error {
 		Registry:         registry.(string),
 		Bind:             toBind,
 	}
+
 	return handlers.InitHandler(true, initParams)
 }
