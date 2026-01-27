@@ -2,6 +2,7 @@ package models
 
 import (
 	// Common
+	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -175,11 +176,69 @@ func (f *Config) extractParamsWithTracking(visited map[string]bool, depth int) (
 	}
 	// Extract includes parameters
 	for _, include := range includesList {
-		// Create config instance for the include
-		file, err := CreateFileFromPath(filepath.Join(f.file.Path, include))
-		if err != nil {
-			return nil, nil, err
+		var file *File
+		var err error
+
+		// Handle remote includes
+		if isRemoteInclude(include) {
+			// Cycle detection
+			if visited[include] {
+				return nil, nil, fmt.Errorf("circular include detected: %s", include)
+			}
+			visited[include] = true
+
+			// Try cache first
+			content, cached := getCachedRemoteInclude(include)
+
+			if !cached {
+				// Parse URL
+				imageRef, filePath, parseErr := parseRemoteInclude(include)
+				if parseErr != nil {
+					return nil, nil, fmt.Errorf("invalid remote include: %w", parseErr)
+				}
+
+				// Extract registry hostname from imageRef (e.g., "ghcr.io" from "ghcr.io/org/image:tag")
+				registryHost := strings.Split(imageRef, "/")[0]
+
+				// Get registry credentials for this specific registry
+				registryInfo, configErr := getRegistryCredentials(registryHost)
+				if configErr != nil {
+					return nil, nil, fmt.Errorf("failed to get registry credentials: %w", configErr)
+				}
+
+				// Pull file from registry
+				content, err = pullRemoteInclude(context.Background(), registryInfo, imageRef, filePath)
+				if err != nil {
+					return nil, nil, fmt.Errorf("failed to pull remote include: %w", err)
+				}
+
+				// Cache it
+				if cacheErr := setCachedRemoteInclude(include, content); cacheErr != nil {
+					logging.Sugar.Warn("Failed to cache remote include", cacheErr)
+				}
+			}
+
+			// Write to temp file for processing
+			// Add process ID to prevent concurrent collisions
+			tmpFile := filepath.Join(os.TempDir(), fmt.Sprintf("remote-include-%s-%d.yaml", hashURL(include), os.Getpid()))
+			if err := afero.WriteFile(app.FS, tmpFile, content, 0644); err != nil {
+				return nil, nil, err
+			}
+			defer app.FS.Remove(tmpFile)
+
+			file, err = CreateFileFromPath(tmpFile)
+			if err != nil {
+				return nil, nil, err
+			}
+		} else {
+			// Local file handling (unchanged)
+			file, err = CreateFileFromPath(filepath.Join(f.file.Path, include))
+			if err != nil {
+				return nil, nil, err
+			}
 		}
+
+		// Process include file (same for both local and remote)
 		conf, err := ConfigFromFile(file)
 		if err != nil {
 			return nil, nil, err

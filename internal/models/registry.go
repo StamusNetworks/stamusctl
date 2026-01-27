@@ -4,17 +4,22 @@ import (
 	"archive/tar"
 	"bufio"
 	"context"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
+	"time"
 
 	"stamus-ctl/internal/app"
 	"stamus-ctl/internal/logging"
 
+	"github.com/adrg/xdg"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/registry"
@@ -237,4 +242,220 @@ func copyFromContainer(cli *client.Client, ctx context.Context, containerID, src
 	}
 
 	return nil
+}
+
+// getRegistryCredentials reads registry credentials from the config file
+// This avoids importing the stamus package which would create an import cycle
+// registryHost should be extracted from the image reference (e.g., "ghcr.io" from "ghcr.io/org/image:tag")
+func getRegistryCredentials(registryHost string) (*RegistryInfo, error) {
+	// Read config file
+	configPath := filepath.Join(app.ConfigFolder, "config.json")
+	bytes, err := afero.ReadFile(app.FS, configPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			// Create config directory and empty config file
+			if mkdirErr := app.FS.MkdirAll(app.ConfigFolder, 0755); mkdirErr != nil {
+				return nil, fmt.Errorf("failed to create config directory: %w", mkdirErr)
+			}
+			emptyConfig := []byte(`{"registries":{}}`)
+			if writeErr := afero.WriteFile(app.FS, configPath, emptyConfig, 0644); writeErr != nil {
+				return nil, fmt.Errorf("failed to create config file: %w", writeErr)
+			}
+			// Return empty credentials for anonymous access
+			return &RegistryInfo{
+				Registry: registryHost,
+				Username: "",
+				Password: "",
+			}, nil
+		}
+		return nil, fmt.Errorf("failed to read config file: %w", err)
+	}
+
+	// Parse just the registries part
+	var config struct {
+		Registries map[string]map[string]string `json:"registries"`
+	}
+	if err := json.Unmarshal(bytes, &config); err != nil {
+		return nil, fmt.Errorf("failed to parse config: %w", err)
+	}
+
+	// Extract registry key (hostname without port)
+	registryKey := strings.Split(registryHost, ":")[0]
+
+	// Try to find matching registry credentials
+	// Try exact match first, then without port
+	registriesToTry := []string{registryHost, registryKey}
+
+	for _, tryRegistry := range registriesToTry {
+		if logins, ok := config.Registries[tryRegistry]; ok {
+			for username, password := range logins {
+				return &RegistryInfo{
+					Registry: tryRegistry,
+					Username: username,
+					Password: password,
+				}, nil
+			}
+		}
+	}
+
+	// If no credentials found, return empty credentials for anonymous access
+	// This allows pulling from public registries
+	return &RegistryInfo{
+		Registry: registryHost,
+		Username: "",
+		Password: "",
+	}, nil
+}
+
+// isRemoteInclude checks if path looks like a registry URL
+func isRemoteInclude(path string) bool {
+	// Local paths start with ., /, or ~
+	if strings.HasPrefix(path, ".") || strings.HasPrefix(path, "/") || strings.HasPrefix(path, "~") {
+		return false
+	}
+	// Remote must have : or @ for tag/digest
+	return strings.Contains(path, ":") || strings.Contains(path, "@")
+}
+
+// parseRemoteInclude splits URL into image ref and file path
+// Input: "registry.com/namespace/image:tag/path/to/file.yaml"
+// Returns: imageRef="registry.com/namespace/image:tag", filePath="path/to/file.yaml"
+func parseRemoteInclude(include string) (imageRef, filePath string, err error) {
+	// Find the position of : or @ for tag/digest separator
+	tagIdx := strings.LastIndex(include, ":")
+	digestIdx := strings.LastIndex(include, "@")
+
+	// Determine which separator to use
+	sepIdx := tagIdx
+	if digestIdx > tagIdx {
+		sepIdx = digestIdx
+	}
+
+	if sepIdx == -1 {
+		return "", "", fmt.Errorf("invalid remote include format: missing tag or digest")
+	}
+
+	// Find the next / after the separator
+	filePathStart := strings.Index(include[sepIdx:], "/")
+	if filePathStart == -1 {
+		return "", "", fmt.Errorf("invalid remote include format: missing file path")
+	}
+
+	// Calculate absolute position
+	filePathStart += sepIdx
+
+	// Split into image ref and file path
+	imageRef = include[:filePathStart]
+	filePath = include[filePathStart+1:] // Skip the /
+
+	// Validate file path for security (no .. or leading /)
+	if strings.Contains(filePath, "..") {
+		return "", "", fmt.Errorf("invalid file path: contains ..")
+	}
+	if strings.HasPrefix(filePath, "/") {
+		return "", "", fmt.Errorf("invalid file path: starts with /")
+	}
+
+	return imageRef, filePath, nil
+}
+
+// hashURL generates a SHA256 hash of a URL for use as a cache key
+func hashURL(url string) string {
+	h := sha256.New()
+	h.Write([]byte(url))
+	return hex.EncodeToString(h.Sum(nil))
+}
+
+// getCachedRemoteInclude checks cache for URL
+func getCachedRemoteInclude(url string) ([]byte, bool) {
+	cacheKey := hashURL(url)
+	cachePath := filepath.Join(xdg.CacheHome, "stamus", "remote-includes", cacheKey)
+
+	content, err := afero.ReadFile(app.FS, cachePath)
+	if err != nil {
+		return nil, false // Cache miss
+	}
+	return content, true
+}
+
+// setCachedRemoteInclude saves to cache
+func setCachedRemoteInclude(url string, content []byte) error {
+	cacheKey := hashURL(url)
+	cachePath := filepath.Join(xdg.CacheHome, "stamus", "remote-includes", cacheKey)
+
+	// Create directory if needed
+	if err := app.FS.MkdirAll(filepath.Dir(cachePath), 0755); err != nil {
+		return err
+	}
+
+	// Write file (reuse existing afero patterns)
+	return afero.WriteFile(app.FS, cachePath, content, 0644)
+}
+
+// pullRemoteInclude fetches a single file from registry
+func pullRemoteInclude(ctx context.Context, registryInfo *RegistryInfo, imageRef, filePath string) ([]byte, error) {
+	logger := logging.Sugar.With("imageRef", imageRef, "filePath", filePath)
+
+	// Add overall timeout for the operation to prevent hanging
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+
+	// 1. Pull image (reuse TryPullConfig pattern)
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		return nil, err
+	}
+	defer cli.Close()
+
+	err = registryInfo.TryPullConfig(ctx, cli, "", imageRef)
+	if err != nil {
+		logger.Debug("Failed to pull image")
+		return nil, err
+	}
+
+	// 2. Create temporary container
+	resp, err := cli.ContainerCreate(ctx, &container.Config{
+		Image: imageRef,
+		Cmd:   []string{"sleep", "60"},
+	}, nil, nil, nil, "")
+	if err != nil {
+		logger.Debug("Container creation failed")
+		return nil, err
+	}
+	defer func() {
+		// Use background context to ensure cleanup happens even if parent context cancelled
+		cleanupCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := cli.ContainerRemove(cleanupCtx, resp.ID, container.RemoveOptions{Force: true}); err != nil {
+			logger.Error("Failed to remove container", "containerID", resp.ID, "error", err)
+		}
+	}()
+
+	// 3. Extract file from container (reuse existing tar code from copyFromContainer)
+	// Normalize the path to ensure it starts with /
+	extractPath := "/" + strings.TrimPrefix(filePath, "/")
+	reader, _, err := cli.CopyFromContainer(ctx, resp.ID, extractPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to extract file %s from container: %w", filePath, err)
+	}
+	defer reader.Close()
+
+	// 4. Read tar archive and extract file
+	tarReader := tar.NewReader(reader)
+	for {
+		header, err := tarReader.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		// Match either full path or just the filename
+		if header.Name == filePath || header.Name == filepath.Base(filePath) {
+			return io.ReadAll(tarReader)
+		}
+	}
+
+	return nil, fmt.Errorf("file not found in image: %s", filePath)
 }
