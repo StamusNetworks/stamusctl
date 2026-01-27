@@ -3,9 +3,9 @@ package run
 import (
 	// Common
 	"context"
+	"errors"
 	"net/http"
 	"os"
-	"os/signal"
 	"time"
 
 	// Custom
@@ -15,8 +15,10 @@ import (
 	"stamus-ctl/cmd/daemon/run/health"
 	"stamus-ctl/cmd/daemon/run/troubleshoot"
 	"stamus-ctl/internal/auth"
+	"stamus-ctl/internal/docker"
 	"stamus-ctl/internal/logging"
 	"stamus-ctl/internal/middleware"
+	"stamus-ctl/internal/shutdown"
 
 	// External
 
@@ -57,14 +59,6 @@ func ping(c *gin.Context) {
 }
 
 func RunCmd() *cobra.Command {
-	_, stop := signal.NotifyContext(context.Background(), os.Interrupt)
-	defer stop()
-
-	// Initialize OpenTelemetry tracing
-	collectorURL := getEnvFallback("OTEL_COLLECTOR_URL", "")
-	serviceName := getEnvFallback("OTEL_SERVICE_NAME", "stamus-ctl-daemon")
-	logging.InitTracer(collectorURL, serviceName)
-
 	viper.SetDefault("tokenpath", "")
 
 	viper.SetEnvPrefix("stamusd")
@@ -74,15 +68,70 @@ func RunCmd() *cobra.Command {
 		Use:   "run",
 		Short: "Run daemon",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			span := setupLogging()
+			// Initialize shutdown manager early
+			shutdown.Init(logging.Logger)
+			shutdownManager := shutdown.GetManager()
+
+			// Initialize OpenTelemetry tracing and register cleanup
+			collectorURL := getEnvFallback("OTEL_COLLECTOR_URL", "")
+			serviceName := getEnvFallback("OTEL_SERVICE_NAME", "stamus-ctl-daemon")
+			tracerShutdown := logging.InitTracer(collectorURL, serviceName)
+			shutdown.Register(shutdown.Handler{
+				Name:     "otel-tracer",
+				Priority: shutdown.PriorityTelemetry,
+				Fn:       tracerShutdown,
+			})
+
+			span := setupLogging(shutdownManager.Context())
 			logger := getLogger(span)
-			r := SetupRouter(logger)
-			logger("Starting daemon")
-			err := r.Run(":8080")
-			if err != nil {
-				logger(err.Error())
-				return err
+			r := SetupRouter(logger, shutdownManager.Context())
+
+			// Create HTTP server for graceful shutdown support
+			srv := &http.Server{
+				Addr:    ":8080",
+				Handler: r,
 			}
+
+			// Register HTTP server shutdown handler
+			shutdown.Register(shutdown.Handler{
+				Name:     "http-server",
+				Priority: shutdown.PriorityFirst,
+				Fn: func(ctx context.Context) error {
+					logger("Shutting down HTTP server")
+					return srv.Shutdown(ctx)
+				},
+			})
+
+			// Register logger sync handler
+			shutdown.Register(shutdown.Handler{
+				Name:     "logger-sync",
+				Priority: shutdown.PriorityLast,
+				Fn: func(ctx context.Context) error {
+					return logging.Logger.Sync()
+				},
+			})
+
+			// Register Docker client cleanup handler
+			shutdown.Register(shutdown.Handler{
+				Name:     "docker-client",
+				Priority: shutdown.PriorityConnections,
+				Fn: func(ctx context.Context) error {
+					return docker.Close()
+				},
+			})
+
+			// Start HTTP server in goroutine
+			go func() {
+				logger("Starting daemon on :8080")
+				if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+					logging.Logger.Error("HTTP server error: " + err.Error())
+					shutdownManager.TriggerShutdown(shutdown.ExitError)
+				}
+			}()
+
+			// Block until shutdown completes
+			exitCode := shutdownManager.ListenForSignals()
+			os.Exit(exitCode)
 			return nil
 		},
 	}
@@ -90,11 +139,10 @@ func RunCmd() *cobra.Command {
 	return cmd
 }
 
-func setupLogging() trace.Span {
-	c := context.Background()
-	ctx, span := logging.Tracer.Start(c, "main")
+func setupLogging(shutdownCtx context.Context) trace.Span {
+	_, span := logging.Tracer.Start(shutdownCtx, "main")
 	defer span.End()
-	go logging.NewPrometheusServer(ctx)
+	go logging.NewPrometheusServer(shutdownCtx)
 	return span
 }
 
@@ -104,14 +152,14 @@ func getLogger(span trace.Span) func(string) {
 	}
 }
 
-func SetupRouter(logger func(string)) *gin.Engine {
+func SetupRouter(logger func(string), shutdownCtx context.Context) *gin.Engine {
 	// Gin setup
 	logger("Setup middleware")
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
 
 	if viper.GetString("tokenpath") != "" {
-		go auth.WatchForToken(viper.GetString("tokenpath"))
+		go auth.WatchForToken(shutdownCtx, viper.GetString("tokenpath"))
 	}
 
 	// Health endpoints (no auth required for Kubernetes probes)
@@ -166,6 +214,9 @@ func keyFunc(c *gin.Context) string {
 	return c.ClientIP()
 }
 
+// redisClient holds the Redis client for cleanup during shutdown.
+var redisClient *redis.Client
+
 // RateLimiter returns a gin middleware that limits the number of requests per IP address.
 // It attempts to use Redis for distributed rate limiting, but falls back to in-memory
 // rate limiting if Redis is unavailable.
@@ -175,7 +226,7 @@ func RateLimiter() gin.HandlerFunc {
 	redisPass := getEnvFallback("REDIS_PASSWORD", "license")
 
 	// Each ip can make 5 requests per second
-	client := redis.NewClient(&redis.Options{
+	redisClient = redis.NewClient(&redis.Options{
 		Addr:     redisHost + ":" + redisPort,
 		Password: redisPass,
 		DB:       0, // use default DB
@@ -186,9 +237,12 @@ func RateLimiter() gin.HandlerFunc {
 	defer cancel()
 
 	var store ratelimit.Store
-	if err := client.Ping(ctx).Err(); err != nil {
+	if err := redisClient.Ping(ctx).Err(); err != nil {
 		// Redis unavailable - fall back to in-memory store
 		logging.Logger.Warn("Redis unavailable, falling back to in-memory rate limiter: " + err.Error())
+		// Close the unused client
+		redisClient.Close()
+		redisClient = nil
 		store = ratelimit.InMemoryStore(&ratelimit.InMemoryOptions{
 			Rate:  time.Second,
 			Limit: RateLimitPerSecond,
@@ -197,9 +251,22 @@ func RateLimiter() gin.HandlerFunc {
 		// Redis available - use distributed rate limiting
 		logging.Logger.Info("Using Redis for distributed rate limiting at " + redisHost + ":" + redisPort)
 		store = ratelimit.RedisStore(&ratelimit.RedisOptions{
-			RedisClient: client,
+			RedisClient: redisClient,
 			Rate:        time.Second,
 			Limit:       RateLimitPerSecond,
+		})
+
+		// Register Redis client cleanup handler
+		shutdown.Register(shutdown.Handler{
+			Name:     "redis-client",
+			Priority: shutdown.PriorityConnections,
+			Fn: func(ctx context.Context) error {
+				if redisClient != nil {
+					logging.Logger.Info("Closing Redis connection")
+					return redisClient.Close()
+				}
+				return nil
+			},
 		})
 	}
 

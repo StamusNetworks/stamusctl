@@ -15,8 +15,10 @@ import (
 
 var token string
 
-func WatchForToken(pathToWatch string) {
-	ctx, span := logging.Tracer.Start(context.Background(), "watchForToken")
+// WatchForToken watches a token file for changes and updates the global token.
+// It exits gracefully when the provided context is cancelled.
+func WatchForToken(shutdownCtx context.Context, pathToWatch string) {
+	ctx, span := logging.Tracer.Start(shutdownCtx, "watchForToken")
 	defer span.End()
 
 	watcher, err := fsnotify.NewWatcher()
@@ -25,36 +27,36 @@ func WatchForToken(pathToWatch string) {
 	}
 	defer watcher.Close()
 
-	go func() {
-		for {
-			select {
-			case event, ok := <-watcher.Events:
-				if !ok {
-					return
-				}
-				if event.Has(fsnotify.Write) {
-					logging.LoggerWithContextToSpanContext(ctx).Info("token file updated. Updating token")
-					tokenFromFile, err := afero.ReadFile(app.FS, pathToWatch)
-					if err != nil {
-						logging.LoggerWithContextToSpanContext(ctx).Sugar().Error("failed to read token file", err)
-					}
-					token = string(tokenFromFile)
-					logging.LoggerWithContextToSpanContext(ctx).Info("updated token")
-				}
-			case err, ok := <-watcher.Errors:
-				if !ok {
-					return
-				}
-				logging.LoggerWithContextToSpanContext(ctx).Sugar().Error("err:", err)
-			}
-		}
-	}()
 	err = watcher.Add(pathToWatch)
 	if err != nil {
 		logging.LoggerWithContextToSpanContext(ctx).Sugar().Fatal(err)
 	}
 
-	<-make(chan struct{})
+	for {
+		select {
+		case <-shutdownCtx.Done():
+			logging.LoggerWithContextToSpanContext(ctx).Info("Token watcher shutting down")
+			return
+		case event, ok := <-watcher.Events:
+			if !ok {
+				return
+			}
+			if event.Has(fsnotify.Write) {
+				logging.LoggerWithContextToSpanContext(ctx).Info("token file updated. Updating token")
+				tokenFromFile, err := afero.ReadFile(app.FS, pathToWatch)
+				if err != nil {
+					logging.LoggerWithContextToSpanContext(ctx).Sugar().Error("failed to read token file", err)
+				}
+				token = string(tokenFromFile)
+				logging.LoggerWithContextToSpanContext(ctx).Info("updated token")
+			}
+		case err, ok := <-watcher.Errors:
+			if !ok {
+				return
+			}
+			logging.LoggerWithContextToSpanContext(ctx).Sugar().Error("err:", err)
+		}
+	}
 }
 
 func AuthMiddleware() gin.HandlerFunc {
