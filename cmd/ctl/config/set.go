@@ -24,6 +24,8 @@ Or, use subcommands to set content or current configuration.`,
 			err := setHandler(cmd, args)
 			if err != nil {
 				logging.Sugar.Error(err)
+
+				return err
 			}
 			return nil
 		},
@@ -52,6 +54,8 @@ Example: config content /nginx:/etc/nginx /nginx.conf:/etc/nginx/nginx.conf,
 			err := setContentHandler(cmd, args)
 			if err != nil {
 				logging.Sugar.Error(err)
+
+				return err
 			}
 			return nil
 		},
