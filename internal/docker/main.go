@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"runtime/debug"
+	"sync"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
@@ -12,6 +13,7 @@ import (
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
+// IClient defines the interface for Docker client operations.
 type IClient interface {
 	ImageList(ctx context.Context, options image.ListOptions) ([]image.Summary, error)
 	ImageRemove(ctx context.Context, imageID string, options image.RemoveOptions) ([]image.DeleteResponse, error)
@@ -30,19 +32,42 @@ type IClient interface {
 		<-chan container.WaitResponse, <-chan error)
 	ContainerLogs(ctx context.Context, container string, options container.LogsOptions) (io.ReadCloser, error)
 	ContainerRemove(ctx context.Context, containerID string, options container.RemoveOptions) error
+	Close() error
 }
 
 var (
-	ctx = context.Background()
-	cli IClient
+	ctx        = context.Background()
+	cli        IClient
+	dockerOnce sync.Once
+	rawClient  *client.Client
 )
 
 func init() {
-	docker, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
-	cli = docker
+	initClient()
+}
 
-	if err != nil {
-		debug.PrintStack()
-		panic(err)
+func initClient() {
+	dockerOnce.Do(func() {
+		docker, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+		if err != nil {
+			debug.PrintStack()
+			panic(err)
+		}
+		rawClient = docker
+		cli = docker
+	})
+}
+
+// Close closes the global Docker client connection.
+// This should be called during application shutdown.
+func Close() error {
+	if rawClient != nil {
+		return rawClient.Close()
 	}
+	return nil
+}
+
+// Client returns the global Docker client.
+func Client() IClient {
+	return cli
 }

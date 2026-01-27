@@ -3,6 +3,10 @@ package ctl
 import (
 	"fmt"
 	"os"
+	"os/signal"
+	"sync/atomic"
+	"syscall"
+	"time"
 
 	"stamus-ctl/cmd/ctl/backup"
 	"stamus-ctl/cmd/ctl/compose"
@@ -10,18 +14,71 @@ import (
 	tmpl "stamus-ctl/cmd/ctl/template"
 	"stamus-ctl/internal/logging"
 	"stamus-ctl/internal/models"
+	"stamus-ctl/internal/shutdown"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
+var (
+	// interruptCount tracks consecutive SIGINT signals for force quit
+	interruptCount atomic.Int32
+	// lastInterruptTime tracks when the last interrupt was received
+	lastInterruptTime atomic.Int64
+)
+
 // Entry point
 func Execute() {
+	// Initialize shutdown manager for CLI
+	shutdown.Init(logging.Logger)
+
+	// Setup signal handling for CLI
+	setupCLISignalHandler()
+
 	// Run
 	if err := rootCmd().Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		os.Exit(shutdown.ExitError)
 	}
+}
+
+// setupCLISignalHandler sets up signal handling for CLI commands.
+// First SIGINT begins graceful shutdown, second SIGINT within 2 seconds forces exit.
+func setupCLISignalHandler() {
+	sigChan := make(chan os.Signal, 2)
+	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT)
+
+	go func() {
+		for sig := range sigChan {
+			now := time.Now().UnixNano()
+			lastTime := lastInterruptTime.Swap(now)
+
+			switch sig {
+			case syscall.SIGINT:
+				// Check for double-SIGINT force quit (within 2 seconds)
+				if now-lastTime < int64(2*time.Second) {
+					count := interruptCount.Add(1)
+					if count >= 1 {
+						fmt.Fprintln(os.Stderr, "\nForce quit")
+						os.Exit(shutdown.ExitSIGINT)
+					}
+				} else {
+					interruptCount.Store(0)
+				}
+
+				if !shutdown.IsShuttingDown() {
+					fmt.Fprintln(os.Stderr, "\nInterrupted. Completing current operation... (press Ctrl+C again to force quit)")
+					shutdown.GetManager().TriggerShutdown(shutdown.ExitSIGINT)
+				}
+
+			case syscall.SIGTERM:
+				if !shutdown.IsShuttingDown() {
+					fmt.Fprintln(os.Stderr, "\nTerminating...")
+					shutdown.GetManager().TriggerShutdown(shutdown.ExitSIGTERM)
+				}
+			}
+		}
+	}()
 }
 
 // Flags
