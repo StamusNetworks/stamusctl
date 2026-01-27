@@ -2,10 +2,12 @@ package compose
 
 import (
 	// Core
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime/debug"
 	"strings"
+	"sync/atomic"
 
 	// Common
 	"stamus-ctl/internal/app"
@@ -13,6 +15,7 @@ import (
 	stamusFlags "stamus-ctl/internal/handlers"
 	"stamus-ctl/internal/logging"
 	"stamus-ctl/internal/models"
+	"stamus-ctl/internal/shutdown"
 
 	// External
 	"github.com/docker/cli/cli-plugins/plugin"
@@ -25,6 +28,9 @@ import (
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 )
+
+// operationCounter is used to generate unique operation IDs.
+var operationCounter atomic.Int64
 
 // Constants
 var ComposeFlags = models.ComposeFlags{
@@ -142,6 +148,18 @@ func makeCustomRunner(
 	runE func(cmd *cobra.Command, args []string) error,
 ) func(cmd *cobra.Command, args []string) error {
 	return func(cmd *cobra.Command, args []string) error {
+		// Check if shutdown is in progress
+		if shutdown.IsShuttingDown() {
+			logging.Logger.Warn("Rejecting compose operation during shutdown",
+				zap.String("command", cmd.Name()))
+			return fmt.Errorf("operation rejected: shutdown in progress")
+		}
+
+		// Track this operation
+		opID := fmt.Sprintf("compose-%s-%d", cmd.Name(), operationCounter.Add(1))
+		_, done := shutdown.GetTracker().Start(shutdown.Context(), opID)
+		defer done()
+
 		// Get folder flag value
 		configFlag := cmd.Flags().Lookup("config")
 		conf := configFlag.Value.String()

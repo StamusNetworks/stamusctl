@@ -135,3 +135,7 @@ func (m *mockCli) ContainerRemove(ctx context.Context, containerID string, optio
 
 	return nil
 }
+
+func (m *mockCli) Close() error {
+	return nil
+}
