@@ -25,10 +25,7 @@ func getCmd() *cobra.Command {
 Input the keys of parameters to get
 Example: get scirius`,
 		Args: cobra.ArbitraryArgs,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			getHandler(cmd, args)
-			return nil
-		},
+		RunE: getHandler,
 	}
 	// Subcommands
 	cmd.AddCommand(getContentCmd())
@@ -44,8 +41,7 @@ func versionCmd() *cobra.Command {
 		Short: "Get config version",
 		Args:  cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			versionHandler()
-			return nil
+			return versionHandler()
 		},
 	}
 	// Flags
@@ -73,10 +69,7 @@ func getContentCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "content",
 		Short: "Get config content architecture",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			getContent(cmd, args)
-			return nil
-		},
+		RunE:  getContent,
 	}
 	// Flags
 	flags.Config.AddAsFlag(cmd, false)
@@ -89,8 +82,7 @@ func getKeysCmd() *cobra.Command {
 		Use:   "keys [keys...]",
 		Short: "Get compose config file parameters keys",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			getKeysHandler()
-			return nil
+			return getKeysHandler()
 		},
 	}
 	// Flags
