@@ -96,7 +96,22 @@ func UpdateHandler(params UpdateHandlerParams) error {
 		"project", project,
 	)
 
-	// Pull config
+	// Load existing config FIRST, before any template pulls or scripts run
+	// This is critical to capture the OLD template defaults for smart merging
+	confFile, err := models.CreateFile(configPath, "values.yaml")
+	if err != nil {
+		logger.Error(err)
+
+		return err
+	}
+	existingConfig, err := models.LoadConfigFrom(confFile, false)
+	if err != nil {
+		logger.Error(err)
+
+		return err
+	}
+
+	// Pull config AFTER loading existing config to avoid overwriting old template
 	logger.Debug("pulling latest template")
 	if registry != "" {
 		registryInfo := models.RegistryInfo{
@@ -119,7 +134,7 @@ func UpdateHandler(params UpdateHandlerParams) error {
 		}
 	}
 
-	// Execute update script
+	// Execute update script AFTER loading existing config and pulling new template
 	// Validate script paths to prevent arbitrary code execution
 	allowedScriptDirs := []string{app.TemplatesFolder}
 	prerunPath := filepath.Join(destPath, "sbin/pre-run")
@@ -149,20 +164,6 @@ func UpdateHandler(params UpdateHandlerParams) error {
 		return err
 	}
 
-	// Load existing config
-	confFile, err := models.CreateFile(configPath, "values.yaml")
-	if err != nil {
-		logger.Error(err)
-
-		return err
-	}
-	existingConfig, err := models.LoadConfigFrom(confFile, false)
-	if err != nil {
-		logger.Error(err)
-
-		return err
-	}
-
 	// Create new config
 	newConfFile, err := models.CreateFile(templatePath, "config.yaml")
 	if err != nil {
@@ -187,7 +188,10 @@ func UpdateHandler(params UpdateHandlerParams) error {
 	// Extract and set values from args and existing config
 	paramsArgs := utils.ExtractArgs(args)
 	newConfig.SetProject(project)
-	newConfig.GetParams().SetValues(existingConfig.GetParams().GetVariablesValues())
+	// Use SetValuesSmartMerge to intelligently merge old values
+	// Only values that differ from old defaults are preserved (user customizations)
+	// Values that match old defaults are replaced with new defaults
+	newConfig.GetParams().SetValuesSmartMerge(existingConfig.GetParams())
 	newConfig.GetArbitrary().SetArbitrary(paramsArgs)
 	err = newConfig.GetParams().SetLooseValues(paramsArgs)
 	if err != nil {

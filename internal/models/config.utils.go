@@ -256,9 +256,12 @@ func processTemplate(data map[string]interface{}, tpls []string,
 	// Execute the template
 	err = tmpl.Execute(destFile, data)
 	if err != nil {
-		splited := strings.Split(err.Error(), "error calling fail: ")
-		fmt.Println("Failed instanciating template.", splited[1])
-		return err
+		// Try to extract a more readable error message
+		errMsg := err.Error()
+		if parts := strings.Split(errMsg, "error calling fail: "); len(parts) > 1 {
+			errMsg = parts[1]
+		}
+		return fmt.Errorf("failed to instantiate template %s: %s", filepath.Base(path), errMsg)
 	}
 
 	// Set permissions for shell scripts
