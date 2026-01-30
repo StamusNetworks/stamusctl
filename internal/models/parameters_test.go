@@ -447,3 +447,87 @@ func TestGetParameters(t *testing.T) {
 		})
 	}
 }
+
+func TestGetCustomizedValues(t *testing.T) {
+	// Create parameters with both variable and default values
+	// param1: value equals default (not customized)
+	param1 := &Parameter{
+		Type:     "string",
+		Variable: CreateVariableString("default1"),
+		Default:  CreateVariableString("default1"),
+	}
+	// param2: value differs from default (customized)
+	param2 := &Parameter{
+		Type:     "string",
+		Variable: CreateVariableString("custom2"),
+		Default:  CreateVariableString("default2"),
+	}
+	// param3: value differs from default (customized)
+	param3 := &Parameter{
+		Type:     "int",
+		Variable: CreateVariableInt(10),
+		Default:  CreateVariableInt(5),
+	}
+	// param4: value equals default (not customized)
+	param4 := &Parameter{
+		Type:     "bool",
+		Variable: CreateVariableBool(true),
+		Default:  CreateVariableBool(true),
+	}
+	// param5: has variable but no default (should be included)
+	param5 := &Parameter{
+		Type:     "string",
+		Variable: CreateVariableString("value5"),
+	}
+
+	params := &Parameters{
+		"param1":       param1,
+		"param2":       param2,
+		"param3":       param3,
+		"param4":       param4,
+		"param5":       param5,
+		"other.param2": param2,
+	}
+
+	tests := []struct {
+		name string
+		keys []string
+		want map[string]*Variable
+	}{
+		{
+			name: "No keys - returns only customized values",
+			keys: []string{},
+			want: map[string]*Variable{
+				"param2":       &param2.Variable,
+				"param3":       &param3.Variable,
+				"param5":       &param5.Variable,
+				"other.param2": &param2.Variable,
+			},
+		},
+		{
+			name: "Filter by prefix - returns only customized matching prefix",
+			keys: []string{"param"},
+			want: map[string]*Variable{
+				"param2": &param2.Variable,
+				"param3": &param3.Variable,
+				"param5": &param5.Variable,
+			},
+		},
+		{
+			name: "Filter by other prefix",
+			keys: []string{"other"},
+			want: map[string]*Variable{
+				"other.param2": &param2.Variable,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := params.GetCustomizedValues(tt.keys...)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("GetCustomizedValues() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

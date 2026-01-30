@@ -190,6 +190,41 @@ func (p *Parameters) SetValues(values map[string]*Variable) {
 	}
 }
 
+// SetValuesSmartMerge intelligently merges values from an old configuration
+// It only preserves values that were actually customized by the user
+// A value is considered customized if it differs from the old template's default
+func (p *Parameters) SetValuesSmartMerge(oldParams *Parameters) {
+	for key, newParam := range *p {
+		oldParam, exists := (*oldParams)[key]
+		if !exists {
+			// Parameter doesn't exist in old config, use new default
+			continue
+		}
+
+		if oldParam.Variable.IsNil() {
+			// Old parameter has no value set, use new default
+			continue
+		}
+
+		if oldParam.Default.IsNil() {
+			// No old default to compare against, preserve the old value
+			newParam.Variable = oldParam.Variable
+			continue
+		}
+
+		// Compare old value against old default
+		oldValue := oldParam.Variable.AsString()
+		oldDefault := oldParam.Default.AsString()
+
+		if oldValue != oldDefault {
+			// Value differs from old default - user customized it
+			// Preserve the customization
+			newParam.Variable = oldParam.Variable
+		}
+		// else: value equals old default - let new default apply
+	}
+}
+
 func (p *Parameters) SetLooseValues(values map[string]string) error {
 	for key, value := range values {
 		if (*p)[key] != nil {
