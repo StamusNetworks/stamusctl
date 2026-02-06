@@ -26,5 +26,6 @@ func TemplateCmd() *cobra.Command {
 	}
 	// Add Commands
 	cmd.AddCommand(keysCmd())
+	cmd.AddCommand(listCmd())
 	return cmd
 }

@@ -1,6 +1,7 @@
 .envrc
 .direnv
 dist/
+stamusctl
 
 .configs/
 tmp/
@@ -8,4 +9,5 @@ config/
 .token
 
 cover.out
+coverage.txt
 profile.cov.tmp
