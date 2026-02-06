@@ -103,6 +103,7 @@ func TestRelease_AsMap(t *testing.T) {
 		IsInstall: false,
 		Service:   "test-service",
 		Seed:      "test-seed",
+		Version:   "1.2.3",
 	}
 
 	result := release.AsMap()
@@ -115,21 +116,24 @@ func TestRelease_AsMap(t *testing.T) {
 	assert.Equal(t, false, result["Release.isInstall"])
 	assert.Equal(t, "test-service", result["Release.service"])
 	assert.Equal(t, "test-seed", result["Release.seed"])
+	assert.Equal(t, "1.2.3", result["Release.version"])
 }
 
 func TestNewRelease(t *testing.T) {
 	name := "test-release"
 	location := "/test/location"
 	seed := "test-seed"
+	version := "1.0.0"
 	isUpgrade := true
 	isInstall := false
 
-	release := NewRelease(name, location, seed, isUpgrade, isInstall)
+	release := NewRelease(name, location, seed, version, isUpgrade, isInstall)
 
 	assert.NotNil(t, release)
 	assert.Equal(t, name, release.Name)
 	assert.Equal(t, location, release.Location)
 	assert.Equal(t, seed, release.Seed)
+	assert.Equal(t, version, release.Version)
 	assert.Equal(t, isUpgrade, release.IsUpgrade)
 	assert.Equal(t, isInstall, release.IsInstall)
 	assert.NotEmpty(t, release.User)

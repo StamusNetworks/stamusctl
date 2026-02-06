@@ -192,7 +192,7 @@ func InitHandler(isCli bool, params InitHandlerInputs) error {
 	}
 
 	logger.Debug("Save config to: ", outputFile)
-	if err = config.SaveConfigTo(outputFile, false, true); err != nil {
+	if err = config.SaveConfigToWithVersion(outputFile, false, true, params.Version); err != nil {
 		if !errors.Is(err, models.ErrorEmptyFolder) {
 			return err
 		}

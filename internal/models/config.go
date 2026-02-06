@@ -199,13 +199,17 @@ func (f *Config) extractParamsWithTracking(visited map[string]bool, depth int) (
 
 // Save the config to a folder
 func (f *Config) SaveConfigTo(dest *File, isUpgrade, isInstall bool) error {
+	return f.SaveConfigToWithVersion(dest, isUpgrade, isInstall, "")
+}
+
+func (f *Config) SaveConfigToWithVersion(dest *File, isUpgrade, isInstall bool, version string) error {
 	// Get Data
 	logger := logging.Sugar.With("dest", dest.completePath(), "isUpgrade", isUpgrade, "isInstall", isInstall)
 	configData, err := f.GetData()
 	if err != nil {
 		return err
 	}
-	releaseData, err := GetReleaseData(dest, isUpgrade, isInstall, f.seed)
+	releaseData, err := GetReleaseData(dest, isUpgrade, isInstall, f.seed, version)
 	if err != nil {
 		return err
 	}
@@ -268,12 +272,12 @@ func (f *Config) GetData() (map[string]any, error) {
 	return data, nil
 }
 
-func GetReleaseData(dest *File, isUpgrade, isInstall bool, seed string) (map[string]any, error) {
+func GetReleaseData(dest *File, isUpgrade, isInstall bool, seed, version string) (map[string]any, error) {
 	currentDir, err := os.Getwd()
 	if err != nil {
 		return nil, err
 	}
-	return getRelease(dest, currentDir, seed, isUpgrade, isInstall).AsMap(), nil
+	return getRelease(dest, currentDir, seed, version, isUpgrade, isInstall).AsMap(), nil
 }
 
 // Set values from a file (values.yaml)

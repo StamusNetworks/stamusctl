@@ -135,18 +135,33 @@ func (r *RegistryInfo) PullConfigAndUnwrap(destPath string, project, version str
 		}
 	}
 
-	// Run container
-	resp, err := cli.ContainerCreate(ctx, &container.Config{
-		Image: imageURL,
-		Cmd:   []string{"sleep 60"},
-	}, nil, nil, nil, "")
-	if err != nil {
-		logger.Debug("Container creation failed")
-		return err
+	// Run container with fallback commands
+	var resp container.CreateResponse
+	commands := [][]string{
+		{"/bin/sh", "-c", "while true; do sleep 1; done"},
+		{"sleep", "60"},
+		{"tail", "-f", "/dev/null"},
+		{"/bin/true"},
 	}
-	if err := cli.ContainerStart(ctx, resp.ID, container.StartOptions{}); err != nil {
-		logger.Debug("Container start failed")
-		return err
+
+	var containerErr error
+	for _, cmd := range commands {
+		resp, containerErr = cli.ContainerCreate(ctx, &container.Config{
+			Image: imageURL,
+			Cmd:   cmd,
+		}, nil, nil, nil, "")
+		if containerErr == nil {
+			if err := cli.ContainerStart(ctx, resp.ID, container.StartOptions{}); err == nil {
+				break // Successfully started container
+			}
+			// Clean up failed container
+			cli.ContainerRemove(ctx, resp.ID, container.RemoveOptions{Force: true})
+		}
+	}
+
+	if containerErr != nil {
+		logger.Debug("Container creation failed with all commands")
+		return containerErr
 	}
 
 	// Kill container

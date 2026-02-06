@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"stamus-ctl/internal/app"
+	"github.com/spf13/afero"
 )
 
 // normalizeVersion strips beta/trunk/development suffixes from version strings
@@ -35,9 +36,10 @@ type Release struct {
 	IsInstall bool   // see helm
 	Service   string
 	Seed      string
+	Version   string // the version tag used in init command
 }
 
-func NewRelease(name, location, seed string, isUpgrade, isInstall bool) *Release {
+func NewRelease(name, location, seed, version string, isUpgrade, isInstall bool) *Release {
 	currentUser, err := user.Current()
 	if err != nil {
 		log.Fatal(err)
@@ -51,11 +53,12 @@ func NewRelease(name, location, seed string, isUpgrade, isInstall bool) *Release
 		IsUpgrade: isUpgrade,
 		IsInstall: isInstall,
 		Seed:      seed,
+		Version:   version,
 		Service:   app.StamusAppName + ":" + normalizeVersion(app.Version),
 	}
 }
 
-func getRelease(dest *File, currentDir, seed string, isUpgrade, isInstall bool) *Release {
+func getRelease(dest *File, currentDir, seed, version string, isUpgrade, isInstall bool) *Release {
 	configDir := dest.Path
 	if app.IsCtl() {
 		configDir = filepath.Join(currentDir, dest.Path)
@@ -71,7 +74,7 @@ func getRelease(dest *File, currentDir, seed string, isUpgrade, isInstall bool) 
 			releaseName = splitted[len(splitted)-1]
 		}
 	}
-	return NewRelease(releaseName, configDir, seed, isUpgrade, isInstall)
+	return NewRelease(releaseName, configDir, seed, version, isUpgrade, isInstall)
 }
 
 func (s *Release) AsMap() map[string]interface{} {
@@ -85,6 +88,7 @@ func (s *Release) AsMap() map[string]interface{} {
 		prefix + ".isInstall": s.IsInstall,
 		prefix + ".service":   s.Service,
 		prefix + ".seed":      s.Seed,
+		prefix + ".version":   s.Version,
 	}
 }
 
@@ -119,10 +123,23 @@ type Template struct {
 }
 
 func NewTemplate(name string, templatePath string) *Template {
-	splitted := strings.Split(templatePath, "/")
+	// Try to read version from /data/version file in the template
+	versionFromFile := ""
+	versionFilePath := filepath.Join(templatePath, "version")
+	if versionData, err := afero.ReadFile(app.FS, versionFilePath); err == nil {
+		versionFromFile = strings.TrimSpace(string(versionData))
+	}
+
+	// Fallback to extracting version from path if version file doesn't exist or is empty
+	templateVersion := versionFromFile
+	if templateVersion == "" {
+		splitted := strings.Split(templatePath, "/")
+		templateVersion = splitted[len(splitted)-1]
+	}
+
 	return &Template{
 		templateName:    name,
-		templateVersion: splitted[len(splitted)-1],
+		templateVersion: templateVersion,
 	}
 }
 
