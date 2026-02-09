@@ -1,25 +1,89 @@
 package stamus
 
 import (
-	"bytes"
-	"encoding/json"
-	"os/exec"
+	"context"
 	"strings"
-	"unicode"
 
 	"stamus-ctl/internal/app"
 	compose "stamus-ctl/internal/docker-compose"
-	"stamus-ctl/internal/models"
 
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/client"
 	"github.com/spf13/afero"
 )
+
+// Status represents the operational status of an instance
+type Status string
+
+const (
+	StatusUp        Status = "up"        // All containers running
+	StatusPartial   Status = "partial"   // Some containers running
+	StatusDown      Status = "down"      // No containers running
+	StatusUnhealthy Status = "unhealthy" // Has unhealthy containers
+)
+
+// ContainerStatus holds container count information
+type ContainerStatus struct {
+	Running   int
+	Total     int
+	Unhealthy int
+}
+
+// getContainersByProject is a mockable function for testing
+var getContainersByProject = func(projectName string) ([]types.Container, error) {
+	apiClient, err := client.NewClientWithOpts(client.FromEnv)
+	if err != nil {
+		return nil, err
+	}
+	defer apiClient.Close()
+
+	return apiClient.ContainerList(context.Background(), container.ListOptions{
+		All: true,
+		Filters: filters.NewArgs(
+			filters.Arg("label", "com.docker.compose.project="+projectName),
+		),
+	})
+}
+
+// calculateStatus determines the status based on container states
+func calculateStatus(containers []types.Container) (Status, ContainerStatus) {
+	cs := ContainerStatus{Total: len(containers)}
+
+	if cs.Total == 0 {
+		return StatusDown, cs
+	}
+
+	for _, c := range containers {
+		if c.State == "running" {
+			cs.Running++
+		}
+		if strings.Contains(strings.ToLower(c.Status), "unhealthy") {
+			cs.Unhealthy++
+		}
+	}
+
+	switch {
+	case cs.Unhealthy > 0:
+		return StatusUnhealthy, cs
+	case cs.Running == cs.Total:
+		return StatusUp, cs
+	case cs.Running == 0:
+		return StatusDown, cs
+	default:
+		return StatusPartial, cs
+	}
+}
 
 type (
 	Folder string
 	Infos  struct {
-		IsUp    bool
-		Project string `json:"project"`
-		Version string `json:"version"`
+		IsUp       bool            // Backward compatibility: true if status is up or partial
+		Status     Status          // Detailed status
+		Containers ContainerStatus // Container counts
+		Project    string          `json:"project"`
+		Version    string          `json:"version"`
 	}
 )
 type Instances map[Folder]Infos
@@ -37,141 +101,35 @@ func GetInstances() (Instances, error) {
 		// File exists
 		exists, _ := afero.Exists(app.FS, file)
 		if !exists {
-			// Remove instance by its folder, not compose file path
 			RemoveInstance(string(folder))
 			continue
 		}
-		// Determine seed and check by docker ps first (match by name containing seed)
-		seed := getInstanceSeed(string(folder))
-		var outBuf, errBuf bytes.Buffer
-		if seed != "" {
-			cmd := exec.Command("docker", "ps", "--format", "json", "--filter", "name="+seed)
-			cmd.Stdout = &outBuf
-			cmd.Stderr = &errBuf
-			if err := cmd.Run(); err != nil {
-				return nil, err
-			}
-		}
-		// If ps via seed indicates running, mark up. Otherwise, fallback to compose-scoped ps.
-		if isComposeUpFromPs(outBuf.String()) {
+		// Get containers by project name using Docker API
+		containers, err := getContainersByProject(infos.Project)
+		if err != nil {
+			// Graceful degradation: if Docker API fails, mark as down
 			instancesInfos[folder] = Infos{
-				Project: infos.Project,
-				Version: infos.Version,
-				IsUp:    true,
+				Project:    infos.Project,
+				Version:    infos.Version,
+				IsUp:       false,
+				Status:     StatusDown,
+				Containers: ContainerStatus{},
 			}
-		} else {
-			// Fallback: docker compose ps scoped to this instance's compose file
-			var cOut, cErr bytes.Buffer
-			cfile := compose.GetComposeFilePath(string(folder))
-			ccmd := exec.Command("docker", "compose", "-f", cfile, "ps", "--format", "json")
-			ccmd.Stdout = &cOut
-			ccmd.Stderr = &cErr
-			if err := ccmd.Run(); err != nil {
-				// If compose fails, treat as down
-				instancesInfos[folder] = Infos{Project: infos.Project, Version: infos.Version, IsUp: false}
-			} else if isComposeUpFromPs(cOut.String()) {
-				instancesInfos[folder] = Infos{Project: infos.Project, Version: infos.Version, IsUp: true}
-			} else {
-				instancesInfos[folder] = Infos{Project: infos.Project, Version: infos.Version, IsUp: false}
-			}
+			continue
+		}
+		// Calculate status
+		status, containerStatus := calculateStatus(containers)
+		// IsUp for backward compatibility: true if any containers are running
+		isUp := status == StatusUp || status == StatusPartial || status == StatusUnhealthy
+		instancesInfos[folder] = Infos{
+			Project:    infos.Project,
+			Version:    infos.Version,
+			IsUp:       isUp,
+			Status:     status,
+			Containers: containerStatus,
 		}
 	}
 	return instancesInfos, nil
-}
-
-// isComposeUpFromPs determines if any service is running based on `docker compose ps` output.
-// It supports JSON output from Compose V2 and falls back to substring checks.
-func isComposeUpFromPs(output string) bool {
-	s := strings.TrimSpace(output)
-	if s == "" {
-		return false
-	}
-	// Try JSON array from `--format json`
-	if strings.HasPrefix(s, "[") {
-		var items []map[string]any
-		if err := json.Unmarshal([]byte(s), &items); err == nil {
-			for _, it := range items {
-				// Check common fields
-				if state, ok := it["State"].(string); ok {
-					if strings.EqualFold(state, "running") || strings.EqualFold(state, "healthy") {
-						return true
-					}
-				}
-				if status, ok := it["Status"].(string); ok {
-					ls := strings.ToLower(status)
-					if strings.Contains(ls, "running") || strings.Contains(ls,
-						"healthy") || strings.Contains(ls, "up") {
-						return true
-					}
-				}
-			}
-			return false
-		}
-		// If JSON parsing fails, fall back to string checks
-	}
-	// Try JSON-per-line (one object per line)
-	lines := strings.Split(s, "\n")
-	parsedAny := false
-	for _, line := range lines {
-		ln := strings.TrimSpace(line)
-		if ln == "" {
-			continue
-		}
-		if strings.HasPrefix(ln, "{") && strings.HasSuffix(ln, "}") {
-			var it map[string]any
-			if err := json.Unmarshal([]byte(ln), &it); err == nil {
-				parsedAny = true
-				if state, ok := it["State"].(string); ok {
-					if strings.EqualFold(state, "running") || strings.EqualFold(state, "healthy") {
-						return true
-					}
-				}
-				if status, ok := it["Status"].(string); ok {
-					ls := strings.ToLower(status)
-					if strings.Contains(ls, "running") || strings.Contains(ls,
-						"healthy") || strings.Contains(ls, "up") {
-						return true
-					}
-				}
-			}
-		}
-	}
-	if parsedAny {
-		return false
-	}
-	// Fallback: scan lines and consider a status token equal to "up"/"running"/"healthy"
-	for _, line := range lines {
-		ln := strings.TrimFunc(line, unicode.IsSpace)
-		if ln == "" {
-			continue
-		}
-		lnl := strings.ToLower(ln)
-		// Ignore header rows
-		if strings.Contains(lnl, "status") && strings.Contains(lnl, "name") {
-			continue
-		}
-		// Tokenize and look for specific status words
-		fields := strings.Fields(lnl)
-		for _, f := range fields {
-			if f == "up" || f == "running" || f == "healthy" {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-// getInstanceSeed reads the instance seed from its values.yaml (stamus.seed)
-func getInstanceSeed(folder string) string {
-	file, err := models.CreateFile(folder, "values.yaml")
-	if err != nil {
-		return ""
-	}
-	conf, err := models.LoadConfigFrom(file, true)
-	if err != nil {
-		return ""
-	}
-	return conf.GetSeed()
 }
 
 func AddInstance(folder string, project string, version string) error {
