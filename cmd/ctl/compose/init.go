@@ -18,10 +18,31 @@ import (
 
 // Const
 const (
-	InitHelp = `Init compose config file
-	You can set parameters in the config file or pass them as arguments.
-	(ex: parameter.subparameter=value)
-	`
+	InitHelp = `Initialize a Docker Compose configuration.
+
+Creates a new configuration by downloading templates and setting up
+the required files. You can customize parameters interactively or
+pass them as arguments.
+
+Examples:
+  # Initialize with interactive prompts
+  stamusctl compose init
+
+  # Initialize with default values (non-interactive)
+  stamusctl compose init -d
+
+  # Initialize with specific parameters
+  stamusctl compose init scirius.token=MyToken nginx.image=nginx:1.25
+
+  # Initialize a specific version
+  stamusctl compose init --version 1.2.3
+
+  # Initialize with a values file
+  stamusctl compose init -v my-values.yaml
+
+  # Initialize ClearNDR deployment
+  stamusctl compose init clearndr
+`
 )
 
 // Commands

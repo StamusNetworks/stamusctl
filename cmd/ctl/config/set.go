@@ -2,7 +2,7 @@ package config
 
 import (
 	// Custom
-
+	"stamus-ctl/internal/completion"
 	flags "stamus-ctl/internal/handlers"
 	config "stamus-ctl/internal/handlers/config"
 	"stamus-ctl/internal/logging"
@@ -16,10 +16,29 @@ func setCmd() *cobra.Command {
 	// Command
 	cmd := &cobra.Command{
 		Use:   "set [keys=values...]",
-		Short: "Set config related stuff",
-		Long: `To set current config values, input keys and values of parameters to set.
-Example: set scirius.token=AwesomeToken
-Or, use subcommands to set content or current configuration.`,
+		Short: "Set configuration parameter values",
+		Long: `Set configuration values for the current or specified config.
+
+Updates one or more configuration parameters with new values. Values are
+specified in key=value format.
+
+Examples:
+  # Set a single value
+  stamusctl config set scirius.token=MySecureToken
+
+  # Set multiple values at once
+  stamusctl config set nginx.image=nginx:1.25 scirius.enabled=true
+
+  # Set values for a specific config
+  stamusctl config set -c myconfig suricata.interfaces=eth0
+
+  # Set values from a file
+  stamusctl config set -F values.yaml
+
+  # Set and apply changes immediately
+  stamusctl config set --apply scirius.debug=true
+`,
+		ValidArgsFunction: completion.CompleteConfigKeysForSetFunc(),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			err := setHandler(cmd, args)
 			if err != nil {

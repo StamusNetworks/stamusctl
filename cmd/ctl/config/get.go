@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	// Internal
-
+	"stamus-ctl/internal/completion"
 	flags "stamus-ctl/internal/handlers"
 	config "stamus-ctl/internal/handlers/config"
 	handlers "stamus-ctl/internal/handlers/config"
@@ -21,11 +21,27 @@ func getCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "get [keys...]",
 		Short: "Get compose config file parameters values",
-		Long: `Get compose config file parameters values
-Input the keys of parameters to get
-Example: get scirius`,
-		Args: cobra.ArbitraryArgs,
-		RunE: getHandler,
+		Long: `Get compose config file parameters values.
+
+Retrieves the current values for configuration parameters. You can specify
+one or more keys to filter the output, or omit keys to see all values.
+
+Examples:
+  # Get all configuration values
+  stamusctl config get
+
+  # Get values for a specific service
+  stamusctl config get scirius
+
+  # Get a specific parameter value
+  stamusctl config get scirius.token
+
+  # Get values from a specific config
+  stamusctl config get -c myconfig nginx.image
+`,
+		Args:              cobra.ArbitraryArgs,
+		ValidArgsFunction: completion.CompleteConfigKeysFunc(),
+		RunE:              getHandler,
 	}
 	// Subcommands
 	cmd.AddCommand(getContentCmd())

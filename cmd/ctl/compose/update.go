@@ -18,7 +18,23 @@ func updateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "update",
 		Short: "Update compose configuration files",
-		RunE:  updateHandler,
+		Long: `Update compose configuration files.
+
+Downloads the latest templates and regenerates configuration files
+while preserving your custom settings. Creates a backup before
+making changes.
+
+Examples:
+  # Update to the latest version
+  stamusctl compose update
+
+  # Update to a specific version
+  stamusctl compose update --version 1.2.3
+
+  # Update a specific configuration
+  stamusctl compose update -c myconfig
+`,
+		RunE: updateHandler,
 	}
 	// Add flags
 	flags.Version.AddAsFlag(cmd, false)

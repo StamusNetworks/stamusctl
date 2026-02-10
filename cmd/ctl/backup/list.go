@@ -16,8 +16,19 @@ func listCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List all backups for a configuration",
-		Long:  "Lists all available backups for the specified configuration, sorted by date (newest first)",
-		Args:  cobra.NoArgs,
+		Long: `List all backups for a configuration.
+
+Displays all available backups for the specified configuration, sorted
+by date (newest first). Shows timestamp, type (manual or auto), and size.
+
+Examples:
+  # List backups for the default config
+  stamusctl backup list
+
+  # List backups for a specific config
+  stamusctl backup list -c myconfig
+`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return listHandler()
 		},
