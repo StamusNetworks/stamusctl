@@ -22,7 +22,28 @@ func ConfigCmd() *cobra.Command {
 	// Create command
 	cmd := &cobra.Command{
 		Use:   "config",
-		Short: "Interact with compose config file",
+		Short: "Manage configuration parameters",
+		Long: `Manage configuration parameters.
+
+The config command allows you to view, modify, and manage configuration
+parameters for your deployments.
+
+Examples:
+  # List all configurations
+  stamusctl config list
+
+  # Get all configuration values
+  stamusctl config get
+
+  # Get a specific value
+  stamusctl config get scirius.token
+
+  # Set a configuration value
+  stamusctl config set scirius.token=MyToken
+
+  # View configuration version
+  stamusctl config version
+`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return getHandler(cmd, args)
 		},

@@ -8,6 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"stamus-ctl/internal/completion"
 	flags "stamus-ctl/internal/handlers"
 	handlers "stamus-ctl/internal/handlers/backup"
 )
@@ -21,8 +22,26 @@ func restoreCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "restore [timestamp]",
 		Short: "Restore a configuration from a backup",
-		Long:  "Restores the specified configuration from a backup timestamp. Creates a safety backup of current state before restoring.",
-		Args:  cobra.ExactArgs(1),
+		Long: `Restore a configuration from a backup.
+
+Restores the specified configuration from a backup timestamp. A safety
+backup of the current state is created before restoring.
+
+Examples:
+  # Restore from a specific backup (interactive confirmation)
+  stamusctl backup restore 20240115_143022
+
+  # Restore without confirmation
+  stamusctl backup restore -f 20240115_143022
+
+  # Restore a specific config from backup
+  stamusctl backup restore -c myconfig 20240115_143022
+
+  # List available backups first
+  stamusctl backup list
+`,
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.CompleteBackupsFunc(),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return restoreHandler(args[0])
 		},

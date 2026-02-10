@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"stamus-ctl/cmd/ctl/backup"
+	"stamus-ctl/cmd/ctl/completion"
 	"stamus-ctl/cmd/ctl/compose"
 	"stamus-ctl/cmd/ctl/config"
 	tmpl "stamus-ctl/cmd/ctl/template"
@@ -93,7 +94,13 @@ var verbose = models.Parameter{
 func rootCmd() *cobra.Command {
 	// Create command
 	cmd := &cobra.Command{
-		Use: "stamusctl",
+		Use:   "stamusctl",
+		Short: "Stamus Networks control tool for managing configurations and services",
+		Long: `stamusctl is a command-line tool for managing Stamus Networks configurations,
+Docker Compose deployments, backups, and templates.
+
+Use "stamusctl [command] --help" for more information about a command.`,
+		SuggestionsMinimumDistance: 2,
 	}
 	// Common flags
 	verbose.AddAsFlag(cmd, true)
@@ -108,5 +115,12 @@ func rootCmd() *cobra.Command {
 	cmd.AddCommand(config.ConfigCmd())
 	cmd.AddCommand(tmpl.TemplateCmd())
 	cmd.AddCommand(backup.BackupCmd())
+	cmd.AddCommand(completion.CompletionCmd())
 	return cmd
+}
+
+// RootCmdForDoc returns the root command for documentation generation.
+// This is used by the doc generator to create man pages.
+func RootCmdForDoc() *cobra.Command {
+	return rootCmd()
 }

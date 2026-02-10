@@ -16,9 +16,22 @@ import (
 // Command
 func clearCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "clear [flags...]",
-		Short: "Clears containers, volumes, networks and files",
-		Args:  cobra.ArbitraryArgs,
+		Use:   "clear",
+		Short: "Clear containers, volumes, networks and files",
+		Long: `Clear containers, volumes, networks and files.
+
+Removes all Docker resources (containers, volumes, networks) and
+configuration files associated with a deployment. This is a
+destructive operation.
+
+Examples:
+  # Clear the default configuration
+  stamusctl config clear
+
+  # Clear a specific configuration
+  stamusctl config clear -c myconfig
+`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return clearHandler()
 		},
