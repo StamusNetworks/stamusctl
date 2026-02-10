@@ -14,8 +14,20 @@ func createCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create",
 		Short: "Create a manual backup of a configuration",
-		Long:  "Creates a timestamped backup of the specified configuration",
-		Args:  cobra.NoArgs,
+		Long: `Create a manual backup of a configuration.
+
+Creates a timestamped backup of the specified configuration. Manual
+backups are stored alongside automatic backups and can be restored
+or deleted at any time.
+
+Examples:
+  # Create a backup of the default config
+  stamusctl backup create
+
+  # Create a backup of a specific config
+  stamusctl backup create -c myconfig
+`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return createHandler()
 		},
