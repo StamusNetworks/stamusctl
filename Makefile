@@ -76,4 +76,39 @@ fmt-check:
 init-embeds:
 	STAMUS_APP_NAME=stamusctl EMBED_MODE=true go run ./cmd compose init -h
 
-.PHONY: all cli test-cli test daemon daemon-dev daemon-test build-swaggo-image update-swagger init-embeds
+# Shell completion scripts
+completions:
+	@mkdir -p completions
+	@echo "Generating bash completion..."
+	@STAMUS_APP_NAME=stamusctl go run ./cmd completion bash > completions/stamusctl.bash
+	@echo "Generating zsh completion..."
+	@STAMUS_APP_NAME=stamusctl go run ./cmd completion zsh > completions/stamusctl.zsh
+	@echo "Generating fish completion..."
+	@STAMUS_APP_NAME=stamusctl go run ./cmd completion fish > completions/stamusctl.fish
+	@echo "Generating powershell completion..."
+	@STAMUS_APP_NAME=stamusctl go run ./cmd completion powershell > completions/stamusctl.ps1
+	@echo "Completions generated in completions/"
+
+# Man pages
+man-pages:
+	@mkdir -p docs/man
+	@echo "Generating man pages..."
+	@STAMUS_APP_NAME=stamusctl go run ./cmd/doc
+	@echo "Man pages generated in docs/man/"
+
+# Install completion scripts to system directories
+install-completions: completions
+	@echo "Installing bash completion..."
+	@if [ -d /etc/bash_completion.d ]; then \
+		sudo cp completions/stamusctl.bash /etc/bash_completion.d/stamusctl; \
+		echo "Installed to /etc/bash_completion.d/stamusctl"; \
+	elif [ -d /usr/local/etc/bash_completion.d ]; then \
+		sudo cp completions/stamusctl.bash /usr/local/etc/bash_completion.d/stamusctl; \
+		echo "Installed to /usr/local/etc/bash_completion.d/stamusctl"; \
+	else \
+		echo "No bash completion directory found. Copy completions/stamusctl.bash manually."; \
+	fi
+	@echo "For zsh, copy completions/stamusctl.zsh to a directory in your fpath"
+	@echo "For fish, copy completions/stamusctl.fish to ~/.config/fish/completions/"
+
+.PHONY: all cli test-cli test daemon daemon-dev daemon-test build-swaggo-image update-swagger init-embeds completions man-pages install-completions
