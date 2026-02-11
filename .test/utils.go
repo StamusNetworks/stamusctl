@@ -2,6 +2,7 @@ package tests
 
 import (
 	"bytes"
+	"context"
 	"embed"
 	"encoding/json"
 	"fmt"
@@ -39,7 +40,7 @@ func InitUnitTest(t *testing.T) {
 
 func newRequest(method string, url string, body interface{}) (*httptest.ResponseRecorder, error) {
 	// Create router
-	router := root.SetupRouter(func(string) {})
+	router := root.SetupRouter(func(string) {}, context.Background())
 	// Create a new request
 	w := httptest.NewRecorder()
 	req, err := http.NewRequest(method, url, newBody(body))
