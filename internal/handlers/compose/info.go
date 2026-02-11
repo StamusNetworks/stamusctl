@@ -55,11 +55,19 @@ func handleLogs(logParams pkg.LogsRequest) (pkg.LogsResponse, error) {
 	// Filter containers
 	if logParams.Containers != nil && len(logParams.Containers) > 0 {
 		filteredContainers := []types.Container{}
-		for _, container := range containers {
-			for _, id := range logParams.Containers {
-				if container.ID == id {
-					filteredContainers = append(filteredContainers, container)
+		for _, cont := range containers {
+			for _, nameOrID := range logParams.Containers {
+				// Match by ID
+				if cont.ID == nameOrID {
+					filteredContainers = append(filteredContainers, cont)
 					break
+				}
+				// Match by name (container names have leading slash, e.g. "/nginx")
+				for _, name := range cont.Names {
+					if name == nameOrID || name == "/"+nameOrID {
+						filteredContainers = append(filteredContainers, cont)
+						break
+					}
 				}
 			}
 		}

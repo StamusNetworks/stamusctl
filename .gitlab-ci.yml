@@ -32,4 +32,5 @@ include:
     - local: gitlab/build.yml
     - local: gitlab/func-tests.yml
     - local: gitlab/release.yml
-    - local: gitlab/integration-tests.yml
+    - local: gitlab/cli-integration-tests.yml
+    - local: gitlab/daemon-integration-tests.yml

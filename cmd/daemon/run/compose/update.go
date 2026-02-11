@@ -1,6 +1,7 @@
 package compose
 
 import (
+	"stamus-ctl/internal/app"
 	handlers "stamus-ctl/internal/handlers/compose"
 	"stamus-ctl/pkg"
 
@@ -26,6 +27,10 @@ func updateHandler(c *gin.Context) {
 	}
 
 	// Validate parameters
+	conf := req.Config
+	if conf == "" {
+		conf = app.DefaultConfigName
+	}
 	if req.Version == "" {
 		req.Version = "latest"
 	}
@@ -39,6 +44,7 @@ func updateHandler(c *gin.Context) {
 
 	// Call handler
 	params := handlers.UpdateHandlerParams{
+		Config:  app.GetConfigsFolder(conf),
 		Version: req.Version,
 		Args:    valuesVal,
 	}
@@ -47,5 +53,5 @@ func updateHandler(c *gin.Context) {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(200, gin.H{"message": "Configuration updated successfully"})
+	c.JSON(200, gin.H{"message": "ok"})
 }

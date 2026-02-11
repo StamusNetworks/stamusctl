@@ -207,6 +207,6 @@ func makeCustomRunner(
 
 			return err
 		}
-		return nil
+		return err
 	}
 }

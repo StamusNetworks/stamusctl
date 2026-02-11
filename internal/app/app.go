@@ -82,7 +82,7 @@ func GetConfigsFolder(name string) string {
 }
 
 func IsCtl() bool {
-	return CtlName == "stamusctl"
+	return Name == CtlName
 }
 
 func isUnderTest() bool {
