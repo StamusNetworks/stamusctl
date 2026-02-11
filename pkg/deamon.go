@@ -4,7 +4,7 @@ import "github.com/docker/docker/api/types"
 
 // Common
 type Config struct {
-	Value string `json:"config"` // Config name, default is config
+	Value string `json:"config" form:"config"` // Config name, default is config
 }
 type ErrorResponse struct {
 	Error string `json:"error"`
@@ -38,9 +38,9 @@ type SetRequest struct {
 	Config     string            `json:"config"`      // Config name, default is config
 }
 type GetRequest struct {
-	Values  []string `json:"values"`  // Values to retrieve, default is all
-	Content bool     `json:"content"` // Get content or values, default is false
-	Config  string   `json:"config"`  // Config name, default is config
+	Values  []string `json:"values" form:"values"`   // Values to retrieve, default is all
+	Content bool     `json:"content" form:"content"` // Get content or values, default is false
+	Config  string   `json:"config" form:"config"`   // Config name, default is config
 }
 type GetListResponse struct {
 	Configs []string `json:"configs"` // List of available configurations on the system
@@ -48,6 +48,7 @@ type GetListResponse struct {
 
 // Update
 type UpdateRequest struct {
+	Config  string            `json:"config"`  // Config name, default is config
 	Version string            `json:"version"` // Version to update to, default is latest
 	Values  map[string]string `json:"values"`  // Values to set, key is the name of the value, value is the value
 }

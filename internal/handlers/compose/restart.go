@@ -26,9 +26,7 @@ func HandleConfigRestart(conf string) error {
 
 // HandleConfigRestart restarts the containers defined in the container composition file
 func handleConfigRestart(conf string) error {
-	if !app.IsCtl() {
-		conf = app.GetConfigsFolder(conf)
-	}
+	// Note: Don't call GetConfigsFolder here - wrapper.HandleDown and HandleUp already do it
 	err := wrapper.HandleDown(conf, false, false)
 	if err != nil {
 		return err
