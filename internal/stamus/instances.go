@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"stamus-ctl/internal/app"
-	compose "stamus-ctl/internal/docker-compose"
+	"stamus-ctl/internal/utils"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -97,7 +97,7 @@ func GetInstances() (Instances, error) {
 	// Get instances infos
 	var instancesInfos Instances = make(Instances)
 	for folder, infos := range Config.Instances {
-		file := compose.GetComposeFilePath(string(folder))
+		file := utils.GetComposeFilePath(string(folder))
 		// File exists
 		exists, _ := afero.Exists(app.FS, file)
 		if !exists {

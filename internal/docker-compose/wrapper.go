@@ -10,12 +10,13 @@ import (
 	"sync/atomic"
 
 	// Common
-	"stamus-ctl/internal/app"
 	"stamus-ctl/internal/backup"
 	stamusFlags "stamus-ctl/internal/handlers"
 	"stamus-ctl/internal/logging"
 	"stamus-ctl/internal/models"
 	"stamus-ctl/internal/shutdown"
+	"stamus-ctl/internal/stamus"
+	"stamus-ctl/internal/utils"
 
 	// External
 	"github.com/docker/cli/cli-plugins/plugin"
@@ -35,35 +36,35 @@ var operationCounter atomic.Int64
 // Constants
 var ComposeFlags = models.ComposeFlags{
 	"up": models.CreateComposeFlags(
-		[]string{"file"},
+		[]string{"file", "project-name"},
 		[]string{"detach", "build"},
 	),
 	"down": models.CreateComposeFlags(
-		[]string{"file"},
+		[]string{"file", "project-name"},
 		[]string{"volumes", "remove-orphans"},
 	),
 	"restart": models.CreateComposeFlags(
-		[]string{"file"},
+		[]string{"file", "project-name"},
 		[]string{},
 	),
 	"exec": models.CreateComposeFlags(
-		[]string{"file"},
+		[]string{"file", "project-name"},
 		[]string{"detach", "privileged", "user", "workdir", "env", "no-TTY", "dry-run", "index"},
 	),
 	"ps": models.CreateComposeFlags(
-		[]string{"file"},
+		[]string{"file", "project-name"},
 		[]string{"services", "quiet", "format"},
 	),
 	"logs": models.CreateComposeFlags(
-		[]string{"file"},
+		[]string{"file", "project-name"},
 		[]string{"timestamps", "tail", "since", "until", "follow", "details"},
 	),
 	"pull": models.CreateComposeFlags(
-		[]string{"file"},
+		[]string{"file", "project-name"},
 		[]string{"ignore-buildable", "ignore-pull-failures", "include-deps", "quiet"},
 	),
 	"images": models.CreateComposeFlags(
-		[]string{"file"},
+		[]string{"file", "project-name"},
 		[]string{"format", "quiet"},
 	),
 }
@@ -163,7 +164,7 @@ func makeCustomRunner(
 		// Get folder flag value
 		configFlag := cmd.Flags().Lookup("config")
 		conf := configFlag.Value.String()
-		composeFile := GetComposeFilePath(conf)
+		composeFile := utils.GetComposeFilePath(conf)
 
 		// Create automatic backup before compose down --volumes
 		if cmd.Name() == "down" {
@@ -188,6 +189,17 @@ func makeCustomRunner(
 		fileFlag := cmd.Flags().Lookup("file")
 		fileFlag.Value.Set(composeFile)
 		fileFlag.DefValue = composeFile
+
+		// Set project name flag from stored config
+		// Resolve to absolute path since stamus config stores absolute paths
+		absConf, _ := filepath.Abs(conf)
+		projectName := stamus.GetProjectName(absConf)
+		if projectName != "" {
+			if projectFlag := cmd.Flags().Lookup("project-name"); projectFlag != nil {
+				projectFlag.Value.Set(projectName)
+			}
+		}
+
 		// Run existing command
 		err := runE(cmd, args)
 		if err != nil {
@@ -197,20 +209,4 @@ func makeCustomRunner(
 		}
 		return nil
 	}
-}
-
-func GetComposeFilePath(confPath string) string {
-	possibleComposeFiles := []string{
-		"docker-compose.yaml",
-		"docker-compose.yml",
-		"compose.yaml",
-		"compose.yml",
-	}
-	for _, file := range possibleComposeFiles {
-		filePath := filepath.Join(confPath, file)
-		if _, err := app.FS.Stat(filePath); err == nil {
-			return filePath
-		}
-	}
-	return filepath.Join(confPath, "docker-compose.yaml")
 }
