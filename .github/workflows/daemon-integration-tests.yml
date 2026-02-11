@@ -1,0 +1,489 @@
+name: Daemon Integration Tests
+
+on:
+    workflow_call:
+
+jobs:
+    daemon-health-tests:
+        name: Daemon API Health Tests
+        runs-on: ubuntu-latest
+        services:
+            docker:
+                image: docker:24.0.5-dind
+                options: --privileged
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Download daemon artifact
+              uses: actions/download-artifact@v4
+              with:
+                  name: stamusd
+                  path: ./dist
+
+            - name: Make daemon executable
+              run: chmod +x ./dist/stamusd
+
+            - name: Install dependencies
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y jq curl
+
+            - name: Setup and start daemon
+              run: |
+                  ./dist/stamusd run &
+                  echo $! > /tmp/daemon.pid
+                  timeout 60 bash -c 'until curl -f http://localhost:8080/health 2>/dev/null; do sleep 1; done'
+
+            - name: Test health endpoints
+              run: |
+                  HEALTH_RESP=$(curl -s http://localhost:8080/health)
+                  echo "Health Response: $HEALTH_RESP"
+                  echo "$HEALTH_RESP" | jq -e '.'
+                  READY_RESP=$(curl -s http://localhost:8080/ready)
+                  echo "Ready Response: $READY_RESP"
+                  echo "$READY_RESP" | jq -e '.'
+
+            - name: Cleanup
+              if: always()
+              run: |
+                  if [ -f /tmp/daemon.pid ]; then
+                      kill $(cat /tmp/daemon.pid) || true
+                  fi
+                  rm -rf /tmp/stamus
+
+    daemon-compose-tests:
+        name: Daemon API Compose Tests
+        runs-on: ubuntu-latest
+        services:
+            docker:
+                image: docker:24.0.5-dind
+                options: --privileged
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Download daemon artifact
+              uses: actions/download-artifact@v4
+              with:
+                  name: stamusd
+                  path: ./dist
+
+            - name: Make daemon executable
+              run: chmod +x ./dist/stamusd
+
+            - name: Install dependencies
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y jq curl
+
+            - name: Setup and start daemon
+              run: |
+                  ./dist/stamusd run &
+                  echo $! > /tmp/daemon.pid
+                  timeout 60 bash -c 'until curl -f http://localhost:8080/health 2>/dev/null; do sleep 1; done'
+
+            - name: Test compose init
+              run: |
+                  RESPONSE=$(curl -s -X POST http://localhost:8080/api/v1/compose/init \
+                    -H "Content-Type: application/json" \
+                    -d '{"config":"tests","project":"tests","default":true,"values":{}}')
+                  echo "Init Response: $RESPONSE"
+                  echo "$RESPONSE" | jq -e '.message == "ok"'
+
+            - name: Test compose up
+              run: |
+                  UP_RESP=$(curl -s -X POST "http://localhost:8080/api/v1/compose/up?config=tests" \
+                    -H "Content-Type: application/json")
+                  echo "Up Response: $UP_RESP"
+                  echo "$UP_RESP" | jq -e '.message == "ok"'
+
+                  # Verify containers running
+                  sleep 60
+                  docker ps --format '{{.Names}}' | grep -E 'nginx|websocket'
+
+            - name: Test compose ps
+              run: |
+                  PS_RESP=$(curl -s -X POST http://localhost:8080/api/v1/compose/ps \
+                    -H "Content-Type: application/json")
+                  echo "PS Response: $PS_RESP"
+                  echo "$PS_RESP" | jq -e '. | length > 0'
+
+            - name: Test compose down
+              run: |
+                  DOWN_RESP=$(curl -s -X POST "http://localhost:8080/api/v1/compose/down?config=tests" \
+                    -H "Content-Type: application/json")
+                  echo "Down Response: $DOWN_RESP"
+                  echo "$DOWN_RESP" | jq -e '.message == "ok"'
+
+            - name: Cleanup
+              if: always()
+              run: |
+                  if [ -f /tmp/daemon.pid ]; then
+                      kill $(cat /tmp/daemon.pid) || true
+                  fi
+                  docker rm -f nginx websocket 2>/dev/null || true
+                  rm -rf /tmp/stamus
+
+    daemon-config-tests:
+        name: Daemon API Config Tests
+        runs-on: ubuntu-latest
+        services:
+            docker:
+                image: docker:24.0.5-dind
+                options: --privileged
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Download daemon artifact
+              uses: actions/download-artifact@v4
+              with:
+                  name: stamusd
+                  path: ./dist
+
+            - name: Make daemon executable
+              run: chmod +x ./dist/stamusd
+
+            - name: Install dependencies
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y jq curl
+
+            - name: Setup and start daemon
+              run: |
+                  ./dist/stamusd run &
+                  echo $! > /tmp/daemon.pid
+                  timeout 60 bash -c 'until curl -f http://localhost:8080/health 2>/dev/null; do sleep 1; done'
+
+            - name: Initialize config
+              run: |
+                  INIT_RESP=$(curl -s -X POST http://localhost:8080/api/v1/compose/init \
+                    -H "Content-Type: application/json" \
+                    -d '{"config":"tests","project":"tests","default":true,"values":{}}')
+                  echo "Init Response: $INIT_RESP"
+                  echo "$INIT_RESP" | jq -e '.message == "ok"'
+
+            - name: Test config list
+              run: |
+                  LIST_RESP=$(curl -s -X POST http://localhost:8080/api/v1/config/list \
+                    -H "Content-Type: application/json" \
+                    -d '{}')
+                  echo "List Response: $LIST_RESP"
+                  echo "$LIST_RESP" | jq -e '. | length > 0'
+
+            - name: Test config get
+              run: |
+                  GET_RESP=$(curl -s "http://localhost:8080/api/v1/config?config=tests")
+                  echo "Get Response: $GET_RESP"
+                  echo "$GET_RESP" | jq -e '.nginx.image'
+
+            - name: Test config set and verify
+              run: |
+                  # Set config value
+                  SET_RESP=$(curl -s -X POST http://localhost:8080/api/v1/config \
+                    -H "Content-Type: application/json" \
+                    -d '{"config":"tests","values":{"globals.restartmode":"always"},"reload":false}')
+                  echo "Set Response: $SET_RESP"
+                  echo "$SET_RESP" | jq -e '.'
+
+                  # Start containers to verify config
+                  UP_RESP=$(curl -s -X POST "http://localhost:8080/api/v1/compose/up?config=tests" \
+                    -H "Content-Type: application/json")
+                  echo "Up Response: $UP_RESP"
+                  echo "$UP_RESP" | jq -e '.message == "ok"'
+
+                  # Verify restart policy (same pattern as full-test-config)
+                  sleep 5
+                  INSPECT_RESP=$(docker inspect nginx)
+                  echo "Inspect Response: $INSPECT_RESP"
+                  echo "$INSPECT_RESP" | jq -e '.[0].HostConfig.RestartPolicy.Name == "always"'
+
+            - name: Cleanup
+              if: always()
+              run: |
+                  if [ -f /tmp/daemon.pid ]; then
+                      kill $(cat /tmp/daemon.pid) || true
+                  fi
+                  docker rm -f nginx websocket 2>/dev/null || true
+                  rm -rf /tmp/stamus
+
+    daemon-troubleshoot-tests:
+        name: Daemon API Troubleshoot Tests
+        runs-on: ubuntu-latest
+        services:
+            docker:
+                image: docker:24.0.5-dind
+                options: --privileged
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Download daemon artifact
+              uses: actions/download-artifact@v4
+              with:
+                  name: stamusd
+                  path: ./dist
+
+            - name: Make daemon executable
+              run: chmod +x ./dist/stamusd
+
+            - name: Install dependencies
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y jq curl
+
+            - name: Setup and start daemon
+              run: |
+                  ./dist/stamusd run &
+                  echo $! > /tmp/daemon.pid
+                  timeout 60 bash -c 'until curl -f http://localhost:8080/health 2>/dev/null; do sleep 1; done'
+
+            - name: Initialize and start containers
+              run: |
+                  INIT_RESP=$(curl -s -X POST http://localhost:8080/api/v1/compose/init \
+                    -H "Content-Type: application/json" \
+                    -d '{"config":"tests","project":"tests","default":true,"values":{}}')
+                  echo "Init Response: $INIT_RESP"
+                  echo "$INIT_RESP" | jq -e '.message == "ok"'
+                  UP_RESP=$(curl -s -X POST "http://localhost:8080/api/v1/compose/up?config=tests" \
+                    -H "Content-Type: application/json")
+                  echo "Up Response: $UP_RESP"
+                  echo "$UP_RESP" | jq -e '.message == "ok"'
+                  sleep 5
+
+            - name: Test kernel logs endpoint
+              run: |
+                  KERNEL_RESP=$(curl -s -X POST http://localhost:8080/api/v1/troubleshoot/kernel \
+                    -H "Content-Type: application/json")
+                  echo "Kernel Response: $KERNEL_RESP"
+                  echo "$KERNEL_RESP" | jq -e '.message'
+
+            - name: Test container logs endpoint
+              run: |
+                  CONTAINERS_RESP=$(curl -s -X POST http://localhost:8080/api/v1/troubleshoot/containers \
+                    -H "Content-Type: application/json" \
+                    -d '{"containers":["nginx"],"tail":"10"}')
+                  echo "Containers Response: $CONTAINERS_RESP"
+                  echo "$CONTAINERS_RESP" | jq -e '.containers | length > 0'
+
+            - name: Cleanup
+              if: always()
+              run: |
+                  if [ -f /tmp/daemon.pid ]; then
+                      kill $(cat /tmp/daemon.pid) || true
+                  fi
+                  docker rm -f nginx websocket 2>/dev/null || true
+                  rm -rf /tmp/stamus
+
+    daemon-restart-tests:
+        name: Daemon API Restart Tests
+        runs-on: ubuntu-latest
+        services:
+            docker:
+                image: docker:24.0.5-dind
+                options: --privileged
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Download daemon artifact
+              uses: actions/download-artifact@v4
+              with:
+                  name: stamusd
+                  path: ./dist
+
+            - name: Make daemon executable
+              run: chmod +x ./dist/stamusd
+
+            - name: Install dependencies
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y jq curl
+
+            - name: Setup and start daemon
+              run: |
+                  ./dist/stamusd run &
+                  echo $! > /tmp/daemon.pid
+                  timeout 60 bash -c 'until curl -f http://localhost:8080/health 2>/dev/null; do sleep 1; done'
+
+            - name: Initialize and start containers
+              run: |
+                  INIT_RESP=$(curl -s -X POST http://localhost:8080/api/v1/compose/init \
+                    -H "Content-Type: application/json" \
+                    -d '{"config":"tests","project":"tests","default":true,"values":{}}')
+                  echo "Init Response: $INIT_RESP"
+                  echo "$INIT_RESP" | jq -e '.message == "ok"'
+                  UP_RESP=$(curl -s -X POST "http://localhost:8080/api/v1/compose/up?config=tests" \
+                    -H "Content-Type: application/json")
+                  echo "Up Response: $UP_RESP"
+                  echo "$UP_RESP" | jq -e '.message == "ok"'
+                  sleep 5
+
+            - name: Get container start time before restart
+              run: |
+                  docker inspect nginx | jq -r '.[0].State.StartedAt' > /tmp/start_before.txt
+                  cat /tmp/start_before.txt
+
+            - name: Test restart config endpoint
+              run: |
+                  RESTART_RESP=$(curl -s -X POST "http://localhost:8080/api/v1/compose/restart/config?config=tests" \
+                    -H "Content-Type: application/json")
+                  echo "Restart Config Response: $RESTART_RESP"
+                  echo "$RESTART_RESP" | jq -e '.message == "ok"'
+                  sleep 5
+
+            - name: Verify container was restarted (config restart)
+              run: |
+                  docker inspect nginx | jq -r '.[0].State.StartedAt' > /tmp/start_after.txt
+                  cat /tmp/start_after.txt
+                  # Start times should be different
+                  [ "$(cat /tmp/start_before.txt)" != "$(cat /tmp/start_after.txt)" ]
+
+            - name: Get container start time before container restart
+              run: |
+                  docker inspect nginx | jq -r '.[0].State.StartedAt' > /tmp/start_before2.txt
+
+            - name: Test restart containers endpoint
+              run: |
+                  RESTART_RESP=$(curl -s -X POST http://localhost:8080/api/v1/compose/restart/containers \
+                    -H "Content-Type: application/json" \
+                    -d '{"containers":["nginx"]}')
+                  echo "Restart Containers Response: $RESTART_RESP"
+                  echo "$RESTART_RESP" | jq -e '.message == "ok"'
+                  sleep 5
+
+            - name: Verify container was restarted (container restart)
+              run: |
+                  docker inspect nginx | jq -r '.[0].State.StartedAt' > /tmp/start_after2.txt
+                  [ "$(cat /tmp/start_before2.txt)" != "$(cat /tmp/start_after2.txt)" ]
+
+            - name: Cleanup
+              if: always()
+              run: |
+                  if [ -f /tmp/daemon.pid ]; then
+                      kill $(cat /tmp/daemon.pid) || true
+                  fi
+                  docker rm -f nginx websocket 2>/dev/null || true
+                  rm -rf /tmp/stamus
+
+    daemon-version-update-tests:
+        name: Daemon API Version/Update Tests
+        runs-on: ubuntu-latest
+        services:
+            docker:
+                image: docker:24.0.5-dind
+                options: --privileged
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Download daemon artifact
+              uses: actions/download-artifact@v4
+              with:
+                  name: stamusd
+                  path: ./dist
+
+            - name: Make daemon executable
+              run: chmod +x ./dist/stamusd
+
+            - name: Install dependencies
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y jq curl
+
+            - name: Setup and start daemon
+              run: |
+                  ./dist/stamusd run &
+                  echo $! > /tmp/daemon.pid
+                  timeout 60 bash -c 'until curl -f http://localhost:8080/health 2>/dev/null; do sleep 1; done'
+
+            - name: Initialize config
+              run: |
+                  INIT_RESP=$(curl -s -X POST http://localhost:8080/api/v1/compose/init \
+                    -H "Content-Type: application/json" \
+                    -d '{"config":"tests","project":"tests","default":true,"values":{}}')
+                  echo "Init Response: $INIT_RESP"
+                  echo "$INIT_RESP" | jq -e '.message == "ok"'
+
+            - name: Test config version endpoint
+              run: |
+                  VERSION_RESP=$(curl -s "http://localhost:8080/api/v1/config/version?config=tests")
+                  echo "Version Response: $VERSION_RESP"
+                  echo "$VERSION_RESP" | jq -e '.'
+
+            - name: Test compose update endpoint
+              run: |
+                  UPDATE_RESP=$(curl -s -X POST http://localhost:8080/api/v1/compose/update \
+                    -H "Content-Type: application/json" \
+                    -d '{"config":"tests","values":{"websocket.response":"updated"}}')
+                  echo "Update Response: $UPDATE_RESP"
+                  echo "$UPDATE_RESP" | jq -e '.message == "ok"'
+
+            - name: Cleanup
+              if: always()
+              run: |
+                  if [ -f /tmp/daemon.pid ]; then
+                      kill $(cat /tmp/daemon.pid) || true
+                  fi
+                  rm -rf /tmp/stamus
+
+    daemon-error-tests:
+        name: Daemon API Error Handling Tests
+        runs-on: ubuntu-latest
+        services:
+            docker:
+                image: docker:24.0.5-dind
+                options: --privileged
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Download daemon artifact
+              uses: actions/download-artifact@v4
+              with:
+                  name: stamusd
+                  path: ./dist
+
+            - name: Make daemon executable
+              run: chmod +x ./dist/stamusd
+
+            - name: Install dependencies
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y jq curl
+
+            - name: Setup and start daemon
+              run: |
+                  ./dist/stamusd run &
+                  echo $! > /tmp/daemon.pid
+                  timeout 60 bash -c 'until curl -f http://localhost:8080/health 2>/dev/null; do sleep 1; done'
+
+            - name: Test invalid JSON returns 400
+              run: |
+                  STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+                    -X POST http://localhost:8080/api/v1/compose/init \
+                    -H "Content-Type: application/json" \
+                    -d 'not valid json')
+                  [ "$STATUS" = "400" ]
+
+            - name: Test config get on non-existent config returns error
+              run: |
+                  ERROR_RESP=$(curl -s "http://localhost:8080/api/v1/config?config=nonexistent")
+                  echo "Error Response: $ERROR_RESP"
+                  echo "$ERROR_RESP" | jq -e '.error'
+
+            - name: Test compose up without init returns error
+              run: |
+                  STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+                    -X POST "http://localhost:8080/api/v1/compose/up?config=nonexistent" \
+                    -H "Content-Type: application/json")
+                  [ "$STATUS" = "500" ] || [ "$STATUS" = "400" ]
+
+            - name: Cleanup
+              if: always()
+              run: |
+                  if [ -f /tmp/daemon.pid ]; then
+                      kill $(cat /tmp/daemon.pid) || true
+                  fi
+                  rm -rf /tmp/stamus
