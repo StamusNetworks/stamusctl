@@ -61,3 +61,21 @@ func ListFilesInFolder(folderPath string) (map[string]string, error) {
 
 	return filesMap, nil
 }
+
+// GetComposeFilePath returns the path to the docker-compose file in the given config path.
+// It checks for common compose file names and returns the first one found.
+func GetComposeFilePath(confPath string) string {
+	possibleComposeFiles := []string{
+		"docker-compose.yaml",
+		"docker-compose.yml",
+		"compose.yaml",
+		"compose.yml",
+	}
+	for _, file := range possibleComposeFiles {
+		filePath := filepath.Join(confPath, file)
+		if _, err := app.FS.Stat(filePath); err == nil {
+			return filePath
+		}
+	}
+	return filepath.Join(confPath, "docker-compose.yaml")
+}
