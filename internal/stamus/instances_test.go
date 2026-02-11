@@ -520,3 +520,65 @@ func TestGetInstances_WithUnhealthyInstance(t *testing.T) {
 	assert.Equal(t, info.Containers.Total, 2)
 	assert.Equal(t, info.Containers.Unhealthy, 1)
 }
+
+func TestGetProjectName_Found(t *testing.T) {
+	setupTestFS()
+	app.ConfigFolder = "/test-project-name"
+
+	// Mock config with instances
+	osOpenFile = func(name string, flag int, perm os.FileMode) (*os.File, error) {
+		return nil, nil
+	}
+	ioReadAll = func(_ io.Reader) ([]byte, error) {
+		return []byte(`{
+			"instances": {
+				"/test/config": {
+					"project": "my-project",
+					"version": "1.0.0"
+				}
+			}
+		}`), nil
+	}
+
+	result := GetProjectName("/test/config")
+	assert.Equal(t, "my-project", result)
+}
+
+func TestGetProjectName_NotFound(t *testing.T) {
+	setupTestFS()
+	app.ConfigFolder = "/test-project-name-2"
+
+	// Mock config with instances
+	osOpenFile = func(name string, flag int, perm os.FileMode) (*os.File, error) {
+		return nil, nil
+	}
+	ioReadAll = func(_ io.Reader) ([]byte, error) {
+		return []byte(`{
+			"instances": {
+				"/other/config": {
+					"project": "other-project",
+					"version": "1.0.0"
+				}
+			}
+		}`), nil
+	}
+
+	result := GetProjectName("/nonexistent/config")
+	assert.Equal(t, "", result)
+}
+
+func TestGetProjectName_EmptyInstances(t *testing.T) {
+	setupTestFS()
+	app.ConfigFolder = "/test-project-name-3"
+
+	// Mock empty config
+	osOpenFile = func(name string, flag int, perm os.FileMode) (*os.File, error) {
+		return nil, nil
+	}
+	ioReadAll = func(_ io.Reader) ([]byte, error) {
+		return []byte(`{}`), nil
+	}
+
+	result := GetProjectName("/test/config")
+	assert.Equal(t, "", result)
+}

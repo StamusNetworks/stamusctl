@@ -84,3 +84,19 @@ func GetConfigsList() ([]string, error) {
 	}
 	return configs, nil
 }
+
+// GetProjectName returns the project name for a given config folder path.
+// Returns empty string if the folder is not found in the instances.
+func GetProjectName(folder string) string {
+	config, err := GetStamusConfig()
+	if err != nil {
+		return ""
+	}
+	if config.Instances == nil {
+		return ""
+	}
+	if infos, ok := config.Instances[Folder(folder)]; ok {
+		return infos.Project
+	}
+	return ""
+}
