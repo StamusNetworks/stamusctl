@@ -17,8 +17,8 @@ import (
 	// Internal
 
     "stamus-ctl/internal/app"
-    composewrap "stamus-ctl/internal/docker-compose"
     "stamus-ctl/internal/docker"
+    "stamus-ctl/internal/utils"
 	"stamus-ctl/internal/logging"
 
 	"github.com/docker/docker/api/types/container"
@@ -187,7 +187,7 @@ func resolveSuricataImage(configPath string) (string, error) {
 	}
 
     // 2) Fallback: parse a single compose file for services.suricata.image
-    compose := composewrap.GetComposeFilePath(configPath)
+    compose := utils.GetComposeFilePath(configPath)
 	logger.With("compose", compose).Debug("found compose file")
 
 	b, err := afero.ReadFile(app.FS, compose)
@@ -218,7 +218,7 @@ func resolveSuricataImage(configPath string) (string, error) {
 // resolveImageViaComposeConfig runs `docker compose -f <file> config` to get the fully
 // resolved compose configuration, then extracts services.suricata.image.
 func resolveImageViaComposeConfig(configPath string) string {
-    composeFile := composewrap.GetComposeFilePath(configPath)
+    composeFile := utils.GetComposeFilePath(configPath)
 	// Run from the compose file directory and reference the file by basename
 	fileDir := filepath.Dir(composeFile)
 	fileName := filepath.Base(composeFile)
