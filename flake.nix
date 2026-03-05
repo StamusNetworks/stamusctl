@@ -23,6 +23,8 @@
         subPackages = "cmd";
         CGO_ENABLED = 0;
 
+        nativeBuildInputs = [ pkgs.installShellFiles ];
+
         ldflags = [
           "-X stamus-ctl/internal/app.Arch=${system}"
           "-X stamus-ctl/internal/app.Commit=dev"
@@ -33,6 +35,12 @@
 
         postInstall = ''
           mv $out/bin/cmd $out/bin/stamusctl
+
+          # Install shell completions
+          installShellCompletion --cmd stamusctl \
+            --bash <($out/bin/stamusctl completion bash) \
+            --fish <($out/bin/stamusctl completion fish) \
+            --zsh <($out/bin/stamusctl completion zsh)
         '';
 
         meta = with pkgs.lib; {
