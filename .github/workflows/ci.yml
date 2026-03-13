@@ -7,8 +7,7 @@ on:
         branches: ['**'] # Run on PRs from any branch
 
 permissions:
-    contents: write
-    packages: write
+    contents: read
 
 jobs:
     tests:
@@ -45,5 +44,8 @@ jobs:
         uses: ./.github/workflows/release.yml
         needs: [build, functional-tests, cli-integration-tests, daemon-integration-tests]
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/trunk'
+        permissions:
+            contents: write
+            packages: write
         secrets:
             PUSH: ${{ secrets.PUSH }}
