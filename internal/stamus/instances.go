@@ -1,16 +1,12 @@
 package stamus
 
 import (
-	"context"
 	"strings"
 
 	"stamus-ctl/internal/app"
 	"stamus-ctl/internal/utils"
 
 	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/filters"
-	"github.com/docker/docker/client"
 	"github.com/spf13/afero"
 )
 
@@ -29,22 +25,6 @@ type ContainerStatus struct {
 	Running   int
 	Total     int
 	Unhealthy int
-}
-
-// getContainersByProject is a mockable function for testing
-var getContainersByProject = func(projectName string) ([]types.Container, error) {
-	apiClient, err := client.NewClientWithOpts(client.FromEnv)
-	if err != nil {
-		return nil, err
-	}
-	defer apiClient.Close()
-
-	return apiClient.ContainerList(context.Background(), container.ListOptions{
-		All: true,
-		Filters: filters.NewArgs(
-			filters.Arg("label", "com.docker.compose.project="+projectName),
-		),
-	})
 }
 
 // calculateStatus determines the status based on container states
@@ -88,9 +68,9 @@ type (
 )
 type Instances map[Folder]Infos
 
-func GetInstances() (Instances, error) {
+func (cm *ConfigManager) GetInstances() (Instances, error) {
 	// Get config content
-	Config, err := GetStamusConfig()
+	Config, err := cm.GetConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -101,11 +81,11 @@ func GetInstances() (Instances, error) {
 		// File exists
 		exists, _ := afero.Exists(app.FS, file)
 		if !exists {
-			RemoveInstance(string(folder))
+			cm.RemoveInstance(string(folder))
 			continue
 		}
 		// Get containers by project name using Docker API
-		containers, err := getContainersByProject(infos.Project)
+		containers, err := cm.containers.GetContainersByProject(infos.Project)
 		if err != nil {
 			// Graceful degradation: if Docker API fails, mark as down
 			instancesInfos[folder] = Infos{
@@ -132,9 +112,9 @@ func GetInstances() (Instances, error) {
 	return instancesInfos, nil
 }
 
-func AddInstance(folder string, project string, version string) error {
+func (cm *ConfigManager) AddInstance(folder string, project string, version string) error {
 	// Get config content
-	Config, err := GetStamusConfig()
+	Config, err := cm.GetConfig()
 	if err != nil {
 		return err
 	}
@@ -150,9 +130,9 @@ func AddInstance(folder string, project string, version string) error {
 	return Config.setStamusConfig()
 }
 
-func RemoveInstance(folder string) error {
+func (cm *ConfigManager) RemoveInstance(folder string) error {
 	// Get config content
-	Config, err := GetStamusConfig()
+	Config, err := cm.GetConfig()
 	if err != nil {
 		return err
 	}
@@ -165,12 +145,43 @@ func RemoveInstance(folder string) error {
 	return Config.setStamusConfig()
 }
 
+func (cm *ConfigManager) GetProjectName(folder string) string {
+	config, err := cm.GetConfig()
+	if err != nil {
+		return ""
+	}
+	if config.Instances == nil {
+		return ""
+	}
+	if infos, ok := config.Instances[Folder(folder)]; ok {
+		return infos.Project
+	}
+	return ""
+}
+
 func removeString(slice []Folder, s Folder) []Folder {
 	for i, v := range slice {
 		if v == s {
-			// Remove the element by appending slice before and after the found element
 			return append(slice[:i], slice[i+1:]...)
 		}
 	}
 	return slice
+}
+
+// Backward-compatible package-level functions
+
+func GetInstances() (Instances, error) {
+	return DefaultManager.GetInstances()
+}
+
+func AddInstance(folder string, project string, version string) error {
+	return DefaultManager.AddInstance(folder, project, version)
+}
+
+func RemoveInstance(folder string) error {
+	return DefaultManager.RemoveInstance(folder)
+}
+
+func GetProjectName(folder string) string {
+	return DefaultManager.GetProjectName(folder)
 }

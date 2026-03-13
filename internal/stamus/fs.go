@@ -1,41 +1,22 @@
 package stamus
 
 import (
-	// Common
 	"encoding/json"
-	"io"
 	"os"
 	"path/filepath"
 
-	// Custom
 	"stamus-ctl/internal/app"
 )
 
-var (
-	osMkdirAll = os.MkdirAll
-	osOpenFile = os.OpenFile
-	ioReadAll  = io.ReadAll
-)
-
-func getOrCreateStamusConfigFile() (*os.File, error) {
+func (cm *ConfigManager) getOrCreateConfigFile() (*os.File, error) {
 	// Create ~/stamus directory
-	err := osMkdirAll(app.ConfigFolder, 0o755)
+	err := cm.fs.MkdirAll(app.ConfigFolder, 0o755)
 	if err != nil {
 		return nil, err
 	}
 
 	// Open or create ~/stamus/config.json
-	f, err := osOpenFile(filepath.Join(app.ConfigFolder, "config.json"), os.O_RDWR|os.O_CREATE, 0o755)
-	if err != nil {
-		return nil, err
-	}
-
-	return f, nil
-}
-
-func tryGetStamusConfigFile() (*os.File, error) {
-	// Open or create ~/stamus/config.json
-	f, err := osOpenFile(filepath.Join(app.ConfigFolder, "config.json"), os.O_RDONLY, 0o755)
+	f, err := cm.fs.OpenFile(filepath.Join(app.ConfigFolder, "config.json"), os.O_RDWR|os.O_CREATE, 0o755)
 	if err != nil {
 		return nil, err
 	}
@@ -43,14 +24,24 @@ func tryGetStamusConfigFile() (*os.File, error) {
 	return f, nil
 }
 
-func GetStamusConfig() (*Config, error) {
+func (cm *ConfigManager) tryGetConfigFile() (*os.File, error) {
+	// Open ~/stamus/config.json
+	f, err := cm.fs.OpenFile(filepath.Join(app.ConfigFolder, "config.json"), os.O_RDONLY, 0o755)
+	if err != nil {
+		return nil, err
+	}
+
+	return f, nil
+}
+
+func (cm *ConfigManager) GetConfig() (*Config, error) {
 	// Open or create ~/stamus/config.json
-	file, err := tryGetStamusConfigFile()
+	file, err := cm.tryGetConfigFile()
 	if err != nil {
 		return &Config{}, nil
 	}
 	// Read the file contents
-	bytes, err := ioReadAll(file)
+	bytes, err := cm.fs.ReadAll(file)
 	if err != nil {
 		return &Config{}, nil
 	}
@@ -64,4 +55,14 @@ func GetStamusConfig() (*Config, error) {
 	}
 
 	return config, nil
+}
+
+// Backward-compatible package-level functions
+
+func getOrCreateStamusConfigFile() (*os.File, error) {
+	return DefaultManager.getOrCreateConfigFile()
+}
+
+func GetStamusConfig() (*Config, error) {
+	return DefaultManager.GetConfig()
 }
