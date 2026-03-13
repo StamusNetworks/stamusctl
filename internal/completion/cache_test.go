@@ -30,10 +30,10 @@ func TestCache_Expiration(t *testing.T) {
 
 	// Test that expired entries are not returned
 	testData := []string{"item1"}
-	cache.Set("expired_key", testData, 1*time.Millisecond)
+	cache.Set("expired_key", testData, 50*time.Millisecond)
 
 	// Wait for expiration
-	time.Sleep(5 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 
 	_, found := cache.Get("expired_key")
 	if found {
@@ -64,11 +64,11 @@ func TestCache_Cleanup(t *testing.T) {
 		entries: make(map[string]cacheEntry),
 	}
 
-	cache.Set("expired", []string{"a"}, 1*time.Millisecond)
+	cache.Set("expired", []string{"a"}, 50*time.Millisecond)
 	cache.Set("valid", []string{"b"}, 1*time.Hour)
 
 	// Wait for first entry to expire
-	time.Sleep(5 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 
 	cache.Cleanup()
 

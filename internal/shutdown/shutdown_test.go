@@ -176,7 +176,7 @@ func TestManagerContextCancelledOnShutdown(t *testing.T) {
 
 	// Start shutdown in background
 	go func() {
-		time.Sleep(10 * time.Millisecond)
+		time.Sleep(50 * time.Millisecond)
 		m.Shutdown()
 	}()
 
@@ -286,7 +286,7 @@ func TestOperationTrackerWaitTimeout(t *testing.T) {
 	// Start an operation that never completes
 	_, _ = tracker.Start(context.Background(), "stuck-op")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
 	defer cancel()
 
 	err := tracker.WaitForCompletion(ctx)
