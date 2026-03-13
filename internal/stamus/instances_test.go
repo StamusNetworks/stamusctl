@@ -14,12 +14,38 @@ import (
 	"github.com/spf13/afero"
 )
 
+// mockContainerLister implements ContainerLister for testing.
+type mockContainerLister struct {
+	fn func(string) ([]types.Container, error)
+}
+
+func (m *mockContainerLister) GetContainersByProject(projectName string) ([]types.Container, error) {
+	if m.fn != nil {
+		return m.fn(projectName)
+	}
+	return nil, nil
+}
+
 func setupTestFS() {
 	app.FS = afero.NewMemMapFs()
 	app.ConfigFolder = "/test-config"
 }
 
-func setupTestConfig(t *testing.T, instances Instances) {
+func newTestConfigManager(data []byte, containerLister ContainerLister) *ConfigManager {
+	return NewConfigManager(&mockFileOpener{
+		openFileFn: func(name string, flag int, perm os.FileMode) (*os.File, error) {
+			return nil, nil
+		},
+		readAllFn: func(_ io.Reader) ([]byte, error) {
+			return data, nil
+		},
+		mkdirAllFn: func(path string, perm os.FileMode) error {
+			return nil
+		},
+	}, containerLister)
+}
+
+func setupTestConfig(t *testing.T, instances Instances) *ConfigManager {
 	setupTestFS()
 
 	// Create config directory
@@ -42,34 +68,22 @@ func setupTestConfig(t *testing.T, instances Instances) {
 		t.Fatalf("Failed to write config file: %v", err)
 	}
 
-	// Mock osOpenFile to read from memory FS
-	osOpenFile = func(name string, flag int, perm os.FileMode) (*os.File, error) {
-		_, err := app.FS.Open(name)
-		if err != nil {
-			return nil, err
-		}
-		// Return nil file but read content via ioReadAll mock
-		return nil, nil
-	}
-
-	ioReadAll = func(_ io.Reader) ([]byte, error) {
-		return data, nil
-	}
+	return newTestConfigManager(data, nil)
 }
 
 func TestGetInstances_EmptyConfig(t *testing.T) {
-	setupTestConfig(t, nil)
+	cm := setupTestConfig(t, nil)
 
-	instances, err := GetInstances()
+	instances, err := cm.GetInstances()
 
 	assert.Equal(t, err, nil)
 	assert.Equal(t, len(instances), 0)
 }
 
 func TestGetInstances_EmptyInstances(t *testing.T) {
-	setupTestConfig(t, make(Instances))
+	cm := setupTestConfig(t, make(Instances))
 
-	instances, err := GetInstances()
+	instances, err := cm.GetInstances()
 
 	assert.Equal(t, err, nil)
 	assert.Equal(t, len(instances), 0)
@@ -77,12 +91,17 @@ func TestGetInstances_EmptyInstances(t *testing.T) {
 
 func TestGetInstances_WithUpInstance(t *testing.T) {
 	testFolder := "/test/instance1"
-	setupTestConfig(t, Instances{
-		Folder(testFolder): Infos{
-			Project: "test-project",
-			Version: "v1.0.0",
+	setupTestFS()
+
+	config := &Config{
+		Instances: Instances{
+			Folder(testFolder): Infos{
+				Project: "test-project",
+				Version: "v1.0.0",
+			},
 		},
-	})
+	}
+	data, _ := json.Marshal(config)
 
 	// Create compose file in memory FS
 	err := app.FS.MkdirAll(testFolder, 0755)
@@ -94,17 +113,16 @@ func TestGetInstances_WithUpInstance(t *testing.T) {
 		t.Fatalf("Failed to create compose file: %v", err)
 	}
 
-	// Mock getContainersByProject to return running containers
-	originalFunc := getContainersByProject
-	defer func() { getContainersByProject = originalFunc }()
-	getContainersByProject = func(projectName string) ([]types.Container, error) {
-		return []types.Container{
-			{State: "running", Status: "Up 10 minutes"},
-			{State: "running", Status: "Up 5 minutes"},
-		}, nil
-	}
+	cm := newTestConfigManager(data, &mockContainerLister{
+		fn: func(projectName string) ([]types.Container, error) {
+			return []types.Container{
+				{State: "running", Status: "Up 10 minutes"},
+				{State: "running", Status: "Up 5 minutes"},
+			}, nil
+		},
+	})
 
-	instances, err := GetInstances()
+	instances, err := cm.GetInstances()
 
 	assert.Equal(t, err, nil)
 	assert.Equal(t, len(instances), 1)
@@ -119,12 +137,17 @@ func TestGetInstances_WithUpInstance(t *testing.T) {
 
 func TestGetInstances_WithDownInstance(t *testing.T) {
 	testFolder := "/test/instance2"
-	setupTestConfig(t, Instances{
-		Folder(testFolder): Infos{
-			Project: "test-project",
-			Version: "v2.0.0",
+	setupTestFS()
+
+	config := &Config{
+		Instances: Instances{
+			Folder(testFolder): Infos{
+				Project: "test-project",
+				Version: "v2.0.0",
+			},
 		},
-	})
+	}
+	data, _ := json.Marshal(config)
 
 	// Create compose file in memory FS
 	err := app.FS.MkdirAll(testFolder, 0755)
@@ -136,16 +159,15 @@ func TestGetInstances_WithDownInstance(t *testing.T) {
 		t.Fatalf("Failed to create compose file: %v", err)
 	}
 
-	// Mock getContainersByProject to return stopped containers
-	originalFunc := getContainersByProject
-	defer func() { getContainersByProject = originalFunc }()
-	getContainersByProject = func(projectName string) ([]types.Container, error) {
-		return []types.Container{
-			{State: "exited", Status: "Exited (0) 5 minutes ago"},
-		}, nil
-	}
+	cm := newTestConfigManager(data, &mockContainerLister{
+		fn: func(projectName string) ([]types.Container, error) {
+			return []types.Container{
+				{State: "exited", Status: "Exited (0) 5 minutes ago"},
+			}, nil
+		},
+	})
 
-	instances, err := GetInstances()
+	instances, err := cm.GetInstances()
 
 	assert.Equal(t, err, nil)
 	assert.Equal(t, len(instances), 1)
@@ -161,10 +183,15 @@ func TestGetInstances_WithDownInstance(t *testing.T) {
 func TestGetInstances_MixedUpDownInstances(t *testing.T) {
 	testFolder1 := "/test/up-instance"
 	testFolder2 := "/test/down-instance"
-	setupTestConfig(t, Instances{
-		Folder(testFolder1): Infos{Project: "up-project", Version: "v1"},
-		Folder(testFolder2): Infos{Project: "down-project", Version: "v2"},
-	})
+	setupTestFS()
+
+	config := &Config{
+		Instances: Instances{
+			Folder(testFolder1): Infos{Project: "up-project", Version: "v1"},
+			Folder(testFolder2): Infos{Project: "down-project", Version: "v2"},
+		},
+	}
+	data, _ := json.Marshal(config)
 
 	// Create compose files
 	for _, folder := range []string{testFolder1, testFolder2} {
@@ -178,21 +205,20 @@ func TestGetInstances_MixedUpDownInstances(t *testing.T) {
 		}
 	}
 
-	// Mock getContainersByProject
-	originalFunc := getContainersByProject
-	defer func() { getContainersByProject = originalFunc }()
-	getContainersByProject = func(projectName string) ([]types.Container, error) {
-		if projectName == "up-project" {
+	cm := newTestConfigManager(data, &mockContainerLister{
+		fn: func(projectName string) ([]types.Container, error) {
+			if projectName == "up-project" {
+				return []types.Container{
+					{State: "running", Status: "Up 5 minutes"},
+				}, nil
+			}
 			return []types.Container{
-				{State: "running", Status: "Up 5 minutes"},
+				{State: "exited", Status: "Exited (0)"},
 			}, nil
-		}
-		return []types.Container{
-			{State: "exited", Status: "Exited (0)"},
-		}, nil
-	}
+		},
+	})
 
-	instances, err := GetInstances()
+	instances, err := cm.GetInstances()
 
 	assert.Equal(t, err, nil)
 	assert.Equal(t, len(instances), 2)
@@ -204,9 +230,14 @@ func TestGetInstances_MixedUpDownInstances(t *testing.T) {
 
 func TestGetInstances_DockerAPIError(t *testing.T) {
 	testFolder := "/test/instance3"
-	setupTestConfig(t, Instances{
-		Folder(testFolder): Infos{Project: "test", Version: "v1"},
-	})
+	setupTestFS()
+
+	config := &Config{
+		Instances: Instances{
+			Folder(testFolder): Infos{Project: "test", Version: "v1"},
+		},
+	}
+	data, _ := json.Marshal(config)
 
 	// Create compose file
 	err := app.FS.MkdirAll(testFolder, 0755)
@@ -218,14 +249,13 @@ func TestGetInstances_DockerAPIError(t *testing.T) {
 		t.Fatalf("Failed to create compose file: %v", err)
 	}
 
-	// Mock getContainersByProject to return error
-	originalFunc := getContainersByProject
-	defer func() { getContainersByProject = originalFunc }()
-	getContainersByProject = func(projectName string) ([]types.Container, error) {
-		return nil, errors.New("docker daemon not running")
-	}
+	cm := newTestConfigManager(data, &mockContainerLister{
+		fn: func(projectName string) ([]types.Container, error) {
+			return nil, errors.New("docker daemon not running")
+		},
+	})
 
-	instances, err := GetInstances()
+	instances, err := cm.GetInstances()
 
 	// With graceful degradation, error doesn't propagate - instance is marked as down
 	assert.Equal(t, err, nil)
@@ -237,16 +267,12 @@ func TestGetInstances_DockerAPIError(t *testing.T) {
 
 func TestGetInstances_NonExistentComposeFile(t *testing.T) {
 	testFolder := "/test/no-compose"
-	setupTestConfig(t, Instances{
+	cm := setupTestConfig(t, Instances{
 		Folder(testFolder): Infos{Project: "test", Version: "v1"},
 	})
 
 	// Don't create compose file - it should skip this instance
-
-	// The test runs in memory FS so there's no compose file
-	// The instance should be removed from config
-
-	instances, err := GetInstances()
+	instances, err := cm.GetInstances()
 
 	assert.Equal(t, err, nil)
 	assert.Equal(t, len(instances), 0)
@@ -255,15 +281,16 @@ func TestGetInstances_NonExistentComposeFile(t *testing.T) {
 func TestGetInstances_ConfigError(t *testing.T) {
 	setupTestFS()
 
-	// Mock osOpenFile to return error
-	osOpenFile = func(name string, flag int, perm os.FileMode) (*os.File, error) {
-		return nil, errors.New("config read error")
-	}
+	cm := NewConfigManager(&mockFileOpener{
+		openFileFn: func(name string, flag int, perm os.FileMode) (*os.File, error) {
+			return nil, errors.New("config read error")
+		},
+	}, nil)
 
-	// GetStamusConfig returns empty config on error, not error
-	instances, err := GetInstances()
+	// GetConfig returns empty config on error, not error
+	instances, err := cm.GetInstances()
 
-	// Since GetStamusConfig returns empty config on error, GetInstances succeeds with empty result
+	// Since GetConfig returns empty config on error, GetInstances succeeds with empty result
 	assert.Equal(t, err, nil)
 	assert.Equal(t, len(instances), 0)
 }
@@ -283,15 +310,9 @@ func TestAddInstance(t *testing.T) {
 		t.Fatalf("Failed to create config file: %v", err)
 	}
 
-	// Mock osOpenFile for reading
-	osOpenFile = func(name string, flag int, perm os.FileMode) (*os.File, error) {
-		return nil, nil
-	}
-	ioReadAll = func(_ io.Reader) ([]byte, error) {
-		return []byte("{}"), nil
-	}
+	cm := newTestConfigManager([]byte("{}"), nil)
 
-	err = AddInstance("/test/folder", "my-project", "v1.0.0")
+	err = cm.AddInstance("/test/folder", "my-project", "v1.0.0")
 
 	// AddInstance uses setStamusConfig which writes to real FS via os.OpenFile
 	// In test env, this will fail as we're mocking reads but not writes
@@ -303,15 +324,9 @@ func TestRemoveInstance_NilInstances(t *testing.T) {
 	setupTestFS()
 	app.ConfigFolder = "/test-remove"
 
-	// Mock osOpenFile to return empty config
-	osOpenFile = func(name string, flag int, perm os.FileMode) (*os.File, error) {
-		return nil, nil
-	}
-	ioReadAll = func(_ io.Reader) ([]byte, error) {
-		return []byte("{}"), nil
-	}
+	cm := newTestConfigManager([]byte("{}"), nil)
 
-	err := RemoveInstance("/nonexistent/folder")
+	err := cm.RemoveInstance("/nonexistent/folder")
 
 	// Should succeed when instances is nil
 	assert.Equal(t, err, nil)
@@ -443,12 +458,17 @@ func TestCalculateStatus_UnhealthyTakesPrecedence(t *testing.T) {
 
 func TestGetInstances_WithPartialInstance(t *testing.T) {
 	testFolder := "/test/partial"
-	setupTestConfig(t, Instances{
-		Folder(testFolder): Infos{
-			Project: "partial-project",
-			Version: "v1.0.0",
+	setupTestFS()
+
+	config := &Config{
+		Instances: Instances{
+			Folder(testFolder): Infos{
+				Project: "partial-project",
+				Version: "v1.0.0",
+			},
 		},
-	})
+	}
+	data, _ := json.Marshal(config)
 
 	err := app.FS.MkdirAll(testFolder, 0755)
 	if err != nil {
@@ -459,18 +479,17 @@ func TestGetInstances_WithPartialInstance(t *testing.T) {
 		t.Fatalf("Failed to create compose file: %v", err)
 	}
 
-	// Mock getContainersByProject to return partial containers (some running, some not)
-	originalFunc := getContainersByProject
-	defer func() { getContainersByProject = originalFunc }()
-	getContainersByProject = func(projectName string) ([]types.Container, error) {
-		return []types.Container{
-			{State: "running", Status: "Up 10 minutes"},
-			{State: "exited", Status: "Exited (0) 5 minutes ago"},
-			{State: "running", Status: "Up 3 minutes"},
-		}, nil
-	}
+	cm := newTestConfigManager(data, &mockContainerLister{
+		fn: func(projectName string) ([]types.Container, error) {
+			return []types.Container{
+				{State: "running", Status: "Up 10 minutes"},
+				{State: "exited", Status: "Exited (0) 5 minutes ago"},
+				{State: "running", Status: "Up 3 minutes"},
+			}, nil
+		},
+	})
 
-	instances, err := GetInstances()
+	instances, err := cm.GetInstances()
 
 	assert.Equal(t, err, nil)
 	assert.Equal(t, len(instances), 1)
@@ -483,12 +502,17 @@ func TestGetInstances_WithPartialInstance(t *testing.T) {
 
 func TestGetInstances_WithUnhealthyInstance(t *testing.T) {
 	testFolder := "/test/unhealthy"
-	setupTestConfig(t, Instances{
-		Folder(testFolder): Infos{
-			Project: "unhealthy-project",
-			Version: "v1.0.0",
+	setupTestFS()
+
+	config := &Config{
+		Instances: Instances{
+			Folder(testFolder): Infos{
+				Project: "unhealthy-project",
+				Version: "v1.0.0",
+			},
 		},
-	})
+	}
+	data, _ := json.Marshal(config)
 
 	err := app.FS.MkdirAll(testFolder, 0755)
 	if err != nil {
@@ -499,17 +523,16 @@ func TestGetInstances_WithUnhealthyInstance(t *testing.T) {
 		t.Fatalf("Failed to create compose file: %v", err)
 	}
 
-	// Mock getContainersByProject to return unhealthy containers
-	originalFunc := getContainersByProject
-	defer func() { getContainersByProject = originalFunc }()
-	getContainersByProject = func(projectName string) ([]types.Container, error) {
-		return []types.Container{
-			{State: "running", Status: "Up 10 minutes (healthy)"},
-			{State: "running", Status: "Up 5 minutes (unhealthy)"},
-		}, nil
-	}
+	cm := newTestConfigManager(data, &mockContainerLister{
+		fn: func(projectName string) ([]types.Container, error) {
+			return []types.Container{
+				{State: "running", Status: "Up 10 minutes (healthy)"},
+				{State: "running", Status: "Up 5 minutes (unhealthy)"},
+			}, nil
+		},
+	})
 
-	instances, err := GetInstances()
+	instances, err := cm.GetInstances()
 
 	assert.Equal(t, err, nil)
 	assert.Equal(t, len(instances), 1)
@@ -525,22 +548,16 @@ func TestGetProjectName_Found(t *testing.T) {
 	setupTestFS()
 	app.ConfigFolder = "/test-project-name"
 
-	// Mock config with instances
-	osOpenFile = func(name string, flag int, perm os.FileMode) (*os.File, error) {
-		return nil, nil
-	}
-	ioReadAll = func(_ io.Reader) ([]byte, error) {
-		return []byte(`{
-			"instances": {
-				"/test/config": {
-					"project": "my-project",
-					"version": "1.0.0"
-				}
+	cm := newTestConfigManager([]byte(`{
+		"instances": {
+			"/test/config": {
+				"project": "my-project",
+				"version": "1.0.0"
 			}
-		}`), nil
-	}
+		}
+	}`), nil)
 
-	result := GetProjectName("/test/config")
+	result := cm.GetProjectName("/test/config")
 	assert.Equal(t, "my-project", result)
 }
 
@@ -548,22 +565,16 @@ func TestGetProjectName_NotFound(t *testing.T) {
 	setupTestFS()
 	app.ConfigFolder = "/test-project-name-2"
 
-	// Mock config with instances
-	osOpenFile = func(name string, flag int, perm os.FileMode) (*os.File, error) {
-		return nil, nil
-	}
-	ioReadAll = func(_ io.Reader) ([]byte, error) {
-		return []byte(`{
-			"instances": {
-				"/other/config": {
-					"project": "other-project",
-					"version": "1.0.0"
-				}
+	cm := newTestConfigManager([]byte(`{
+		"instances": {
+			"/other/config": {
+				"project": "other-project",
+				"version": "1.0.0"
 			}
-		}`), nil
-	}
+		}
+	}`), nil)
 
-	result := GetProjectName("/nonexistent/config")
+	result := cm.GetProjectName("/nonexistent/config")
 	assert.Equal(t, "", result)
 }
 
@@ -571,14 +582,8 @@ func TestGetProjectName_EmptyInstances(t *testing.T) {
 	setupTestFS()
 	app.ConfigFolder = "/test-project-name-3"
 
-	// Mock empty config
-	osOpenFile = func(name string, flag int, perm os.FileMode) (*os.File, error) {
-		return nil, nil
-	}
-	ioReadAll = func(_ io.Reader) ([]byte, error) {
-		return []byte(`{}`), nil
-	}
+	cm := newTestConfigManager([]byte(`{}`), nil)
 
-	result := GetProjectName("/test/config")
+	result := cm.GetProjectName("/test/config")
 	assert.Equal(t, "", result)
 }
