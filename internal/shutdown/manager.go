@@ -76,7 +76,9 @@ func NewManager(logger *zap.Logger) *Manager {
 
 // SetTimeout configures the maximum time allowed for graceful shutdown.
 func (m *Manager) SetTimeout(d time.Duration) {
+	m.mu.Lock()
 	m.timeout = d
+	m.mu.Unlock()
 }
 
 // Context returns a context that is cancelled when shutdown begins.
@@ -129,7 +131,7 @@ func (m *Manager) ListenForSignals() int {
 			if sig == syscall.SIGINT {
 				if now-lastTime < int64(2*time.Second) {
 					count := m.forceQuitCount.Add(1)
-					if count >= 1 && m.IsShuttingDown() {
+					if count >= 2 && m.IsShuttingDown() {
 						m.logger.Warn("Received second interrupt signal, forcing immediate exit")
 						return ExitSIGINT
 					}
@@ -170,13 +172,17 @@ func (m *Manager) Shutdown() {
 		return
 	}
 
-	m.logger.Info("Starting graceful shutdown", zap.Duration("timeout", m.timeout))
+	m.mu.RLock()
+	timeout := m.timeout
+	m.mu.RUnlock()
+
+	m.logger.Info("Starting graceful shutdown", zap.Duration("timeout", timeout))
 
 	// Signal all operations to stop
 	m.cancel()
 
 	// Create timeout context for cleanup
-	ctx, cancel := context.WithTimeout(context.Background(), m.timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	// Execute handlers in priority order
