@@ -12,32 +12,59 @@ import (
 	"github.com/go-playground/assert/v2"
 )
 
+// mockFileOpener implements FileOpener for testing.
+type mockFileOpener struct {
+	mkdirAllFn func(string, os.FileMode) error
+	openFileFn func(string, int, os.FileMode) (*os.File, error)
+	readAllFn  func(io.Reader) ([]byte, error)
+}
+
+func (m *mockFileOpener) MkdirAll(path string, perm os.FileMode) error {
+	if m.mkdirAllFn != nil {
+		return m.mkdirAllFn(path, perm)
+	}
+	return nil
+}
+
+func (m *mockFileOpener) OpenFile(name string, flag int, perm os.FileMode) (*os.File, error) {
+	if m.openFileFn != nil {
+		return m.openFileFn(name, flag, perm)
+	}
+	return nil, nil
+}
+
+func (m *mockFileOpener) ReadAll(r io.Reader) ([]byte, error) {
+	if m.readAllFn != nil {
+		return m.readAllFn(r)
+	}
+	return nil, nil
+}
+
 func TestGetOrCreateStamusConfigFile(t *testing.T) {
 	app.ConfigFolder = "~"
 
 	testPath := ""
 	var testPerm os.FileMode
 
-	osMkdirAll = func(path string, perm os.FileMode) error {
-		testPath = path
-		testPerm = perm
-
-		return nil
-	}
-
 	testName := ""
 	testFlag := 0
 	var testOsOpenFilePerm os.FileMode
 
-	osOpenFile = func(name string, flag int, perm os.FileMode) (*os.File, error) {
-		testName = name
-		testFlag = flag
-		testOsOpenFilePerm = perm
+	cm := NewConfigManager(&mockFileOpener{
+		mkdirAllFn: func(path string, perm os.FileMode) error {
+			testPath = path
+			testPerm = perm
+			return nil
+		},
+		openFileFn: func(name string, flag int, perm os.FileMode) (*os.File, error) {
+			testName = name
+			testFlag = flag
+			testOsOpenFilePerm = perm
+			return nil, nil
+		},
+	}, nil)
 
-		return nil, nil
-	}
-
-	getOrCreateStamusConfigFile()
+	cm.getOrCreateConfigFile()
 
 	assert.Equal(t, testPath, "~")
 	assert.Equal(t, testPerm.String(), "-rwxr-xr-x")
@@ -53,14 +80,15 @@ func TestGetOrCreateStamusConfigFileErrorMkdir(t *testing.T) {
 	testPath := ""
 	var testPerm os.FileMode
 
-	osMkdirAll = func(path string, perm os.FileMode) error {
-		testPath = path
-		testPerm = perm
+	cm := NewConfigManager(&mockFileOpener{
+		mkdirAllFn: func(path string, perm os.FileMode) error {
+			testPath = path
+			testPerm = perm
+			return errors.New("mock error")
+		},
+	}, nil)
 
-		return errors.New("mock error")
-	}
-
-	_, err := getOrCreateStamusConfigFile()
+	_, err := cm.getOrCreateConfigFile()
 
 	assert.Equal(t, testPath, "~")
 	assert.Equal(t, testPerm.String(), "-rwxr-xr-x")
@@ -74,26 +102,25 @@ func TestGetOrCreateStamusConfigFileErrorOpen(t *testing.T) {
 	testPath := ""
 	var testPerm os.FileMode
 
-	osMkdirAll = func(path string, perm os.FileMode) error {
-		testPath = path
-		testPerm = perm
-
-		return nil
-	}
-
 	testName := ""
 	testFlag := 0
 	var testOsOpenFilePerm os.FileMode
 
-	osOpenFile = func(name string, flag int, perm os.FileMode) (*os.File, error) {
-		testName = name
-		testFlag = flag
-		testOsOpenFilePerm = perm
+	cm := NewConfigManager(&mockFileOpener{
+		mkdirAllFn: func(path string, perm os.FileMode) error {
+			testPath = path
+			testPerm = perm
+			return nil
+		},
+		openFileFn: func(name string, flag int, perm os.FileMode) (*os.File, error) {
+			testName = name
+			testFlag = flag
+			testOsOpenFilePerm = perm
+			return nil, errors.New("mock error")
+		},
+	}, nil)
 
-		return nil, errors.New("mock error")
-	}
-
-	_, err := getOrCreateStamusConfigFile()
+	_, err := cm.getOrCreateConfigFile()
 
 	assert.Equal(t, testPath, "~")
 	assert.Equal(t, testPerm.String(), "-rwxr-xr-x")
@@ -119,19 +146,19 @@ func TestGetStamusConfig(t *testing.T) {
 	testFlag := 0
 	var testOsOpenFilePerm os.FileMode
 
-	osOpenFile = func(name string, flag int, perm os.FileMode) (*os.File, error) {
-		testName = name
-		testFlag = flag
-		testOsOpenFilePerm = perm
+	cm := NewConfigManager(&mockFileOpener{
+		openFileFn: func(name string, flag int, perm os.FileMode) (*os.File, error) {
+			testName = name
+			testFlag = flag
+			testOsOpenFilePerm = perm
+			return nil, nil
+		},
+		readAllFn: func(_ io.Reader) ([]byte, error) {
+			return json.Marshal(testConfig)
+		},
+	}, nil)
 
-		return nil, nil
-	}
-
-	ioReadAll = func(_ io.Reader) ([]byte, error) {
-		return json.Marshal(testConfig)
-	}
-
-	config, err := GetStamusConfig()
+	config, err := cm.GetConfig()
 
 	assert.Equal(t, testName, "~/config.json")
 	assert.Equal(t, testFlag, os.O_RDONLY)
@@ -143,31 +170,21 @@ func TestGetStamusConfig(t *testing.T) {
 
 func TestGetStamusConfigErrorOpenFile(t *testing.T) {
 	app.ConfigFolder = "~"
-	testConfig := &Config{
-		Registries: Registries{
-			"test": Logins{
-				"foo": "bar",
-			},
-		},
-	}
 
 	testName := ""
 	testFlag := 0
 	var testOsOpenFilePerm os.FileMode
 
-	osOpenFile = func(name string, flag int, perm os.FileMode) (*os.File, error) {
-		testName = name
-		testFlag = flag
-		testOsOpenFilePerm = perm
+	cm := NewConfigManager(&mockFileOpener{
+		openFileFn: func(name string, flag int, perm os.FileMode) (*os.File, error) {
+			testName = name
+			testFlag = flag
+			testOsOpenFilePerm = perm
+			return nil, errors.New("mock error")
+		},
+	}, nil)
 
-		return nil, errors.New("mock error")
-	}
-
-	ioReadAll = func(_ io.Reader) ([]byte, error) {
-		return json.Marshal(testConfig)
-	}
-
-	config, err := GetStamusConfig()
+	config, err := cm.GetConfig()
 
 	assert.Equal(t, testName, "~/config.json")
 	assert.Equal(t, testFlag, os.O_RDONLY)
@@ -184,19 +201,19 @@ func TestGetStamusConfigErrorReadAll(t *testing.T) {
 	testFlag := 0
 	var testOsOpenFilePerm os.FileMode
 
-	osOpenFile = func(name string, flag int, perm os.FileMode) (*os.File, error) {
-		testName = name
-		testFlag = flag
-		testOsOpenFilePerm = perm
+	cm := NewConfigManager(&mockFileOpener{
+		openFileFn: func(name string, flag int, perm os.FileMode) (*os.File, error) {
+			testName = name
+			testFlag = flag
+			testOsOpenFilePerm = perm
+			return nil, nil
+		},
+		readAllFn: func(_ io.Reader) ([]byte, error) {
+			return []byte(""), errors.New("mock error")
+		},
+	}, nil)
 
-		return nil, nil
-	}
-
-	ioReadAll = func(_ io.Reader) ([]byte, error) {
-		return []byte(""), errors.New("mock error")
-	}
-
-	config, err := GetStamusConfig()
+	config, err := cm.GetConfig()
 
 	assert.Equal(t, testName, "~/config.json")
 	assert.Equal(t, testFlag, os.O_RDONLY)
@@ -213,19 +230,19 @@ func TestGetStamusConfigErrorUnvalidConfig(t *testing.T) {
 	testFlag := 0
 	var testOsOpenFilePerm os.FileMode
 
-	osOpenFile = func(name string, flag int, perm os.FileMode) (*os.File, error) {
-		testName = name
-		testFlag = flag
-		testOsOpenFilePerm = perm
+	cm := NewConfigManager(&mockFileOpener{
+		openFileFn: func(name string, flag int, perm os.FileMode) (*os.File, error) {
+			testName = name
+			testFlag = flag
+			testOsOpenFilePerm = perm
+			return nil, nil
+		},
+		readAllFn: func(_ io.Reader) ([]byte, error) {
+			return []byte("foobar"), nil
+		},
+	}, nil)
 
-		return nil, nil
-	}
-
-	ioReadAll = func(_ io.Reader) ([]byte, error) {
-		return []byte("foobar"), nil
-	}
-
-	config, err := GetStamusConfig()
+	config, err := cm.GetConfig()
 
 	assert.Equal(t, testName, "~/config.json")
 	assert.Equal(t, testFlag, os.O_RDONLY)
@@ -242,19 +259,19 @@ func TestGetStamusConfigErrorEmptyConfig(t *testing.T) {
 	testFlag := 0
 	var testOsOpenFilePerm os.FileMode
 
-	osOpenFile = func(name string, flag int, perm os.FileMode) (*os.File, error) {
-		testName = name
-		testFlag = flag
-		testOsOpenFilePerm = perm
+	cm := NewConfigManager(&mockFileOpener{
+		openFileFn: func(name string, flag int, perm os.FileMode) (*os.File, error) {
+			testName = name
+			testFlag = flag
+			testOsOpenFilePerm = perm
+			return nil, nil
+		},
+		readAllFn: func(_ io.Reader) ([]byte, error) {
+			return []byte(""), nil
+		},
+	}, nil)
 
-		return nil, nil
-	}
-
-	ioReadAll = func(_ io.Reader) ([]byte, error) {
-		return []byte(""), nil
-	}
-
-	config, err := GetStamusConfig()
+	config, err := cm.GetConfig()
 
 	assert.Equal(t, testName, "~/config.json")
 	assert.Equal(t, testFlag, os.O_RDONLY)
