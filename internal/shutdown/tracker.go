@@ -47,16 +47,19 @@ func (t *OperationTracker) Start(ctx context.Context, operationID string) (conte
 		zap.String("operation", operationID),
 		zap.Int64("active_count", count))
 
+	var once sync.Once
 	done := func() {
-		t.mu.Lock()
-		delete(t.operations, operationID)
-		t.mu.Unlock()
+		once.Do(func() {
+			t.mu.Lock()
+			delete(t.operations, operationID)
+			t.mu.Unlock()
 
-		t.wg.Done()
-		newCount := t.count.Add(-1)
-		t.logger.Debug("Operation completed",
-			zap.String("operation", operationID),
-			zap.Int64("active_count", newCount))
+			t.wg.Done()
+			newCount := t.count.Add(-1)
+			t.logger.Debug("Operation completed",
+				zap.String("operation", operationID),
+				zap.Int64("active_count", newCount))
+		})
 	}
 
 	return opCtx, done

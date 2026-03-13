@@ -219,11 +219,17 @@ func (f *Config) extractParamsWithTracking(visited map[string]bool, depth int) (
 			}
 
 			// Write to temp file for processing
-			// Add process ID to prevent concurrent collisions
-			tmpFile := filepath.Join(os.TempDir(), fmt.Sprintf("remote-include-%s-%d.yaml", hashURL(include), os.Getpid()))
-			if err := afero.WriteFile(app.FS, tmpFile, content, 0644); err != nil {
+			f, err := afero.TempFile(app.FS, os.TempDir(), "remote-include-*.yaml")
+			if err != nil {
 				return nil, nil, err
 			}
+			tmpFile := f.Name()
+			if _, err := f.Write(content); err != nil {
+				f.Close()
+				app.FS.Remove(tmpFile)
+				return nil, nil, err
+			}
+			f.Close()
 			defer app.FS.Remove(tmpFile)
 
 			file, err = CreateFileFromPath(tmpFile)
