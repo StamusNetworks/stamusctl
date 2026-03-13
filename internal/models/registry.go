@@ -76,7 +76,7 @@ func (r *RegistryInfo) TryPullConfig(ctx context.Context, cli *client.Client, im
 		}
 		encodedJSON, err := json.Marshal(authConfig)
 		if err != nil {
-			return ErrMarshalingAuthConfig
+			return fmt.Errorf("%w: %v", ErrMarshalingAuthConfig, err)
 		}
 		authStr := base64.URLEncoding.EncodeToString(encodedJSON)
 		pullOptions = image.PullOptions{
@@ -87,7 +87,7 @@ func (r *RegistryInfo) TryPullConfig(ctx context.Context, cli *client.Client, im
 	// Pull image
 	out, err := cli.ImagePull(ctx, imageURL, pullOptions)
 	if err != nil {
-		return ErrPullingImage
+		return fmt.Errorf("%w: %v", ErrPullingImage, err)
 	}
 	defer out.Close()
 
@@ -137,13 +137,14 @@ func (r *RegistryInfo) PullConfigAndUnwrap(destPath string, project, version str
 		}
 		if errors.Is(err, ErrPullingImage) {
 			logger.Info("Error pulling image")
+			return err
 		}
 	}
 
 	// Run container
 	resp, err := cli.ContainerCreate(ctx, &container.Config{
 		Image: imageURL,
-		Cmd:   []string{"sleep 60"},
+		Cmd:   []string{"sleep", "60"},
 	}, nil, nil, nil, "")
 	if err != nil {
 		logger.Debug("Container creation failed")
@@ -388,8 +389,8 @@ func setCachedRemoteInclude(url string, content []byte) error {
 		return err
 	}
 
-	// Write file (reuse existing afero patterns)
-	return afero.WriteFile(app.FS, cachePath, content, 0644)
+	// Write file with restricted permissions (may contain registry credentials)
+	return afero.WriteFile(app.FS, cachePath, content, 0600)
 }
 
 // pullRemoteInclude fetches a single file from registry
