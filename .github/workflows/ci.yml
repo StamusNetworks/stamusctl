@@ -23,6 +23,9 @@ jobs:
         name: Docker Build
         uses: ./.github/workflows/docker.yml
         needs: [tests]
+        permissions:
+            contents: read
+            packages: write
 
     functional-tests:
         name: Functional Tests
