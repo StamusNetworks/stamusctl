@@ -1,3 +1,4 @@
+version: "2"
 linters:
     # Default set of linters.
     # The value can be: `standard`, `all`, `none`, or `fast`.
