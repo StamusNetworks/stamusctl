@@ -12,6 +12,7 @@ import (
 	"stamus-ctl/cmd/ctl/completion"
 	"stamus-ctl/cmd/ctl/compose"
 	"stamus-ctl/cmd/ctl/config"
+	"stamus-ctl/cmd/ctl/nix"
 	tmpl "stamus-ctl/cmd/ctl/template"
 	"stamus-ctl/internal/logging"
 	"stamus-ctl/internal/models"
@@ -115,6 +116,7 @@ Use "stamusctl [command] --help" for more information about a command.`,
 	cmd.AddCommand(config.ConfigCmd())
 	cmd.AddCommand(tmpl.TemplateCmd())
 	cmd.AddCommand(backup.BackupCmd())
+	cmd.AddCommand(nix.NixCmd())
 	cmd.AddCommand(completion.CompletionCmd())
 	return cmd
 }
