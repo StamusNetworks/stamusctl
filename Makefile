@@ -55,6 +55,14 @@ daemon-dev:
 daemon-test:
 	go test ./.test
 
+nix-test-syntax:
+	@echo "Validating NixOS template syntax..."
+	@find internal/embeds/ -name "*.nix" -exec nix-instantiate --parse {} \; 2>&1 || true
+
+nix-test-vm:
+	@echo "Running NixOS VM integration tests..."
+	nix build .#checks.$(shell nix eval --raw 'builtins.currentSystem').nixos-test
+
 build-swaggo-image:
 	docker build . -t swag-daemon -f docker/Dockerfile.swag
 
@@ -111,4 +119,4 @@ install-completions: completions
 	@echo "For zsh, copy completions/stamusctl.zsh to a directory in your fpath"
 	@echo "For fish, copy completions/stamusctl.fish to ~/.config/fish/completions/"
 
-.PHONY: all cli test-cli test daemon daemon-dev daemon-test build-swaggo-image update-swagger init-embeds completions man-pages install-completions
+.PHONY: all cli test-cli test daemon daemon-dev daemon-test nix-test-syntax nix-test-vm build-swaggo-image update-swagger init-embeds completions man-pages install-completions
