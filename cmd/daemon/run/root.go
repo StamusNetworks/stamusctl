@@ -84,7 +84,7 @@ func RunCmd() *cobra.Command {
 
 			span := setupLogging(shutdownManager.Context())
 			logger := getLogger(span)
-			r := SetupRouter(logger, shutdownManager.Context())
+			r := SetupRouter(shutdownManager.Context(), logger)
 
 			// Create HTTP server for graceful shutdown support
 			srv := &http.Server{
@@ -152,7 +152,7 @@ func getLogger(span trace.Span) func(string) {
 	}
 }
 
-func SetupRouter(logger func(string), shutdownCtx context.Context) *gin.Engine {
+func SetupRouter(shutdownCtx context.Context, logger func(string)) *gin.Engine {
 	// Gin setup
 	logger("Setup middleware")
 	gin.SetMode(gin.ReleaseMode)

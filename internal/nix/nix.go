@@ -32,6 +32,17 @@ func IsNixOS() bool {
 // <configPath>/configuration.nix. action must be one of: switch, boot, test,
 // build, build-vm.
 func NixosRebuild(configPath string, action string) error {
+	validActions := map[string]bool{
+		"switch":   true,
+		"boot":     true,
+		"test":     true,
+		"build":    true,
+		"build-vm": true,
+	}
+	if !validActions[action] {
+		return fmt.Errorf("invalid nixos-rebuild action %q: must be one of switch, boot, test, build, build-vm", action)
+	}
+
 	nixosConfig := configPath + "/configuration.nix"
 	args := []string{
 		action,
@@ -40,7 +51,7 @@ func NixosRebuild(configPath string, action string) error {
 
 	logging.Sugar.Infow("running nixos-rebuild", "action", action, "config", nixosConfig)
 
-	cmd := exec.Command("nixos-rebuild", args...) //nolint:gosec // action and configPath are caller-controlled
+	cmd := exec.Command("nixos-rebuild", args...) //nolint:gosec // action is validated against allowlist above
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 

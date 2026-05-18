@@ -40,7 +40,7 @@ func InitUnitTest(t *testing.T) {
 
 func newRequest(method string, url string, body interface{}) (*httptest.ResponseRecorder, error) {
 	// Create router
-	router := root.SetupRouter(func(string) {}, context.Background())
+	router := root.SetupRouter(context.Background(), func(string) {})
 	// Create a new request
 	w := httptest.NewRecorder()
 	req, err := http.NewRequest(method, url, newBody(body))
