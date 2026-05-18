@@ -60,7 +60,7 @@ func setupCLISignalHandler() {
 				// Check for double-SIGINT force quit (within 2 seconds)
 				if now-lastTime < int64(2*time.Second) {
 					count := interruptCount.Add(1)
-					if count >= 1 {
+					if count >= 2 {
 						fmt.Fprintln(os.Stderr, "\nForce quit")
 						os.Exit(shutdown.ExitSIGINT)
 					}

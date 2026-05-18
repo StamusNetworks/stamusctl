@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -73,8 +74,10 @@ func NixInitHandler(isCli bool, params NixInitHandlerInputs) error {
 		}
 		err := registryInfo.PullConfigAndUnwrap(destPath, params.Project, params.Version)
 		if err != nil && err.Error() == "Error response from daemon: manifest unknown" {
-			logger.Fatal(params.Project + ":" + params.Version + " template not found in registry " +
-				params.Registry + ". Please check the registry or use a different version.")
+			msg := params.Project + ":" + params.Version + " template not found in registry " +
+				params.Registry + ". Please check the registry or use a different version."
+			logger.Error(msg)
+			return fmt.Errorf("%s", msg)
 		}
 		if err != nil {
 			if errors.Is(err, models.ErrPullingImage) {
@@ -90,8 +93,10 @@ func NixInitHandler(isCli bool, params NixInitHandlerInputs) error {
 	} else {
 		err := pullLatestTemplate(destPath, params.Project, params.Version)
 		if err != nil && err.Error() == "Error response from daemon: manifest unknown" {
-			logger.Fatal(params.Project + ":" + params.Version + " template not found in registry " +
-				params.Registry + ". Please check the registry or use a different version.")
+			msg := params.Project + ":" + params.Version +
+				" template not found in default registry. Please check the registry or use a different version."
+			logger.Error(msg)
+			return fmt.Errorf("%s", msg)
 		}
 		if err != nil {
 			if errors.Is(err, models.ErrPullingImage) {

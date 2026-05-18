@@ -38,6 +38,11 @@ func (t *OperationTracker) Start(ctx context.Context, operationID string) (conte
 	opCtx, cancel := context.WithCancel(ctx)
 
 	t.mu.Lock()
+	if oldCancel, exists := t.operations[operationID]; exists {
+		t.logger.Warn("Duplicate operation ID — cancelling previous operation",
+			zap.String("operation", operationID))
+		oldCancel()
+	}
 	t.operations[operationID] = cancel
 	t.mu.Unlock()
 
