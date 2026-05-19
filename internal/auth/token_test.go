@@ -1,17 +1,27 @@
 package auth
 
 import (
+	"context"
 	"encoding/base64"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
+	"time"
 
 	"stamus-ctl/internal/app"
+	"stamus-ctl/internal/logging"
 
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestMain(m *testing.M) {
+	logging.SetLogger()
+	logging.InitTracer("", "test-auth")
+	os.Exit(m.Run())
+}
 
 func TestAuthMiddleware_NoTokenSet(t *testing.T) {
 	// Reset token
@@ -188,7 +198,7 @@ func TestWatchForToken_FileUpdate(t *testing.T) {
 
 	// Create test token file
 	tokenPath := "/tmp/test-token"
-	err := afero.WriteFile(app.FS, tokenPath, []byte("initial-token"), 0644)
+	err := afero.WriteFile(app.FS, tokenPath, []byte("initial-token"), 0o644)
 	assert.NoError(t, err)
 
 	// This test verifies that the function can be called without panicking
@@ -450,4 +460,96 @@ func TestAuthMiddleware_MultipleRequests(t *testing.T) {
 	resp3 := httptest.NewRecorder()
 	router.ServeHTTP(resp3, req3)
 	assert.Equal(t, 200, resp3.Code)
+}
+
+// ---------------------------------------------------------------------------
+// WatchForToken — context-cancellation path
+// ---------------------------------------------------------------------------
+
+func TestWatchForToken_ContextCancellation(t *testing.T) {
+	// Set logger (WatchForToken uses the global tracer/logger).
+	_ = app.FS // ensure package is initialized
+
+	// Create a real temp file for fsnotify to watch.
+	tmpFile, err := os.CreateTemp("", "test-token-watch-*.txt")
+	if err != nil {
+		t.Fatalf("failed to create temp file: %v", err)
+	}
+	tmpPath := tmpFile.Name()
+	tmpFile.WriteString("initial-token")
+	tmpFile.Close()
+	defer os.Remove(tmpPath)
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		WatchForToken(ctx, tmpPath)
+	}()
+
+	// Give the goroutine time to start and register the watcher.
+	time.Sleep(20 * time.Millisecond)
+
+	// Cancel context → goroutine should return.
+	cancel()
+
+	select {
+	case <-done:
+		// Success: WatchForToken returned after context cancellation.
+	case <-time.After(2 * time.Second):
+		t.Error("WatchForToken did not return after context cancellation")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// WatchForToken — file write event path
+// ---------------------------------------------------------------------------
+
+func TestWatchForToken_FileWriteEvent(t *testing.T) {
+	// Set app.FS to OsFs so afero.ReadFile in WatchForToken reads the real file.
+	oldFS := app.FS
+	app.FS = afero.NewOsFs()
+	defer func() { app.FS = oldFS }()
+
+	// Create a real temp file for fsnotify to watch.
+	tmpFile, err := os.CreateTemp("", "test-token-write-*.txt")
+	if err != nil {
+		t.Fatalf("failed to create temp file: %v", err)
+	}
+	tmpPath := tmpFile.Name()
+	tmpFile.WriteString("initial-token")
+	tmpFile.Close()
+	defer os.Remove(tmpPath)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		WatchForToken(ctx, tmpPath)
+	}()
+
+	// Give the goroutine time to start and register the watcher.
+	time.Sleep(50 * time.Millisecond)
+
+	// Write to the watched file to trigger the Write event.
+	err = os.WriteFile(tmpPath, []byte("new-token"), 0o644)
+	if err != nil {
+		t.Fatalf("failed to write to temp file: %v", err)
+	}
+
+	// Give fsnotify time to process the event.
+	time.Sleep(100 * time.Millisecond)
+
+	// Cancel context.
+	cancel()
+
+	select {
+	case <-done:
+		// Success
+	case <-time.After(2 * time.Second):
+		t.Error("WatchForToken did not return after context cancellation")
+	}
 }

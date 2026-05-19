@@ -242,16 +242,19 @@ another:
 	arbitrary := newConfig.GetArbitrary().AsMap()
 
 	// Existing arbitrary key should be preserved
-	assert.Equal(t, "existing_value", arbitrary["custom.existing_key"], "existing arbitrary key should be preserved")
+	assert.Equal(t, "existing_value", arbitrary["custom.existing_key"],
+		"existing arbitrary key should be preserved")
 
 	// New arbitrary key should be added
 	assert.Equal(t, "new_value", arbitrary["custom.new_key"], "new arbitrary key should be added")
 
 	// Shared key should be updated
-	assert.Equal(t, "updated_value", arbitrary["custom.shared_key"], "shared arbitrary key should be updated")
+	assert.Equal(t, "updated_value", arbitrary["custom.shared_key"],
+		"shared arbitrary key should be updated")
 
 	// Another arbitrary key should be added
-	assert.Equal(t, "arbitrary_value", arbitrary["another.arbitrary_key"], "another arbitrary key should be added")
+	assert.Equal(t, "arbitrary_value", arbitrary["another.arbitrary_key"],
+		"another arbitrary key should be added")
 }
 
 // TestPartialValues_EmptyFile tests that empty partial values file doesn't break anything

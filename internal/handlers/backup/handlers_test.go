@@ -41,12 +41,12 @@ func setupTestFS(t *testing.T) (cleanup func()) {
 
 func createTestConfig(t *testing.T, configName string) string {
 	configPath := app.GetConfigsFolder(configName)
-	err := os.MkdirAll(configPath, 0700)
+	err := os.MkdirAll(configPath, 0o700)
 	require.NoError(t, err)
 
 	// Create a test file in the config
 	testFile := configPath + "/test.txt"
-	err = os.WriteFile(testFile, []byte("test content"), 0600)
+	err = os.WriteFile(testFile, []byte("test content"), 0o600)
 	require.NoError(t, err)
 
 	return configPath
@@ -69,23 +69,23 @@ func TestHandleCreate(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name:   "invalid config name",
-			config: "../invalid",
-			setup:  func(t *testing.T) {},
+			name:        "invalid config name",
+			config:      "../invalid",
+			setup:       func(t *testing.T) {},
 			expectError: true,
 			errorMsg:    "invalid config name",
 		},
 		{
-			name:   "non-existent config",
-			config: "nonexistent",
-			setup:  func(t *testing.T) {},
+			name:        "non-existent config",
+			config:      "nonexistent",
+			setup:       func(t *testing.T) {},
 			expectError: true,
 			errorMsg:    "configuration does not exist",
 		},
 		{
-			name:   "empty config name",
-			config: "",
-			setup:  func(t *testing.T) {},
+			name:        "empty config name",
+			config:      "",
+			setup:       func(t *testing.T) {},
 			expectError: true,
 			errorMsg:    "invalid config name",
 		},
@@ -130,10 +130,10 @@ func TestHandleList(t *testing.T) {
 		errorMsg    string
 	}{
 		{
-			name:   "no backups",
-			config: "test-config",
-			setup:  func(t *testing.T) {},
-			wantCount: 0,
+			name:        "no backups",
+			config:      "test-config",
+			setup:       func(t *testing.T) {},
+			wantCount:   0,
 			expectError: false,
 		},
 		{
@@ -153,7 +153,8 @@ func TestHandleList(t *testing.T) {
 			setup: func(t *testing.T) {
 				createTestConfig(t, "test-config-multi")
 				for i := 0; i < 2; i++ {
-					_, err := backup.CreateBackup("test-config-multi", backup.BackupTypeManual, logging.Logger)
+					_, err := backup.CreateBackup("test-config-multi",
+						backup.BackupTypeManual, logging.Logger)
 					require.NoError(t, err)
 					if i < 1 {
 						time.Sleep(1 * time.Second)
@@ -164,9 +165,9 @@ func TestHandleList(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name:   "invalid config name",
-			config: "../invalid",
-			setup:  func(t *testing.T) {},
+			name:        "invalid config name",
+			config:      "../invalid",
+			setup:       func(t *testing.T) {},
 			expectError: true,
 			errorMsg:    "invalid config name",
 		},
@@ -215,7 +216,7 @@ func TestHandleRestore(t *testing.T) {
 
 				// Modify the config
 				testFile := configPath + "/test.txt"
-				err = os.WriteFile(testFile, []byte("modified"), 0600)
+				err = os.WriteFile(testFile, []byte("modified"), 0o600)
 				require.NoError(t, err)
 
 				// Get timestamp

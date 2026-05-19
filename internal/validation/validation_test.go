@@ -167,12 +167,12 @@ func TestValidateScriptPath(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	allowedDir := filepath.Join(tmpDir, "scripts")
-	if err := os.MkdirAll(allowedDir, 0755); err != nil {
+	if err := os.MkdirAll(allowedDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
 
 	validScript := filepath.Join(allowedDir, "script.sh")
-	if err := os.WriteFile(validScript, []byte("#!/bin/bash"), 0755); err != nil {
+	if err := os.WriteFile(validScript, []byte("#!/bin/bash"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -285,5 +285,68 @@ func TestSanitizeForTemplate(t *testing.T) {
 				t.Errorf("SanitizeForTemplate() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Additional coverage tests
+// ---------------------------------------------------------------------------
+
+// TestSanitizePath_ValidNoBaseDir covers the success return path (line 176) when
+// no baseDir is provided and the path has no traversal sequences.
+func TestSanitizePath_ValidNoBaseDir(t *testing.T) {
+	result, err := SanitizePath("/tmp/valid/path", "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result != "/tmp/valid/path" {
+		t.Errorf("expected /tmp/valid/path, got %s", result)
+	}
+}
+
+// TestSanitizePath_RelativeNoBaseDir covers the relative-path + no-baseDir success path.
+func TestSanitizePath_RelativeNoBaseDir(t *testing.T) {
+	result, err := SanitizePath("subdir/file.txt", "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result != "subdir/file.txt" {
+		t.Errorf("expected subdir/file.txt, got %s", result)
+	}
+}
+
+// TestValidateMapDepth_ArrayWithDeepMap covers the []interface{} path (line 234-239)
+// where an array element is a map that exceeds the maximum depth.
+func TestValidateMapDepth_ArrayWithDeepMap(t *testing.T) {
+	data := map[string]interface{}{
+		"items": []interface{}{
+			map[string]interface{}{
+				"level2": map[string]interface{}{
+					"level3": "value",
+				},
+			},
+		},
+	}
+	err := ValidateMapDepth(data, 1)
+	if err == nil {
+		t.Error("expected error for depth-exceeding array element, got nil")
+	}
+}
+
+// TestValidateScriptPath_NoAllowedDirs covers the case with an empty allowedDirs slice.
+func TestValidateScriptPath_EmptyAllowedDirs(t *testing.T) {
+	err := ValidateScriptPath("/tmp/script.sh", []string{})
+	if err == nil {
+		t.Error("expected error for empty allowed dirs, got nil")
+	}
+}
+
+// TestValidateVersion_DoubleDotPassesRegexButFailsTraversal covers line 75-77:
+// "1..2" passes the ValidVersionRegex (dots are allowed) but contains ".." which
+// triggers the path-traversal check after the regex.
+func TestValidateVersion_DoubleDotPassesRegexButFailsTraversal(t *testing.T) {
+	err := ValidateVersion("1..2")
+	if err == nil {
+		t.Error("expected error for version '1..2' containing '..', got nil")
 	}
 }

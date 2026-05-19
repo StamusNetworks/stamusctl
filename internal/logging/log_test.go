@@ -339,3 +339,23 @@ func TestNewPrometheusServer(t *testing.T) {
 	// We'll just test that it doesn't panic on initialization
 	t.Skip("NewPrometheusServer test requires server setup which is not suitable for unit tests")
 }
+
+// ---------------------------------------------------------------------------
+// createExporter — both paths
+// ---------------------------------------------------------------------------
+
+func TestCreateExporter_EmptyURL_UsesStdout(t *testing.T) {
+	SetLogger()
+	exporter := createExporter("")
+	assert.NotNil(t, exporter)
+}
+
+func TestCreateExporter_NonEmptyURL_UsesGRPC(t *testing.T) {
+	SetLogger()
+	// With a non-empty URL, createExporter creates a gRPC-based OTLP exporter.
+	// Connection is lazy, so the call succeeds even without a running collector.
+	exporter := createExporter("localhost:4317")
+	assert.NotNil(t, exporter)
+	// Shutdown is needed to clean up goroutines.
+	_ = exporter.Shutdown(context.Background())
+}

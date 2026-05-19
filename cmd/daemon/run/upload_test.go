@@ -121,7 +121,7 @@ func TestUploadHandler_ValidRequest(t *testing.T) {
 
 	// Setup test configs folder
 	app.ConfigsFolder = "/test/configs/"
-	mockFS.MkdirAll("/test/configs/", 0755)
+	mockFS.MkdirAll("/test/configs/", 0o755)
 
 	router := setupUploadRouter()
 
@@ -148,7 +148,7 @@ func TestUploadHandler_WithProject(t *testing.T) {
 
 	// Setup test configs folder
 	app.ConfigsFolder = "/test/configs/"
-	mockFS.MkdirAll("/test/configs/myproject/", 0755)
+	mockFS.MkdirAll("/test/configs/myproject/", 0o755)
 
 	router := setupUploadRouter()
 
@@ -178,7 +178,7 @@ func TestUploadHandler_CreatesDirectory(t *testing.T) {
 
 	// Setup test configs folder - but don't create the subdirectory
 	app.ConfigsFolder = "/test/configs/"
-	mockFS.MkdirAll("/test/configs/", 0755)
+	mockFS.MkdirAll("/test/configs/", 0o755)
 
 	router := setupUploadRouter()
 
@@ -210,7 +210,7 @@ func TestUploadHandler_PathConstruction(t *testing.T) {
 
 	// Setup test configs folder
 	app.ConfigsFolder = "/test/configs/"
-	mockFS.MkdirAll("/test/configs/", 0755)
+	mockFS.MkdirAll("/test/configs/", 0o755)
 
 	// Test that path is correctly joined
 	tests := []struct {
@@ -280,7 +280,7 @@ func TestUploadHandler_LargeFile(t *testing.T) {
 
 	// Setup test configs folder
 	app.ConfigsFolder = "/test/configs/"
-	mockFS.MkdirAll("/test/configs/", 0755)
+	mockFS.MkdirAll("/test/configs/", 0o755)
 
 	router := setupUploadRouter()
 
@@ -312,7 +312,7 @@ func TestUploadHandler_SpecialCharactersInFilename(t *testing.T) {
 
 	// Setup test configs folder
 	app.ConfigsFolder = "/test/configs/"
-	mockFS.MkdirAll("/test/configs/", 0755)
+	mockFS.MkdirAll("/test/configs/", 0o755)
 
 	router := setupUploadRouter()
 
@@ -352,7 +352,7 @@ func TestUploadHandler_ContentTypes(t *testing.T) {
 
 	// Setup test configs folder
 	app.ConfigsFolder = "/test/configs/"
-	mockFS.MkdirAll("/test/configs/", 0755)
+	mockFS.MkdirAll("/test/configs/", 0o755)
 
 	router := setupUploadRouter()
 

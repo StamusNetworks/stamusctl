@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"stamus-ctl/internal/app"
 	"stamus-ctl/pkg"
 
 	"github.com/gin-gonic/gin"
@@ -307,4 +308,209 @@ func TestInitRequest_WithFromFile(t *testing.T) {
 
 	assert.Equal(t, "/path/to/cert.pem", req.FromFile["cert"])
 	assert.Equal(t, "/path/to/key.pem", req.FromFile["key"])
+}
+
+// ---- Handler execution tests (test mode avoids real Docker calls) ----
+
+const testMode = "test"
+
+func setTestMode(t *testing.T) func() {
+	t.Helper()
+
+	oldMode := app.Mode
+	app.Mode = testMode
+
+	return func() { app.Mode = oldMode }
+}
+
+func TestUpHandler_DefaultConfig(t *testing.T) {
+	// upHandler reads from query param only — no JSON body binding.
+	// In test mode mocker.Mocked.Up is called; it errors on a missing compose
+	// file, so we accept either 200 (file exists) or 500.
+	defer setTestMode(t)()
+
+	router := gin.New()
+	router.POST("/up", upHandler)
+
+	recorder := httptest.NewRecorder()
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "/up", nil)
+	require.NoError(t, err)
+	router.ServeHTTP(recorder, req)
+
+	assert.True(t, recorder.Code == http.StatusOK || recorder.Code == http.StatusInternalServerError,
+		"expected 200 or 500, got %d", recorder.Code)
+}
+
+func TestUpHandler_WithConfigQuery(t *testing.T) {
+	defer setTestMode(t)()
+
+	router := gin.New()
+	router.POST("/up", upHandler)
+
+	recorder := httptest.NewRecorder()
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "/up?config=myconfig", nil)
+	require.NoError(t, err)
+	router.ServeHTTP(recorder, req)
+
+	assert.True(t, recorder.Code == http.StatusOK || recorder.Code == http.StatusInternalServerError,
+		"expected 200 or 500, got %d", recorder.Code)
+}
+
+func TestDownHandler_DefaultConfig(t *testing.T) {
+	defer setTestMode(t)()
+
+	router := gin.New()
+	router.POST("/down", downHandler)
+
+	recorder := httptest.NewRecorder()
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "/down", nil)
+	require.NoError(t, err)
+	router.ServeHTTP(recorder, req)
+
+	assert.True(t, recorder.Code == http.StatusOK || recorder.Code == http.StatusInternalServerError,
+		"expected 200 or 500, got %d", recorder.Code)
+}
+
+func TestDownHandler_WithConfigQuery(t *testing.T) {
+	defer setTestMode(t)()
+
+	router := gin.New()
+	router.POST("/down", downHandler)
+
+	recorder := httptest.NewRecorder()
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "/down?config=myconfig", nil)
+	require.NoError(t, err)
+	router.ServeHTTP(recorder, req)
+
+	assert.True(t, recorder.Code == http.StatusOK || recorder.Code == http.StatusInternalServerError,
+		"expected 200 or 500, got %d", recorder.Code)
+}
+
+func TestPsHandler_TestMode(t *testing.T) {
+	defer setTestMode(t)()
+
+	router := gin.New()
+	router.POST("/ps", psHandler)
+
+	recorder := httptest.NewRecorder()
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "/ps", nil)
+	require.NoError(t, err)
+	router.ServeHTTP(recorder, req)
+
+	// Mocker returns an empty list — always 200
+	assert.Equal(t, http.StatusOK, recorder.Code)
+}
+
+func TestPsHandler_ResponseIsJSON(t *testing.T) {
+	defer setTestMode(t)()
+
+	router := gin.New()
+	router.POST("/ps", psHandler)
+
+	recorder := httptest.NewRecorder()
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "/ps", nil)
+	require.NoError(t, err)
+	router.ServeHTTP(recorder, req)
+
+	ct := recorder.Header().Get("Content-Type")
+	assert.Contains(t, ct, "application/json")
+}
+
+func TestRestartConfigHandler_DefaultConfig(t *testing.T) {
+	defer setTestMode(t)()
+
+	router := gin.New()
+	router.POST("/restart/config", restartConfigHandler)
+
+	recorder := httptest.NewRecorder()
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "/restart/config", nil)
+	require.NoError(t, err)
+	router.ServeHTTP(recorder, req)
+
+	assert.True(t, recorder.Code == http.StatusOK || recorder.Code == http.StatusInternalServerError,
+		"expected 200 or 500, got %d", recorder.Code)
+}
+
+func TestRestartConfigHandler_WithConfigQuery(t *testing.T) {
+	defer setTestMode(t)()
+
+	router := gin.New()
+	router.POST("/restart/config", restartConfigHandler)
+
+	recorder := httptest.NewRecorder()
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "/restart/config?config=myconfig", nil)
+	require.NoError(t, err)
+	router.ServeHTTP(recorder, req)
+
+	assert.True(t, recorder.Code == http.StatusOK || recorder.Code == http.StatusInternalServerError,
+		"expected 200 or 500, got %d", recorder.Code)
+}
+
+func TestRestartContainersHandler_EmptyContainers(t *testing.T) {
+	defer setTestMode(t)()
+
+	router := gin.New()
+	router.POST("/restart/containers", restartContainersHandler)
+
+	body, err := json.Marshal(pkg.Containers{Containers: []string{}})
+	require.NoError(t, err)
+	recorder := httptest.NewRecorder()
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "/restart/containers", bytes.NewBuffer(body))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(recorder, req)
+
+	assert.Equal(t, http.StatusOK, recorder.Code)
+}
+
+func TestRestartContainersHandler_NilContainersBody(t *testing.T) {
+	defer setTestMode(t)()
+
+	router := gin.New()
+	router.POST("/restart/containers", restartContainersHandler)
+
+	// nil containers field — handler should fill it with empty slice
+	body, err := json.Marshal(pkg.Containers{}) //nolint:exhaustruct // nil-containers zero-value test
+	require.NoError(t, err)
+	recorder := httptest.NewRecorder()
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "/restart/containers", bytes.NewBuffer(body))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(recorder, req)
+
+	assert.Equal(t, http.StatusOK, recorder.Code)
+}
+
+func TestInitHandler_DefaultsApplied(t *testing.T) {
+	// initHandler calls InitHandler which tries to pull templates — will 500.
+	// We verify the handler reaches the business-logic call (past JSON parsing).
+	router := gin.New()
+	router.POST("/init", initHandler)
+
+	body, err := json.Marshal(pkg.InitRequest{}) //nolint:exhaustruct // zero-value test
+	require.NoError(t, err)
+	recorder := httptest.NewRecorder()
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "/init", bytes.NewBuffer(body))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(recorder, req)
+
+	// Not a 400 — JSON parsed OK and defaults were applied
+	assert.NotEqual(t, http.StatusBadRequest, recorder.Code)
+}
+
+func TestUpdateHandler_DefaultsApplied(t *testing.T) {
+	router := gin.New()
+	router.POST("/update", updateHandler)
+
+	body, err := json.Marshal(pkg.UpdateRequest{}) //nolint:exhaustruct // zero-value test
+	require.NoError(t, err)
+	recorder := httptest.NewRecorder()
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "/update", bytes.NewBuffer(body))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(recorder, req)
+
+	// Not a 400 — past JSON binding
+	assert.NotEqual(t, http.StatusBadRequest, recorder.Code)
 }

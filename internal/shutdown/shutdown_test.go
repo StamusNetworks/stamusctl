@@ -2,8 +2,10 @@ package shutdown
 
 import (
 	"context"
+	"os"
 	"sync"
 	"sync/atomic"
+	"syscall"
 	"testing"
 	"time"
 
@@ -428,5 +430,117 @@ func TestManagerWithTracker(t *testing.T) {
 
 	if tracker.ActiveCount() != 0 {
 		t.Errorf("All operations should be complete, got %d active", tracker.ActiveCount())
+	}
+}
+
+func TestListenForSignals_SIGTERM(t *testing.T) {
+	m := NewManager(nil)
+
+	m.Register(Handler{
+		Name:     "noop",
+		Priority: PriorityFirst,
+		Fn: func(ctx context.Context) error {
+			return nil
+		},
+	})
+
+	exitCh := make(chan int, 1)
+	go func() {
+		code := m.ListenForSignals()
+		exitCh <- code
+	}()
+
+	// Give the goroutine time to start listening.
+	time.Sleep(20 * time.Millisecond)
+
+	// Send SIGTERM to ourselves.
+	p, err := os.FindProcess(os.Getpid())
+	if err != nil {
+		t.Fatalf("could not find current process: %v", err)
+	}
+	if err := p.Signal(syscall.SIGTERM); err != nil {
+		t.Fatalf("failed to send SIGTERM: %v", err)
+	}
+
+	select {
+	case code := <-exitCh:
+		if code != ExitSIGTERM {
+			t.Errorf("expected exit code %d (SIGTERM), got %d", ExitSIGTERM, code)
+		}
+	case <-time.After(3 * time.Second):
+		t.Error("ListenForSignals did not return after SIGTERM")
+	}
+}
+
+func TestListenForSignals_SIGINT(t *testing.T) {
+	m := NewManager(nil)
+
+	exitCh := make(chan int, 1)
+	go func() {
+		code := m.ListenForSignals()
+		exitCh <- code
+	}()
+
+	time.Sleep(20 * time.Millisecond)
+
+	p, err := os.FindProcess(os.Getpid())
+	if err != nil {
+		t.Fatalf("could not find current process: %v", err)
+	}
+	if err := p.Signal(syscall.SIGINT); err != nil {
+		t.Fatalf("failed to send SIGINT: %v", err)
+	}
+
+	select {
+	case code := <-exitCh:
+		if code != ExitSIGINT {
+			t.Errorf("expected exit code %d (SIGINT), got %d", ExitSIGINT, code)
+		}
+	case <-time.After(3 * time.Second):
+		t.Error("ListenForSignals did not return after SIGINT")
+	}
+}
+
+// TestManagerShutdown_TimeoutExceeded verifies the ctx.Err() != nil path in Shutdown().
+// When the shutdown timeout is very short and a handler sleeps longer than the
+// timeout, the second handler is skipped (timeout exceeded path).
+func TestManagerShutdown_TimeoutExceeded(t *testing.T) {
+	logger, _ := zap.NewDevelopment()
+	m := NewManager(logger)
+	// Use a 10ms timeout so it expires while the slow handler is running.
+	m.SetTimeout(10 * time.Millisecond)
+
+	var slowCalled, fastCalled bool
+
+	// Register a slow handler (priority=first, runs first) that sleeps > timeout.
+	m.Register(Handler{
+		Name:     "slow-handler",
+		Priority: PriorityFirst,
+		Fn: func(ctx context.Context) error {
+			slowCalled = true
+			// Sleep longer than the 10ms timeout so ctx expires before next handler.
+			time.Sleep(100 * time.Millisecond)
+			return nil
+		},
+	})
+
+	// Register a fast handler (priority=last, runs second) that should be skipped.
+	m.Register(Handler{
+		Name:     "fast-handler",
+		Priority: PriorityLast,
+		Fn: func(ctx context.Context) error {
+			fastCalled = true
+			return nil
+		},
+	})
+
+	m.Shutdown()
+
+	if !slowCalled {
+		t.Error("slow handler should have been called")
+	}
+	// The fast handler should be skipped because the timeout context expired.
+	if fastCalled {
+		t.Error("fast handler should have been skipped due to timeout")
 	}
 }

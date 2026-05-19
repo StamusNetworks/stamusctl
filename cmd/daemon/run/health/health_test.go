@@ -91,3 +91,66 @@ func TestNewHealth_RegistersRoutes(t *testing.T) {
 	assert.True(t, healthFound, "/health route should be registered")
 	assert.True(t, readyFound, "/ready route should be registered")
 }
+
+// TestReadinessHandler_ReturnsJSON verifies the readiness endpoint responds with JSON.
+func TestReadinessHandler_ReturnsJSON(t *testing.T) {
+	router := setupHealthRouter()
+
+	recorder := httptest.NewRecorder()
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/ready", nil)
+	require.NoError(t, err)
+	router.ServeHTTP(recorder, req)
+
+	ct := recorder.Header().Get("Content-Type")
+	assert.Contains(t, ct, "application/json")
+}
+
+// TestReadinessHandler_ResponseShape verifies the response has the expected fields.
+func TestReadinessHandler_ResponseShape(t *testing.T) {
+	router := setupHealthRouter()
+
+	recorder := httptest.NewRecorder()
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/ready", nil)
+	require.NoError(t, err)
+	router.ServeHTTP(recorder, req)
+
+	var resp pkg.ReadinessResponse
+	err = json.Unmarshal(recorder.Body.Bytes(), &resp)
+	require.NoError(t, err)
+
+	assert.True(t, resp.Status == "ready" || resp.Status == "not_ready",
+		"unexpected status: %q", resp.Status)
+	assert.NotEmpty(t, resp.Message)
+	assert.NotNil(t, resp.Checks)
+
+	for _, key := range []string{"docker_daemon", "configuration", "resources"} {
+		_, ok := resp.Checks[key]
+		assert.True(t, ok, "checks map must contain %q key", key)
+	}
+}
+
+// TestReadinessHandler_StatusCodeConsistent verifies HTTP status matches readiness status.
+func TestReadinessHandler_StatusCodeConsistent(t *testing.T) {
+	router := setupHealthRouter()
+
+	recorder := httptest.NewRecorder()
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/ready", nil)
+	require.NoError(t, err)
+	router.ServeHTTP(recorder, req)
+
+	var resp pkg.ReadinessResponse
+	require.NoError(t, json.Unmarshal(recorder.Body.Bytes(), &resp))
+
+	if resp.Status == "ready" {
+		assert.Equal(t, http.StatusOK, recorder.Code)
+	} else {
+		assert.Equal(t, http.StatusServiceUnavailable, recorder.Code)
+	}
+}
+
+// TestCheckDockerConnectivity_ReturnsBoolean verifies no panic on Docker check.
+func TestCheckDockerConnectivity_ReturnsBoolean(t *testing.T) {
+	assert.NotPanics(t, func() {
+		_ = checkDockerConnectivity()
+	})
+}
