@@ -84,4 +84,3 @@ func GetConfigsList() ([]string, error) {
 	}
 	return configs, nil
 }
-

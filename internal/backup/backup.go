@@ -92,7 +92,7 @@ func CreateBackup(configName string, backupType BackupType, logger *zap.Logger) 
 	backupPath := filepath.Join(backupDir, backupName)
 
 	// Create backup directory if it doesn't exist
-	if err := os.MkdirAll(backupDir, 0700); err != nil {
+	if err := os.MkdirAll(backupDir, 0o700); err != nil {
 		return "", fmt.Errorf("failed to create backup directory: %w", err)
 	}
 

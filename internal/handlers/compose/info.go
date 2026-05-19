@@ -39,6 +39,36 @@ func handlePs() ([]types.Container, error) {
 	return containers, nil
 }
 
+// filterContainers filters containers by name or ID, matching against the provided list.
+func filterContainers(containers []types.Container, nameOrIDs []string) []types.Container {
+	if len(nameOrIDs) == 0 {
+		return containers
+	}
+	var filtered []types.Container
+	for _, cont := range containers {
+		for _, nameOrID := range nameOrIDs {
+			// Match by ID
+			if cont.ID == nameOrID {
+				filtered = append(filtered, cont)
+				break
+			}
+			// Match by name (container names have leading slash, e.g. "/nginx")
+			matched := false
+			for _, name := range cont.Names {
+				if name == nameOrID || name == "/"+nameOrID {
+					matched = true
+					break
+				}
+			}
+			if matched {
+				filtered = append(filtered, cont)
+				break
+			}
+		}
+	}
+	return filtered
+}
+
 func HandleLogs(logParams pkg.LogsRequest) (pkg.LogsResponse, error) {
 	if app.Mode.IsTest() {
 		return mocker.Mocked.Logs()
@@ -53,25 +83,8 @@ func handleLogs(logParams pkg.LogsRequest) (pkg.LogsResponse, error) {
 		return pkg.LogsResponse{}, err
 	}
 	// Filter containers
-	if logParams.Containers != nil && len(logParams.Containers) > 0 {
-		filteredContainers := []types.Container{}
-		for _, cont := range containers {
-			for _, nameOrID := range logParams.Containers {
-				// Match by ID
-				if cont.ID == nameOrID {
-					filteredContainers = append(filteredContainers, cont)
-					break
-				}
-				// Match by name (container names have leading slash, e.g. "/nginx")
-				for _, name := range cont.Names {
-					if name == nameOrID || name == "/"+nameOrID {
-						filteredContainers = append(filteredContainers, cont)
-						break
-					}
-				}
-			}
-		}
-		containers = filteredContainers
+	if len(logParams.Containers) > 0 {
+		containers = filterContainers(containers, logParams.Containers)
 	}
 	// Create docker client
 	apiClient, err := client.NewClientWithOpts(client.FromEnv)

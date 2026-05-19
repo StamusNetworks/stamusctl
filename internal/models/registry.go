@@ -255,11 +255,11 @@ func getRegistryCredentials(registryHost string) (*RegistryInfo, error) {
 	if err != nil {
 		if os.IsNotExist(err) {
 			// Create config directory and empty config file
-			if mkdirErr := app.FS.MkdirAll(app.ConfigFolder, 0755); mkdirErr != nil {
+			if mkdirErr := app.FS.MkdirAll(app.ConfigFolder, 0o755); mkdirErr != nil {
 				return nil, fmt.Errorf("failed to create config directory: %w", mkdirErr)
 			}
 			emptyConfig := []byte(`{"registries":{}}`)
-			if writeErr := afero.WriteFile(app.FS, configPath, emptyConfig, 0644); writeErr != nil {
+			if writeErr := afero.WriteFile(app.FS, configPath, emptyConfig, 0o644); writeErr != nil {
 				return nil, fmt.Errorf("failed to create config file: %w", writeErr)
 			}
 			// Return empty credentials for anonymous access
@@ -385,12 +385,12 @@ func setCachedRemoteInclude(url string, content []byte) error {
 	cachePath := filepath.Join(xdg.CacheHome, "stamus", "remote-includes", cacheKey)
 
 	// Create directory if needed
-	if err := app.FS.MkdirAll(filepath.Dir(cachePath), 0755); err != nil {
+	if err := app.FS.MkdirAll(filepath.Dir(cachePath), 0o755); err != nil {
 		return err
 	}
 
 	// Write file with restricted permissions (may contain registry credentials)
-	return afero.WriteFile(app.FS, cachePath, content, 0600)
+	return afero.WriteFile(app.FS, cachePath, content, 0o600)
 }
 
 // pullRemoteInclude fetches a single file from registry
@@ -427,7 +427,9 @@ func pullRemoteInclude(ctx context.Context, registryInfo *RegistryInfo, imageRef
 		// Use background context to ensure cleanup happens even if parent context cancelled
 		cleanupCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-		if err := cli.ContainerRemove(cleanupCtx, resp.ID, container.RemoveOptions{Force: true}); err != nil {
+		if err := cli.ContainerRemove(cleanupCtx, resp.ID, container.RemoveOptions{
+			Force: true,
+		}); err != nil {
 			logger.Error("Failed to remove container", "containerID", resp.ID, "error", err)
 		}
 	}()

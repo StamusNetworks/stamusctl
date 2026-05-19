@@ -1,12 +1,16 @@
 package config
 
 import (
+	"io"
 	"os"
 
 	"stamus-ctl/internal/models"
 
 	"github.com/jedib0t/go-pretty/v6/table"
 )
+
+// outputWriter is the destination for table output (mockable for testing).
+var outputWriter io.Writer = os.Stdout
 
 func KeysHandler(templatePath string, isMd bool) error {
 	// Get template keys
@@ -35,7 +39,7 @@ func KeysHandler(templatePath string, isMd bool) error {
 	t.SetStyle(table.StyleRounded)
 	header := table.Row{"Key", "Default", "Usage"}
 	// KDU
-	t.SetOutputMirror(os.Stdout)
+	t.SetOutputMirror(outputWriter)
 	t.AppendHeader(header)
 	t.AppendRows(rows)
 	t.AppendFooter(header)

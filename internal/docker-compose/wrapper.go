@@ -144,6 +144,11 @@ func modifyFileFlag(c *cobra.Command) {
 	c.RunE = makeCustomRunner(currentRunE)
 }
 
+// shouldCreateBackup returns true if the compose command should trigger a backup.
+func shouldCreateBackup(cmdName string, volumesValue string) bool {
+	return cmdName == "down" && volumesValue == "true"
+}
+
 // Return a custom runner for the command, that sets the file flag to the folder flag
 func makeCustomRunner(
 	runE func(cmd *cobra.Command, args []string) error,
@@ -167,21 +172,23 @@ func makeCustomRunner(
 		composeFile := utils.GetComposeFilePath(conf)
 
 		// Create automatic backup before compose down --volumes
-		if cmd.Name() == "down" {
-			volumesFlag := cmd.Flags().Lookup("volumes")
-			if volumesFlag != nil && volumesFlag.Value.String() == "true" {
-				// Extract config name from path
-				configName := filepath.Base(conf)
+		volumesFlag := cmd.Flags().Lookup("volumes")
+		volumesValue := ""
+		if volumesFlag != nil {
+			volumesValue = volumesFlag.Value.String()
+		}
+		if shouldCreateBackup(cmd.Name(), volumesValue) {
+			// Extract config name from path
+			configName := filepath.Base(conf)
 
-				// Create backup
-				_, err := backup.CreateBackup(configName, backup.BackupTypeAuto, logging.Logger)
-				if err != nil {
-					// Log warning but continue with operation
-					logging.Logger.Warn("Failed to create backup before compose down --volumes",
-						zap.String("config", configName),
-						zap.Error(err),
-					)
-				}
+			// Create backup
+			_, err := backup.CreateBackup(configName, backup.BackupTypeAuto, logging.Logger)
+			if err != nil {
+				// Log warning but continue with operation
+				logging.Logger.Warn("Failed to create backup before compose down --volumes",
+					zap.String("config", configName),
+					zap.Error(err),
+				)
 			}
 		}
 

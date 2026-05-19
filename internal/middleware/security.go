@@ -77,10 +77,12 @@ func CORSMiddleware() gin.HandlerFunc {
 			c.Header("Access-Control-Allow-Credentials", "true")
 
 			// Specify allowed HTTP methods
-			c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH")
+			c.Header("Access-Control-Allow-Methods",
+				"GET, POST, PUT, DELETE, OPTIONS, PATCH")
 
 			// Specify allowed headers in requests
-			c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Content-Length, Accept-Encoding, Authorization, X-CSRF-Token, Accept, X-Requested-With")
+			c.Header("Access-Control-Allow-Headers",
+				"Origin, Content-Type, Content-Length, Accept-Encoding, Authorization, X-CSRF-Token, Accept, X-Requested-With")
 
 			// Specify which response headers can be exposed to the browser
 			c.Header("Access-Control-Expose-Headers", "Content-Length, Content-Type")
