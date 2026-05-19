@@ -31,3 +31,18 @@ func TestNixSwitchHandler_NotNixOS(t *testing.T) {
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "not running NixOS")
 }
+
+func TestNixSwitchHandler_DaemonMode_ConfigNotFound(t *testing.T) {
+	oldFS := app.FS
+	app.FS = afero.NewMemMapFs()
+	oldName := app.Name
+	app.Name = "stamusd" // not IsCtl → uses GetConfigsFolder
+	defer func() {
+		app.FS = oldFS
+		app.Name = oldName
+	}()
+
+	// Config doesn't exist in daemon mode path.
+	err := NixSwitchHandler(NixSwitchHandlerInputs{Config: "nonexistent-daemon-conf"})
+	assert.Error(t, err)
+}

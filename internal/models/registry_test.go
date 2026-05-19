@@ -65,12 +65,12 @@ func TestIsRemoteInclude(t *testing.T) {
 
 func TestParseRemoteInclude(t *testing.T) {
 	tests := []struct {
-		name          string
-		include       string
-		wantImageRef  string
-		wantFilePath  string
-		wantErr       bool
-		errContains   string
+		name         string
+		include      string
+		wantImageRef string
+		wantFilePath string
+		wantErr      bool
+		errContains  string
 	}{
 		{
 			name:         "simple tag with single file",

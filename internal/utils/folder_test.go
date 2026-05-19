@@ -17,7 +17,7 @@ func TestFolderExists(t *testing.T) {
 	defer func() { app.FS = oldFS }()
 
 	// Create test folder
-	err := app.FS.MkdirAll("/test/folder", 0755)
+	err := app.FS.MkdirAll("/test/folder", 0o755)
 	assert.NoError(t, err)
 
 	tests := []struct {

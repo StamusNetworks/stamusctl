@@ -38,6 +38,22 @@ func TestNestMapWithMoreNesting(t *testing.T) {
 	}, result)
 }
 
+func TestNestMap_Collision_Deterministic(t *testing.T) {
+	// Force the collision branch: set a scalar value at an intermediate key,
+	// then ask nestMap to nest beneath it. We build the map so that iteration
+	// order doesn't matter — both entries share the same prefix "x", and
+	// "x" is a scalar while "x.y" wants to use "x" as a map.
+	// Run multiple times to hit both iteration orderings.
+	for range 20 {
+		result := nestMap(map[string]interface{}{
+			"x":   "scalar",
+			"x.y": "nested",
+		})
+		assert.NotNil(t, result)
+		assert.Contains(t, result, "x")
+	}
+}
+
 func TestRemoveEmptyStrings(t *testing.T) {
 	tests := []struct {
 		input    []string
