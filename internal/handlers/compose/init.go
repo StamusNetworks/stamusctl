@@ -9,6 +9,7 @@ import (
 	"stamus-ctl/internal/app"
 	"stamus-ctl/internal/backup"
 	"stamus-ctl/internal/embeds"
+	"stamus-ctl/internal/handlers/common"
 	"stamus-ctl/internal/logging"
 	"stamus-ctl/internal/models"
 	"stamus-ctl/internal/stamus"
@@ -88,7 +89,7 @@ func InitHandler(isCli bool, params InitHandlerInputs) error {
 			}
 		}
 	} else {
-		err := pullLatestTemplate(destPath, params.Project, params.Version)
+		err := common.PullLatestTemplate(destPath, params.Project, params.Version)
 		if err != nil && err.Error() == "Error response from daemon: manifest unknown" {
 			logger.Fatal(params.Project + ":" + params.Version + " template not found in registry " +
 				params.Registry + ". Please check the registry or use a different version.")
@@ -105,19 +106,12 @@ func InitHandler(isCli bool, params InitHandlerInputs) error {
 			}
 		}
 	}
+
 	// Instantiate config
-	var templatePath string
-	if params.TemplateFolder == "" {
-		templatePath = filepath.Join(destPath, params.Version)
-	} else {
-		templatePath = params.TemplateFolder
-	}
-	if app.Embed.IsTrue() {
-		templatePath = app.DefaultClearNDRPath
-	}
+	templatePath := common.ResolveTemplatePath(destPath, params.TemplateFolder, params.Version)
 
 	logger.Debug("instanciation config")
-	config, err := instanciateConfig(templatePath, params.BackupFolderPath)
+	config, err := common.InstanciateConfig(templatePath, params.BackupFolderPath)
 	if err != nil {
 		logger.Error(err)
 		return err
@@ -147,7 +141,7 @@ func InitHandler(isCli bool, params InitHandlerInputs) error {
 	}
 
 	logger.Debug("Setting parameters")
-	err = setParameters(isCli, config, params)
+	err = common.SetParameters(isCli, config, params.Arbitrary, params.IsDefault)
 	if err != nil {
 		logger.Error(err)
 		return err
@@ -225,88 +219,5 @@ func InitHandler(isCli bool, params InitHandlerInputs) error {
 	}
 
 	logger.Debug("Init finished")
-	return nil
-}
-
-// Pull latest template from saved registries
-func pullLatestTemplate(destPath string, project, version string) error {
-	// Get registries infos
-	stamusConf, err := stamus.GetStamusConfig()
-	if err != nil {
-		return err
-	}
-	// Pull latest config
-	if len(stamusConf.Registries.AsList()) != 0 {
-		// Logged in
-		for _, registryInfo := range stamusConf.Registries.AsList() {
-			err = registryInfo.PullConfigAndUnwrap(destPath, project, version)
-			if err == nil {
-				return nil
-			} else {
-				logging.Sugar.Debug(err)
-			}
-		}
-	}
-	// Not logged in
-	infos := models.RegistryInfo{
-		Registry: app.DefaultRegistry,
-	}
-	err = infos.PullConfigAndUnwrap(destPath, project, version)
-	return err
-}
-
-// Instantiate config from folder or backup folders
-func instanciateConfig(folderPath string, backupFolderPath string) (*models.Config, error) {
-	// Try to instantiate from folder
-	config, err := instanciateConfigFromPath(folderPath)
-	if err == nil {
-		return config, nil
-	}
-	if app.Embed.IsTrue() {
-		// Try to instantiate from backup folder
-		config, err = instanciateConfigFromPath(backupFolderPath)
-		if err == nil {
-			return config, nil
-		}
-	}
-	// Return error
-	return nil, err
-}
-
-// Instantiate config from path
-func instanciateConfigFromPath(folderPath string) (*models.Config, error) {
-	confFile, err := models.CreateFile(folderPath, "config.yaml")
-	if err != nil {
-		return nil, err
-	}
-	config, err := models.ConfigFromFile(confFile)
-	if err != nil {
-		return nil, err
-	}
-	return config, nil
-}
-
-// Set parameters, from args, and defaults / asks rest
-func setParameters(isCli bool, config *models.Config, params InitHandlerInputs) error {
-	// Extract and set values from args
-	err := config.GetParams().SetLooseValues(params.Arbitrary)
-	config.GetArbitrary().SetArbitrary(params.Arbitrary)
-	if err != nil {
-		return err
-	}
-	// Set from default
-	if params.IsDefault {
-		err = config.GetParams().SetToDefaults()
-		if err != nil {
-			return err
-		}
-	}
-	// Ask for missing parameters
-	if isCli {
-		err = config.GetParams().AskMissing()
-		if err != nil {
-			return err
-		}
-	}
 	return nil
 }

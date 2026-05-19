@@ -39,7 +39,6 @@ const (
 	RateLimitPerSecond = 5
 )
 
-
 // Ping godoc
 // @Summary ping example
 // @Schemes

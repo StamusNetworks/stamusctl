@@ -13,9 +13,7 @@ import (
 	handlers "stamus-ctl/internal/handlers/backup"
 )
 
-var (
-	deleteForce bool
-)
+var deleteForce bool
 
 // deleteCmd returns the backup delete command
 func deleteCmd() *cobra.Command {

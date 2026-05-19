@@ -24,13 +24,13 @@ func safeFuncMap() template.FuncMap {
 
 	// Remove dangerous functions that could leak environment variables or execute code
 	dangerousFuncs := []string{
-		"env",              // Can leak environment variables
-		"expandenv",        // Can leak environment variables
-		"getHostByName",    // Can perform DNS lookups
-		"genPrivateKey",    // Cryptographic key generation
-		"genCA",            // Certificate authority generation
+		"env",               // Can leak environment variables
+		"expandenv",         // Can leak environment variables
+		"getHostByName",     // Can perform DNS lookups
+		"genPrivateKey",     // Cryptographic key generation
+		"genCA",             // Certificate authority generation
 		"genSelfSignedCert", // Certificate generation
-		"genSignedCert",    // Certificate generation
+		"genSignedCert",     // Certificate generation
 		// Note: sprig v3 doesn't include "call" or "exec" functions, but we're defensive
 	}
 

@@ -174,12 +174,12 @@ func MakePOSTRequest(router *gin.Engine, path string, body interface{}, headers 
 
 // CreateTestConfigDir creates a test configuration directory structure.
 func CreateTestConfigDir(fs afero.Fs, configPath string) error {
-	return fs.MkdirAll(configPath, 0755)
+	return fs.MkdirAll(configPath, 0o755)
 }
 
 // CreateTestFile creates a test file with the given content.
 func CreateTestFile(fs afero.Fs, path string, content string) error {
-	return afero.WriteFile(fs, path, []byte(content), 0644)
+	return afero.WriteFile(fs, path, []byte(content), 0o644)
 }
 
 // ReadTestFile reads a test file and returns its content.
