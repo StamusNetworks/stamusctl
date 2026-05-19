@@ -337,9 +337,9 @@ param3:
 
 func TestDeleteFolder(t *testing.T) {
 	// Create a dummy folder
-	err := app.FS.MkdirAll("./test_folder", 0755)
+	err := app.FS.MkdirAll("./test_folder", 0o755)
 	assert.NoError(t, err)
-	err = afero.WriteFile(app.FS, "./test_folder/file.txt", []byte("test content"), 0644)
+	err = afero.WriteFile(app.FS, "./test_folder/file.txt", []byte("test content"), 0o644)
 	assert.NoError(t, err)
 
 	// Create a Config instance

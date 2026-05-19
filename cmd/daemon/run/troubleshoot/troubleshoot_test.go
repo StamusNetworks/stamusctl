@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"stamus-ctl/internal/app"
 	"stamus-ctl/pkg"
 
 	"github.com/gin-gonic/gin"
@@ -263,4 +264,105 @@ func TestLogsRequest_AllParameters(t *testing.T) {
 	assert.Equal(t, "500", req.Tail)
 	assert.Equal(t, "2h30m", req.Since)
 	assert.Equal(t, "5m", req.Until)
+}
+
+// ---- logsHandler success path tests ----
+
+const troubleshootTestMode = "test"
+
+func setTroubleshootTestMode(t *testing.T) func() {
+	t.Helper()
+
+	oldMode := app.Mode
+	app.Mode = troubleshootTestMode
+
+	return func() { app.Mode = oldMode }
+}
+
+func TestLogsHandler_DefaultsApplied_TestMode(t *testing.T) {
+	// Set test mode so mocker.Mocked.Logs() is called (no real Docker)
+	defer setTroubleshootTestMode(t)()
+
+	router := gin.New()
+	router.POST("/logs", logsHandler)
+
+	recorder := httptest.NewRecorder()
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "/logs", bytes.NewBufferString(`{}`))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(recorder, req)
+
+	// Mocker returns a valid LogsResponse → 200
+	assert.Equal(t, http.StatusOK, recorder.Code)
+}
+
+func TestLogsHandler_WithContainers_TestMode(t *testing.T) {
+	defer setTroubleshootTestMode(t)()
+
+	router := gin.New()
+	router.POST("/logs", logsHandler)
+
+	reqBody, err := json.Marshal(pkg.LogsRequest{
+		Containers: []string{"web", "db"},
+		Tail:       "100",
+		Since:      "1h",
+		Until:      "0m",
+		Timestamps: false,
+	})
+	require.NoError(t, err)
+
+	recorder := httptest.NewRecorder()
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "/logs", bytes.NewBuffer(reqBody))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(recorder, req)
+
+	assert.Equal(t, http.StatusOK, recorder.Code)
+
+	ct := recorder.Header().Get("Content-Type")
+	assert.Contains(t, ct, "application/json")
+}
+
+func TestLogsHandler_ResponseShape_TestMode(t *testing.T) {
+	defer setTroubleshootTestMode(t)()
+
+	router := gin.New()
+	router.POST("/logs", logsHandler)
+
+	recorder := httptest.NewRecorder()
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "/logs",
+		bytes.NewBufferString(`{"since": "1h", "until": "0m", "tail": "50"}`))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(recorder, req)
+
+	assert.Equal(t, http.StatusOK, recorder.Code)
+
+	var resp pkg.LogsResponse
+	err = json.Unmarshal(recorder.Body.Bytes(), &resp)
+	require.NoError(t, err)
+	// containers field may be nil — mocker has no containers up in this state
+	_ = resp.Containers
+}
+
+// ---- rebootHandler test ----
+
+func TestRebootHandler_FailsWithoutPrivilege(t *testing.T) {
+	// The reboot syscall always fails in unprivileged test environments.
+	// We verify the handler responds with a JSON error rather than panicking.
+	router := gin.New()
+	router.POST("/reboot", rebootHandler)
+
+	recorder := httptest.NewRecorder()
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "/reboot", nil)
+	require.NoError(t, err)
+	router.ServeHTTP(recorder, req)
+
+	// Must be 500 (syscall fails) in a non-root test environment
+	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+
+	var resp map[string]interface{}
+	err = json.Unmarshal(recorder.Body.Bytes(), &resp)
+	require.NoError(t, err)
+	assert.Contains(t, resp, "error")
 }

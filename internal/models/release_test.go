@@ -139,11 +139,11 @@ func TestNewRelease(t *testing.T) {
 
 func TestNewTemplate(t *testing.T) {
 	tests := []struct {
-		name             string
-		templateName     string
-		templatePath     string
-		expectedName     string
-		expectedVersion  string
+		name            string
+		templateName    string
+		templatePath    string
+		expectedName    string
+		expectedVersion string
 	}{
 		{
 			name:            "Simple path",

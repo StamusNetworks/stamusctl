@@ -49,7 +49,7 @@ func setupTestConfig(t *testing.T, instances Instances) *ConfigManager {
 	setupTestFS()
 
 	// Create config directory
-	err := app.FS.MkdirAll(app.ConfigFolder, 0755)
+	err := app.FS.MkdirAll(app.ConfigFolder, 0o755)
 	if err != nil {
 		t.Fatalf("Failed to create config folder: %v", err)
 	}
@@ -63,7 +63,7 @@ func setupTestConfig(t *testing.T, instances Instances) *ConfigManager {
 		t.Fatalf("Failed to marshal config: %v", err)
 	}
 
-	err = afero.WriteFile(app.FS, app.ConfigFolder+"/config.json", data, 0644)
+	err = afero.WriteFile(app.FS, app.ConfigFolder+"/config.json", data, 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write config file: %v", err)
 	}
@@ -104,11 +104,11 @@ func TestGetInstances_WithUpInstance(t *testing.T) {
 	data, _ := json.Marshal(config)
 
 	// Create compose file in memory FS
-	err := app.FS.MkdirAll(testFolder, 0755)
+	err := app.FS.MkdirAll(testFolder, 0o755)
 	if err != nil {
 		t.Fatalf("Failed to create test folder: %v", err)
 	}
-	err = afero.WriteFile(app.FS, testFolder+"/docker-compose.yaml", []byte("version: '3'"), 0644)
+	err = afero.WriteFile(app.FS, testFolder+"/docker-compose.yaml", []byte("version: '3'"), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to create compose file: %v", err)
 	}
@@ -150,11 +150,11 @@ func TestGetInstances_WithDownInstance(t *testing.T) {
 	data, _ := json.Marshal(config)
 
 	// Create compose file in memory FS
-	err := app.FS.MkdirAll(testFolder, 0755)
+	err := app.FS.MkdirAll(testFolder, 0o755)
 	if err != nil {
 		t.Fatalf("Failed to create test folder: %v", err)
 	}
-	err = afero.WriteFile(app.FS, testFolder+"/docker-compose.yaml", []byte("version: '3'"), 0644)
+	err = afero.WriteFile(app.FS, testFolder+"/docker-compose.yaml", []byte("version: '3'"), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to create compose file: %v", err)
 	}
@@ -195,11 +195,11 @@ func TestGetInstances_MixedUpDownInstances(t *testing.T) {
 
 	// Create compose files
 	for _, folder := range []string{testFolder1, testFolder2} {
-		err := app.FS.MkdirAll(folder, 0755)
+		err := app.FS.MkdirAll(folder, 0o755)
 		if err != nil {
 			t.Fatalf("Failed to create folder: %v", err)
 		}
-		err = afero.WriteFile(app.FS, folder+"/docker-compose.yaml", []byte("version: '3'"), 0644)
+		err = afero.WriteFile(app.FS, folder+"/docker-compose.yaml", []byte("version: '3'"), 0o644)
 		if err != nil {
 			t.Fatalf("Failed to create compose file: %v", err)
 		}
@@ -240,11 +240,11 @@ func TestGetInstances_DockerAPIError(t *testing.T) {
 	data, _ := json.Marshal(config)
 
 	// Create compose file
-	err := app.FS.MkdirAll(testFolder, 0755)
+	err := app.FS.MkdirAll(testFolder, 0o755)
 	if err != nil {
 		t.Fatalf("Failed to create folder: %v", err)
 	}
-	err = afero.WriteFile(app.FS, testFolder+"/docker-compose.yaml", []byte("version: '3'"), 0644)
+	err = afero.WriteFile(app.FS, testFolder+"/docker-compose.yaml", []byte("version: '3'"), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to create compose file: %v", err)
 	}
@@ -299,13 +299,13 @@ func TestAddInstance(t *testing.T) {
 	setupTestFS()
 	app.ConfigFolder = "/test-add"
 
-	err := app.FS.MkdirAll(app.ConfigFolder, 0755)
+	err := app.FS.MkdirAll(app.ConfigFolder, 0o755)
 	if err != nil {
 		t.Fatalf("Failed to create config folder: %v", err)
 	}
 
 	// Create empty config file
-	err = afero.WriteFile(app.FS, app.ConfigFolder+"/config.json", []byte("{}"), 0644)
+	err = afero.WriteFile(app.FS, app.ConfigFolder+"/config.json", []byte("{}"), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to create config file: %v", err)
 	}
@@ -470,11 +470,11 @@ func TestGetInstances_WithPartialInstance(t *testing.T) {
 	}
 	data, _ := json.Marshal(config)
 
-	err := app.FS.MkdirAll(testFolder, 0755)
+	err := app.FS.MkdirAll(testFolder, 0o755)
 	if err != nil {
 		t.Fatalf("Failed to create test folder: %v", err)
 	}
-	err = afero.WriteFile(app.FS, testFolder+"/docker-compose.yaml", []byte("version: '3'"), 0644)
+	err = afero.WriteFile(app.FS, testFolder+"/docker-compose.yaml", []byte("version: '3'"), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to create compose file: %v", err)
 	}
@@ -514,11 +514,11 @@ func TestGetInstances_WithUnhealthyInstance(t *testing.T) {
 	}
 	data, _ := json.Marshal(config)
 
-	err := app.FS.MkdirAll(testFolder, 0755)
+	err := app.FS.MkdirAll(testFolder, 0o755)
 	if err != nil {
 		t.Fatalf("Failed to create test folder: %v", err)
 	}
-	err = afero.WriteFile(app.FS, testFolder+"/docker-compose.yaml", []byte("version: '3'"), 0644)
+	err = afero.WriteFile(app.FS, testFolder+"/docker-compose.yaml", []byte("version: '3'"), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to create compose file: %v", err)
 	}

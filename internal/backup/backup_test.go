@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
- 
+
 func TestParseBackupName(t *testing.T) {
 	tests := []struct {
 		name          string
@@ -137,12 +137,12 @@ func setupTestFS(t *testing.T) (cleanup func()) {
 
 func createTestConfig(t *testing.T, configName string) string {
 	configPath := app.GetConfigsFolder(configName)
-	err := os.MkdirAll(configPath, 0700)
+	err := os.MkdirAll(configPath, 0o700)
 	require.NoError(t, err)
 
 	// Create a test file in the config
 	testFile := filepath.Join(configPath, "test.txt")
-	err = os.WriteFile(testFile, []byte("test content"), 0600)
+	err = os.WriteFile(testFile, []byte("test content"), 0o600)
 	require.NoError(t, err)
 
 	return configPath
@@ -192,10 +192,10 @@ func TestCreateBackup(t *testing.T) {
 			errorMsg:    "configuration does not exist",
 		},
 		{
-			name:       "empty config name",
-			configName: "",
-			backupType: BackupTypeManual,
-			setup:      func(t *testing.T) {},
+			name:        "empty config name",
+			configName:  "",
+			backupType:  BackupTypeManual,
+			setup:       func(t *testing.T) {},
 			expectError: true,
 			errorMsg:    "invalid config name",
 		},
@@ -243,10 +243,10 @@ func TestListBackups(t *testing.T) {
 		errorMsg    string
 	}{
 		{
-			name:       "no backups",
-			configName: "test-config",
-			setup:      func(t *testing.T) {},
-			wantCount:  0,
+			name:        "no backups",
+			configName:  "test-config",
+			setup:       func(t *testing.T) {},
+			wantCount:   0,
 			expectError: false,
 		},
 		{
@@ -303,7 +303,7 @@ func TestListBackups(t *testing.T) {
 				// Create invalid backup directory
 				backupDir := getConfigBackupPath("test-config-invalid")
 				invalidDir := filepath.Join(backupDir, "invalid_backup")
-				err = os.MkdirAll(invalidDir, 0700)
+				err = os.MkdirAll(invalidDir, 0o700)
 				require.NoError(t, err)
 			},
 			wantCount:   1, // Only the valid backup should be counted
@@ -380,7 +380,7 @@ func TestRestoreBackup(t *testing.T) {
 
 				// Modify the config
 				testFile := filepath.Join(configPath, "test.txt")
-				err = os.WriteFile(testFile, []byte("modified content"), 0600)
+				err = os.WriteFile(testFile, []byte("modified content"), 0o600)
 				require.NoError(t, err)
 
 				// Extract timestamp from backup path
@@ -578,25 +578,25 @@ func TestGetDirectorySize(t *testing.T) {
 
 	// Create test directory with files
 	testDir := filepath.Join(app.ConfigFolder, "size-test")
-	err := os.MkdirAll(testDir, 0700)
+	err := os.MkdirAll(testDir, 0o700)
 	require.NoError(t, err)
 
 	// Create files of known sizes
 	file1 := filepath.Join(testDir, "file1.txt")
-	err = os.WriteFile(file1, []byte("12345"), 0600) // 5 bytes
+	err = os.WriteFile(file1, []byte("12345"), 0o600) // 5 bytes
 	require.NoError(t, err)
 
 	file2 := filepath.Join(testDir, "file2.txt")
-	err = os.WriteFile(file2, []byte("1234567890"), 0600) // 10 bytes
+	err = os.WriteFile(file2, []byte("1234567890"), 0o600) // 10 bytes
 	require.NoError(t, err)
 
 	// Create subdirectory with file
 	subDir := filepath.Join(testDir, "subdir")
-	err = os.MkdirAll(subDir, 0700)
+	err = os.MkdirAll(subDir, 0o700)
 	require.NoError(t, err)
 
 	file3 := filepath.Join(subDir, "file3.txt")
-	err = os.WriteFile(file3, []byte("123"), 0600) // 3 bytes
+	err = os.WriteFile(file3, []byte("123"), 0o600) // 3 bytes
 	require.NoError(t, err)
 
 	size, err := getDirectorySize(testDir)
@@ -636,11 +636,11 @@ func TestValidateBackup(t *testing.T) {
 			name: "backup is a file not directory",
 			setup: func(t *testing.T) string {
 				backupRoot := filepath.Join(app.ConfigFolder, "backups")
-				err := os.MkdirAll(backupRoot, 0700)
+				err := os.MkdirAll(backupRoot, 0o700)
 				require.NoError(t, err)
 
 				filePath := filepath.Join(backupRoot, "file.txt")
-				err = os.WriteFile(filePath, []byte("test"), 0600)
+				err = os.WriteFile(filePath, []byte("test"), 0o600)
 				require.NoError(t, err)
 
 				return filePath
