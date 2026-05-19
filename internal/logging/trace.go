@@ -14,9 +14,11 @@ import (
 )
 
 // Tracer is the global OpenTelemetry tracer instance.
-var Tracer trace.Tracer
-// TracerProvider is the global OpenTelemetry tracer provider instance.
-var TracerProvider trace.TracerProvider
+var (
+	Tracer trace.Tracer
+	// TracerProvider is the global OpenTelemetry tracer provider instance.
+	TracerProvider trace.TracerProvider
+)
 
 //nolint:ireturn // Interface return needed for OpenTelemetry span exporter
 func createExporter(collectorURL string) tracesdk.SpanExporter {

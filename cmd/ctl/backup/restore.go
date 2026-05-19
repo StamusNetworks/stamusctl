@@ -13,9 +13,7 @@ import (
 	handlers "stamus-ctl/internal/handlers/backup"
 )
 
-var (
-	restoreForce bool
-)
+var restoreForce bool
 
 // restoreCmd returns the backup restore command
 func restoreCmd() *cobra.Command {

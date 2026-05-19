@@ -17,6 +17,10 @@ import (
 
 const nixosMarker = "/etc/NIXOS"
 
+// execCommand is the function used to create exec.Cmd instances.
+// Tests can replace this to avoid running real commands.
+var execCommand = exec.Command
+
 // IsNixOS reports whether the current system is NixOS by checking for the
 // presence of /etc/NIXOS.
 func IsNixOS() bool {
@@ -51,7 +55,7 @@ func NixosRebuild(configPath string, action string) error {
 
 	logging.Sugar.Infow("running nixos-rebuild", "action", action, "config", nixosConfig)
 
-	cmd := exec.Command("nixos-rebuild", args...) //nolint:gosec // action is validated against allowlist above
+	cmd := execCommand("nixos-rebuild", args...) //nolint:gosec // action is validated against allowlist above
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
@@ -75,7 +79,7 @@ func BuildISO(configPath string, outputDir string) error {
 
 	logging.Sugar.Infow("running nix-build iso", "config", isoConfig, "output", outLink)
 
-	cmd := exec.Command("nix-build", args...) //nolint:gosec // configPath and outputDir are caller-controlled
+	cmd := execCommand("nix-build", args...) //nolint:gosec // configPath and outputDir are caller-controlled
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 

@@ -1,12 +1,12 @@
 package compose
 
 import (
+	"strings"
 	// External
 
 	"stamus-ctl/internal/app"
 	"stamus-ctl/internal/logging"
 	"stamus-ctl/internal/utils"
-	"strings"
 
 	"github.com/spf13/cobra"
 

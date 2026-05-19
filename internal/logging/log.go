@@ -11,10 +11,10 @@ import (
 var (
 	envType = "dev"
 	// Logger is the global zap logger instance used throughout the application.
-	Logger  *zap.Logger
+	Logger *zap.Logger
 	// Sugar is the global sugared logger instance for convenient logging.
-	Sugar   *zap.SugaredLogger
-	levels  = [...]zapcore.Level{zap.WarnLevel, zap.InfoLevel, zap.DebugLevel}
+	Sugar  *zap.SugaredLogger
+	levels = [...]zapcore.Level{zap.WarnLevel, zap.InfoLevel, zap.DebugLevel}
 )
 
 // NewLogger creates a new zap logger with optional file logging.
@@ -56,7 +56,8 @@ func NewLogger(filelogger bool) *zap.Logger {
 
 	var core zapcore.Core
 	if filelogger {
-		f, err := os.OpenFile("/var/log/stamus-ctl/stamus-ctl.log", os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+		f, err := os.OpenFile("/var/log/stamus-ctl/stamus-ctl.log",
+			os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0o644)
 		if err != nil {
 			panic(err)
 		}

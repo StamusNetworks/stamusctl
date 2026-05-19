@@ -6,7 +6,9 @@ import (
 
 // RegisterConfigFlagCompletion registers completion for the --config flag on a command
 func RegisterConfigFlagCompletion(cmd *cobra.Command) {
-	cmd.RegisterFlagCompletionFunc("config", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	cmd.RegisterFlagCompletionFunc("config", func(cmd *cobra.Command, args []string,
+		toComplete string,
+	) ([]string, cobra.ShellCompDirective) {
 		return CompleteConfigs(toComplete)
 	})
 }

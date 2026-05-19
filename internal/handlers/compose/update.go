@@ -15,6 +15,7 @@ import (
 	// Custom
 	"stamus-ctl/internal/app"
 	"stamus-ctl/internal/backup"
+	"stamus-ctl/internal/handlers/common"
 	"stamus-ctl/internal/logging"
 	"stamus-ctl/internal/models"
 	"stamus-ctl/internal/utils"
@@ -23,6 +24,10 @@ import (
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 )
+
+// execCommandFunc is used to create exec.Cmd instances.
+// Tests can replace this to avoid running real scripts.
+var execCommandFunc = exec.Command
 
 type UpdateHandlerParams struct {
 	Config         string
@@ -125,7 +130,7 @@ func UpdateHandler(params UpdateHandlerParams) error {
 			}
 		}
 	} else {
-		err = pullLatestTemplate(destPath, project, versionVal)
+		err = common.PullLatestTemplate(destPath, project, versionVal)
 		if err != nil {
 			logging.Sugar.Error(err)
 			if !app.Embed.IsTrue() {
@@ -270,7 +275,7 @@ func runArbitraryScript(path string, config string) (*strings.Builder, error) {
 	}
 
 	// Execute script with validated arguments
-	arbitrary := exec.Command(path, "--config", cleanConfig)
+	arbitrary := execCommandFunc(path, "--config", cleanConfig)
 	// Display output to terminal
 	runOutput := new(strings.Builder)
 	arbitrary.Stdout = runOutput
