@@ -9,11 +9,11 @@ COPY --from=docker /certs /certs
 
 RUN apk update && \
     apk add --no-cache \
-    gcc=13.2.1_git20240309-r0 \
-    musl-dev=1.2.5-r0 \
-    make=4.4.1-r2 \
-    bash=5.2.26-r0 \
-    bash-completion=2.12.0-r0
+    gcc \
+    musl-dev \
+    make \
+    bash \
+    bash-completion
 
 COPY . /src/stamus-ctl
 
