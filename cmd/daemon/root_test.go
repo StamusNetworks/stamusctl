@@ -15,8 +15,6 @@ func TestMain(m *testing.M) {
 }
 
 func TestRootCmd_Structure(t *testing.T) {
-	t.Parallel()
-
 	cmd := rootCmd()
 	assert.Equal(t, "stamusd", cmd.Use)
 
@@ -32,8 +30,6 @@ func TestRootCmd_Structure(t *testing.T) {
 }
 
 func TestRootCmd_VerboseFlag(t *testing.T) {
-	t.Parallel()
-
 	cmd := rootCmd()
 	// verbose is added as a persistent flag
 	flag := cmd.PersistentFlags().Lookup("verbose")
@@ -68,8 +64,6 @@ func TestPrintVersion_NoPanic(t *testing.T) {
 }
 
 func TestRootCmd_SubCommandCount(t *testing.T) {
-	t.Parallel()
-
 	cmd := rootCmd()
 	// Should have at least version and run sub-commands
 	assert.GreaterOrEqual(t, len(cmd.Commands()), 2)
