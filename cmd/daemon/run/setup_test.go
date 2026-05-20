@@ -105,9 +105,8 @@ func TestErrorHandler_WritesResponse(t *testing.T) {
 }
 
 // TestGetLogger_ReturnsFunc verifies that getLogger returns a callable function.
+// Not parallel — InitTracer writes to global Tracer.
 func TestGetLogger_ReturnsFunc(t *testing.T) {
-	t.Parallel()
-
 	logging.InitTracer("", "test-service")
 	_, span := logging.Tracer.Start(context.Background(), "test")
 
@@ -123,13 +122,18 @@ func TestGetLogger_ReturnsFunc(t *testing.T) {
 }
 
 // TestSetupLogging_ReturnsSpan verifies that setupLogging returns a non-nil span.
+// Not parallel — InitTracer writes to global Tracer, and setupLogging spawns
+// a goroutine (prometheus server) that reads gin's global mode.
 func TestSetupLogging_ReturnsSpan(t *testing.T) {
-	t.Parallel()
-
 	logging.InitTracer("", "test-service")
 
-	span := setupLogging(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
+	span := setupLogging(ctx)
 	assert.NotNil(t, span)
+	// Cancel to stop the prometheus goroutine before the next test touches gin globals.
+	cancel()
+	// Give the goroutine time to shut down.
+	time.Sleep(100 * time.Millisecond)
 }
 
 // TestSetupRouter_WithTokenPath exercises the tokenpath != "" branches in SetupRouter.
