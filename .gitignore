@@ -9,3 +9,6 @@ config/
 
 cover.out
 profile.cov.tmp
+
+result
+result-*
