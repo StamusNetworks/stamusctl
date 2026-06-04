@@ -29,6 +29,7 @@ Examples:
 
 	cmd.AddCommand(initCmd())
 	cmd.AddCommand(switchCmd())
+	cmd.AddCommand(testCmd())
 	cmd.AddCommand(isoCmd())
 	cmd.AddCommand(infectCmd())
 

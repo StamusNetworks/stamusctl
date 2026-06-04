@@ -105,6 +105,52 @@ func TestBuildISO_Failure(t *testing.T) {
 	assert.Contains(t, err.Error(), "nix-build iso failed")
 }
 
+func TestRunShellTest_Success(t *testing.T) {
+	old := execCommand
+	execCommand = func(name string, args ...string) *exec.Cmd {
+		return exec.Command("true")
+	}
+	defer func() { execCommand = old }()
+
+	err := RunShellTest("/some/test.sh", "/some/config")
+	assert.NoError(t, err)
+}
+
+func TestRunShellTest_Failure(t *testing.T) {
+	old := execCommand
+	execCommand = func(name string, args ...string) *exec.Cmd {
+		return exec.Command("false")
+	}
+	defer func() { execCommand = old }()
+
+	err := RunShellTest("/some/test.sh", "/some/config")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "shell test")
+}
+
+func TestRunNixTest_Success(t *testing.T) {
+	old := execCommand
+	execCommand = func(name string, args ...string) *exec.Cmd {
+		return exec.Command("true")
+	}
+	defer func() { execCommand = old }()
+
+	err := RunNixTest("/some/test.nix", "/some/config")
+	assert.NoError(t, err)
+}
+
+func TestRunNixTest_Failure(t *testing.T) {
+	old := execCommand
+	execCommand = func(name string, args ...string) *exec.Cmd {
+		return exec.Command("false")
+	}
+	defer func() { execCommand = old }()
+
+	err := RunNixTest("/some/test.nix", "/some/config")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "nix test")
+}
+
 func TestInfect(t *testing.T) {
 	err := Infect("")
 	assert.Error(t, err)
