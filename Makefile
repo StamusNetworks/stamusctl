@@ -12,7 +12,7 @@ HOST_ARCH:=$(shell go env GOARCH)
 
 TARGET_ARCH?=linux/amd64
 
-VERSION:=$(if $(VERSION),$(VERSION),$(shell git describe --tags --abbrev=0))
+VERSION:=$(if $(VERSION),$(VERSION),$(shell git describe --tags --abbrev=0 2>/dev/null || cat VERSION 2>/dev/null || echo "unknown"))
 GIT_COMMIT:=$(if $(GIT_COMMIT),$(GIT_COMMIT),$(shell git rev-parse HEAD))
 
 GOPATH?=$(shell if test -x `which go`; then go env GOPATH; else echo "$(HOME)/go"; fi)
@@ -97,6 +97,24 @@ nix-test-cmd-docker:
 			   ./result/bin/stamusctl nix test --config /tmp/test-config \
 		'
 
+nix-iso:
+	@echo "Building NixOS live ISO with stamusctl..."
+	nix build .#packages.x86_64-linux.iso -L
+	@echo "ISO built: $$(readlink -f result)/iso/stamusctl-live.iso"
+
+nix-iso-run: nix-iso
+	@echo "Launching ISO in QEMU..."
+	qemu-system-x86_64 \
+		-enable-kvm \
+		-m 4G \
+		-smp 2 \
+		-cdrom $$(find $$(readlink -f result)/iso/ -name '*.iso' | head -1) \
+		-boot d \
+		-vga virtio \
+		-display gtk \
+		-usb -device usb-tablet \
+		-nic user,model=virtio-net-pci
+
 build-swaggo-image:
 	docker build . -t swag-daemon -f docker/Dockerfile.swag
 
@@ -153,4 +171,4 @@ install-completions: completions
 	@echo "For zsh, copy completions/stamusctl.zsh to a directory in your fpath"
 	@echo "For fish, copy completions/stamusctl.fish to ~/.config/fish/completions/"
 
-.PHONY: all cli test-cli test daemon daemon-dev daemon-test nix-test-syntax nix-test-vm nix-test-vm-docker nix-test-cmd-docker build-swaggo-image update-swagger init-embeds completions man-pages install-completions
+.PHONY: all cli test-cli test daemon daemon-dev daemon-test nix-test-syntax nix-test-vm nix-test-vm-docker nix-test-cmd-docker nix-iso nix-iso-run build-swaggo-image update-swagger init-embeds completions man-pages install-completions

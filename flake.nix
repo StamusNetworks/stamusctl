@@ -14,9 +14,12 @@
             inherit system;
           };
 
+          version = builtins.replaceStrings [ "\n" ] [ "" ] (builtins.readFile ./VERSION);
+          gitCommit = self.shortRev or "dirty";
+
           stamusctl = pkgs.buildGoModule {
             pname = "stamusctl";
-            version = "unstable";
+            inherit version;
 
             src = ./.;
 
@@ -29,8 +32,8 @@
 
             ldflags = [
               "-X stamus-ctl/internal/app.Arch=${system}"
-              "-X stamus-ctl/internal/app.Commit=dev"
-              "-X stamus-ctl/internal/app.Version=unstable"
+              "-X stamus-ctl/internal/app.Commit=${gitCommit}"
+              "-X stamus-ctl/internal/app.Version=${version}"
               "-X stamus-ctl/internal/logging.envType=prd"
               "-extldflags=-static"
             ];
@@ -74,6 +77,11 @@
             stamusctl = perSystem.packages.${system}.default;
           }
         );
+
+        packages.${system}.iso = import ./nix/iso.nix {
+          inherit nixpkgs;
+          stamusctl = perSystem.packages.${system}.default;
+        };
       };
     in
     nixpkgs.lib.recursiveUpdate perSystem linuxChecks;
