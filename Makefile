@@ -63,6 +63,40 @@ nix-test-vm:
 	@echo "Running NixOS VM integration tests..."
 	nix build .#checks.$(shell nix eval --raw 'builtins.currentSystem').nixos-test
 
+nix-test-vm-docker:
+	@echo "Running NixOS VM integration tests in Docker..."
+	docker run --rm \
+		--device /dev/kvm \
+		-v $(CURRENT_DIR):/src \
+		-w /src \
+		nixos/nix:latest \
+		sh -c "echo 'extra-experimental-features = nix-command flakes' >> /etc/nix/nix.conf \
+			&& git config --global --add safe.directory /src \
+			&& nix build .#checks.x86_64-linux.nixos-test -L"
+
+nix-test-cmd-docker:
+	@echo "Running stamusctl nix init + test in NixOS Docker container..."
+	docker run --rm \
+		-v $(CURRENT_DIR):/src:ro \
+		nixos/nix:latest \
+		sh -c '\
+			echo "extra-experimental-features = nix-command flakes" >> /etc/nix/nix.conf \
+			&& echo "Building stamusctl..." \
+			&& cd /tmp && cp -r /src stamusctl && cd stamusctl \
+			&& git config --global --add safe.directory /tmp/stamusctl \
+			&& nix build -L \
+			&& echo "Running nix init with test fixture template..." \
+			&& mkdir -p /tmp/stamus-templates/clearndr/embedded/ \
+			&& cp -r tests/nixos/fixtures/template/* /tmp/stamus-templates/clearndr/embedded/ \
+			&& EMBED_MODE=true STAMUS_TEMPLATES_FOLDER=/tmp/stamus-templates/ \
+			   STAMUS_APP_NAME=stamusctl \
+			   ./result/bin/stamusctl nix init --config /tmp/test-config --default \
+			&& echo "Running nix test on rendered config..." \
+			&& touch /etc/NIXOS \
+			&& STAMUS_APP_NAME=stamusctl \
+			   ./result/bin/stamusctl nix test --config /tmp/test-config \
+		'
+
 build-swaggo-image:
 	docker build . -t swag-daemon -f docker/Dockerfile.swag
 
@@ -119,4 +153,4 @@ install-completions: completions
 	@echo "For zsh, copy completions/stamusctl.zsh to a directory in your fpath"
 	@echo "For fish, copy completions/stamusctl.fish to ~/.config/fish/completions/"
 
-.PHONY: all cli test-cli test daemon daemon-dev daemon-test nix-test-syntax nix-test-vm build-swaggo-image update-swagger init-embeds completions man-pages install-completions
+.PHONY: all cli test-cli test daemon daemon-dev daemon-test nix-test-syntax nix-test-vm nix-test-vm-docker nix-test-cmd-docker build-swaggo-image update-swagger init-embeds completions man-pages install-completions
