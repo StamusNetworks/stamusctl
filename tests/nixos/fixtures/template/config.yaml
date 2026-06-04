@@ -1,0 +1,4 @@
+hostname:
+  type: string
+  usage: System hostname
+  default: stamusctl-test
