@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 
 	// Internal
 	"stamus-ctl/internal/app"
@@ -85,6 +86,43 @@ func BuildISO(configPath string, outputDir string) error {
 
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("nix-build iso failed: %w", err)
+	}
+	return nil
+}
+
+// RunShellTest executes a shell test script with bash, passing the config
+// path as the STAMUSCTL_CONFIG_PATH environment variable.
+func RunShellTest(scriptPath string, configPath string) error {
+	logging.Sugar.Infow("running shell test", "script", scriptPath, "config", configPath)
+
+	cmd := execCommand("bash", scriptPath) //nolint:gosec // scriptPath validated by caller
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Env = append(os.Environ(), "STAMUSCTL_CONFIG_PATH="+configPath)
+
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("shell test %s failed: %w", filepath.Base(scriptPath), err)
+	}
+	return nil
+}
+
+// RunNixTest evaluates a Nix test expression using nix-instantiate --eval.
+// The config path is passed as --arg so Nix expressions can access it.
+func RunNixTest(scriptPath string, configPath string) error {
+	logging.Sugar.Infow("running nix test", "script", scriptPath, "config", configPath)
+
+	args := []string{
+		"--eval", scriptPath,
+		"--arg", "configPath", fmt.Sprintf("%q", configPath),
+	}
+
+	cmd := execCommand("nix-instantiate", args...) //nolint:gosec // scriptPath validated by caller
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Env = append(os.Environ(), "STAMUSCTL_CONFIG_PATH="+configPath)
+
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("nix test %s failed: %w", filepath.Base(scriptPath), err)
 	}
 	return nil
 }

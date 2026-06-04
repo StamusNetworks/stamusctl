@@ -42,6 +42,7 @@ func TestNixCmd_SubcommandNames(t *testing.T) {
 	}
 	assert.True(t, names["init"], "should have 'init' subcommand")
 	assert.True(t, names["switch"], "should have 'switch' subcommand")
+	assert.True(t, names["test"], "should have 'test' subcommand")
 	assert.True(t, names["iso"], "should have 'iso' subcommand")
 	assert.True(t, names["infect"], "should have 'infect' subcommand")
 }
