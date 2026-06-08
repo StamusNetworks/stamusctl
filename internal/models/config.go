@@ -468,7 +468,7 @@ func (f *Config) saveParamsTo(dest *File) error {
 		// Set stamusconfig value to version
 		var versionPath []string = append([]string{}, path...)
 		copy(versionPath, path)
-		versionPath[len(versionPath)-1] = string(version)
+		versionPath[len(versionPath)-1] = strings.TrimSpace(string(version))
 		conf.file.GetViper().Set("stamus.config", "/"+filepath.Join(versionPath...))
 	} else {
 		conf.file.GetViper().Set("stamus.config", f.file.Path)
