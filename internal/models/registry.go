@@ -187,8 +187,9 @@ func (r *RegistryInfo) PullConfigAndUnwrap(destPath string, project, version str
 		return err
 	}
 
-	if versionPath != filepath.Join(destPath, string(versionFromTemplate)) {
-		err = cp.Copy(versionPath, filepath.Join(destPath, string(versionFromTemplate)))
+	trimmedVersion := strings.TrimSpace(string(versionFromTemplate))
+	if versionPath != filepath.Join(destPath, trimmedVersion) {
+		err = cp.Copy(versionPath, filepath.Join(destPath, trimmedVersion))
 		if err != nil {
 			return err
 		}
