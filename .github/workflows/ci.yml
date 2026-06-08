@@ -19,6 +19,11 @@ jobs:
         uses: ./.github/workflows/build.yml
         needs: [tests]
 
+    nix:
+        name: NixOS Tests
+        uses: ./.github/workflows/nix.yml
+        needs: [tests]
+
     docker:
         name: Docker Build
         uses: ./.github/workflows/docker.yml
