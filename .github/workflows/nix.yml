@@ -1,0 +1,94 @@
+name: NixOS Tests
+
+on:
+    workflow_call:
+
+jobs:
+    nix-template-syntax:
+        name: Nix Template Syntax
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Install Nix
+              uses: cachix/install-nix-action@v30
+              with:
+                  extra_nix_config: |
+                      accept-flake-config = true
+
+            - name: Validate Nix template syntax
+              run: make nix-test-syntax
+
+    nix-vm-test:
+        name: NixOS VM Template Test
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Enable KVM
+              run: |
+                  if [ -d /etc/udev/rules.d ]; then
+                    echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+                    sudo udevadm control --reload-rules
+                    sudo udevadm trigger --name-match=kvm
+                  fi
+                  [ -e /dev/kvm ] && sudo chmod 666 /dev/kvm || true
+
+            - name: Install Nix
+              uses: cachix/install-nix-action@v30
+              with:
+                  extra_nix_config: |
+                      accept-flake-config = true
+
+            - name: Run NixOS VM template tests
+              run: make nix-test-vm
+
+    nix-iso-test:
+        name: NixOS ISO Graphical Test
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Enable KVM
+              run: |
+                  if [ -d /etc/udev/rules.d ]; then
+                    echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+                    sudo udevadm control --reload-rules
+                    sudo udevadm trigger --name-match=kvm
+                  fi
+                  [ -e /dev/kvm ] && sudo chmod 666 /dev/kvm || true
+
+            - name: Install Nix
+              uses: cachix/install-nix-action@v30
+              with:
+                  extra_nix_config: |
+                      accept-flake-config = true
+
+            - name: Run NixOS ISO graphical tests
+              run: make nix-test-iso
+
+    nix-build-iso:
+        name: Build NixOS ISO
+        needs: [nix-template-syntax, nix-vm-test, nix-iso-test]
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Install Nix
+              uses: cachix/install-nix-action@v30
+              with:
+                  extra_nix_config: |
+                      accept-flake-config = true
+
+            - name: Build ISO
+              run: make nix-iso
+
+            - name: Report ISO size
+              run: |
+                  ISO_PATH=$(find $(readlink -f result)/iso/ -name '*.iso' | head -1)
+                  echo "ISO: $(basename $ISO_PATH)"
+                  echo "Size: $(du -h $ISO_PATH | cut -f1)"

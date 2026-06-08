@@ -71,12 +71,21 @@
         system = "x86_64-linux";
         pkgs = import nixpkgs { inherit system; };
       in {
-        checks.${system}.nixos-test = pkgs.testers.runNixOSTest (
-          import ./tests/nixos/vm-test.nix {
-            inherit pkgs;
-            stamusctl = perSystem.packages.${system}.default;
-          }
-        );
+        checks.${system} = {
+          nixos-test = pkgs.testers.runNixOSTest (
+            import ./tests/nixos/vm-test.nix {
+              inherit pkgs;
+              stamusctl = perSystem.packages.${system}.default;
+            }
+          );
+
+          iso-test = pkgs.testers.runNixOSTest (
+            import ./tests/nixos/iso-test.nix {
+              inherit pkgs;
+              stamusctl = perSystem.packages.${system}.default;
+            }
+          );
+        };
 
         packages.${system}.iso = import ./nix/iso.nix {
           inherit nixpkgs;
