@@ -50,7 +50,7 @@ jobs:
     release:
         name: Release
         uses: ./.github/workflows/release.yml
-        needs: [build, functional-tests, cli-integration-tests, daemon-integration-tests]
+        needs: [build, nix, functional-tests, cli-integration-tests, daemon-integration-tests]
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/trunk'
         permissions:
             contents: write
