@@ -227,6 +227,85 @@ func TestGetData(t *testing.T) {
 	assert.Equal(t, "arbiteval", data["Values.arbite"])
 }
 
+// TestGetData_DisabledOptionalStaleChildren reproduces the bug where
+// config set on an existing config produces an ERROR in nestMap because
+// stale children of a disabled optional parameter linger in the arbitrary
+// map after ProcessOptionnalParams cleaned them from parameters only.
+//
+// Scenario: a template defines "feature" (optional, default true) with
+// child "feature.version" (string). The user runs config set feature=false.
+// LoadConfigFrom populated arbitrary with feature=true AND feature.version
+// from the prior values.yaml.  ProcessOptionnalParams removes
+// feature.version from parameters, but arbitrary still has it.
+//
+// Without the fix GetData returns both Values.feature=false AND
+// Values.feature.version=master — these conflict in nestMap.
+func TestGetData_DisabledOptionalStaleChildren(t *testing.T) {
+	config := &Config{
+		// Arbitrary simulates what LoadConfigFrom puts in from a prior
+		// values.yaml where the optional was enabled.
+		arbitrary: &Arbitrary{
+			"feature":         true,
+			"feature.version": "master",
+		},
+		// Parameters after ProcessOptionnalParams(false) with feature=false:
+		// - "feature" stays (optional, value false)
+		// - "feature.version" was removed by cleanOptionatedParams
+		parameters: &Parameters{
+			"feature": &Parameter{
+				Type:     "optional",
+				Variable: CreateVariableBool(false),
+			},
+		},
+	}
+
+	data, err := config.GetData()
+	assert.NoError(t, err)
+
+	// The disabled optional must be present as false.
+	assert.Equal(t, false, data["Values.feature"])
+	// The stale child must NOT appear — it was removed from parameters
+	// and must be filtered from arbitrary too.
+	_, hasChild := data["Values.feature.version"]
+	assert.False(t, hasChild, "stale child Values.feature.version must be filtered from data")
+}
+
+// TestGetData_EnabledOptionalNoConflict verifies that when an optional is
+// enabled, its children from arbitrary don't conflict with the parameter
+// children.  ProcessOptionnalParams deletes the parent key from parameters
+// when enabled, but arbitrary retains it — nestMap must handle the overlap.
+func TestGetData_EnabledOptionalNoConflict(t *testing.T) {
+	config := &Config{
+		arbitrary: &Arbitrary{
+			"feature":         true,
+			"feature.version": "master",
+		},
+		// After ProcessOptionnalParams with feature=true:
+		// - "feature" is deleted from parameters
+		// - "feature.version" is kept
+		parameters: &Parameters{
+			"feature.version": &Parameter{
+				Type:     "string",
+				Variable: CreateVariableString("master"),
+			},
+		},
+	}
+
+	data, err := config.GetData()
+	assert.NoError(t, err)
+
+	// Both Values.feature (from arbitrary) and Values.feature.version exist.
+	// nestMap must resolve the collision: sub-keys win, so after nesting
+	// "feature" should become a map, not a bool.
+	nested := nestMap(data)
+	vals, ok := nested["Values"].(map[string]interface{})
+	assert.True(t, ok)
+	// "feature" must be a map (sub-keys win over the scalar).
+	feat, ok := vals["feature"].(map[string]interface{})
+	assert.True(t, ok, "feature should be a map, got %T", vals["feature"])
+	assert.Equal(t, "master", feat["version"])
+}
+
 func TestSaveConfigTo(t *testing.T) {
 	// Destination file
 	destFile, err := CreateFile("/dest", "config.yaml")
