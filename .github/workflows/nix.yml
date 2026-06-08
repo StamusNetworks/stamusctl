@@ -87,8 +87,9 @@ jobs:
             - name: Build ISO
               run: make nix-iso
 
-            - name: Report ISO size
-              run: |
-                  ISO_PATH=$(find $(readlink -f result)/iso/ -name '*.iso' | head -1)
-                  echo "ISO: $(basename $ISO_PATH)"
-                  echo "Size: $(du -h $ISO_PATH | cut -f1)"
+            - name: Upload ISO artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: stamusctl-live-iso
+                  path: result/iso/*.iso
+                  retention-days: 14
