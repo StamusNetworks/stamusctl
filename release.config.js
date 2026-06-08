@@ -49,8 +49,15 @@ module.exports = {
 		],
 		'@semantic-release/release-notes-generator',
 		[
+			'@semantic-release/exec',
+			{
+				prepareCmd: 'echo "${nextRelease.version}" > VERSION',
+			},
+		],
+		[
 			'@semantic-release/git',
 			{
+				assets: ['VERSION'],
 				message: 'ci(release): release ${nextRelease.version}\n\n${nextRelease.notes}',
 			},
 		],
