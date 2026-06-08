@@ -781,18 +781,16 @@ func TestGetInterfacesHost(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestNestMap_KeyCollision(t *testing.T) {
-	// "a" is set to "scalar" first; then "a.b" tries to nest under "a".
-	// Map iteration order is random, so we need both orderings to trigger.
-	// Test the structure: provide "a" as a scalar AND "a.b" as nested.
+	// When both "a" (scalar) and "a.b" (nested) exist, sub-keys always win.
 	input := map[string]interface{}{
 		"a":   "scalar",
 		"a.b": "nested",
 	}
-	// The function should not panic; result structure depends on iteration order.
 	result := nestMap(input)
 	assert.NotNil(t, result)
-	// "a" should exist in the result (either as a map or overwritten).
-	assert.Contains(t, result, "a")
+	aVal, ok := result["a"].(map[string]interface{})
+	assert.True(t, ok, "a should be a map, got %T", result["a"])
+	assert.Equal(t, "nested", aVal["b"])
 }
 
 // ---------------------------------------------------------------------------

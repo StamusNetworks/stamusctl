@@ -152,7 +152,13 @@ func nestMap(input map[string]interface{}) map[string]interface{} {
 
 		for i, part := range parts {
 			if i == len(parts)-1 {
-				// Last part, set the value
+				// Last part: set the value, but don't overwrite an
+				// existing nested map — sub-keys are more specific.
+				if existing, ok := currentMap[part]; ok {
+					if _, isMap := existing.(map[string]interface{}); isMap {
+						break
+					}
+				}
 				currentMap[part] = value
 			} else {
 				// Intermediate part, ensure the map exists
@@ -163,9 +169,8 @@ func nestMap(input map[string]interface{}) map[string]interface{} {
 				if nextMap, ok := currentMap[part].(map[string]interface{}); ok {
 					currentMap = nextMap
 				} else {
-					// If not, create a new map and assign it
-					logging.Sugar.Error("Creating new map for part:", part,
-						zap.Any("currentMap[part]", currentMap[part]))
+					// A scalar value exists where we need a map for
+					// sub-keys; replace it — sub-keys take precedence.
 					newMap := make(map[string]interface{})
 					currentMap[part] = newMap
 					currentMap = newMap
