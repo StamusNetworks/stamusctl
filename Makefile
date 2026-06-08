@@ -61,7 +61,11 @@ nix-test-syntax:
 
 nix-test-vm:
 	@echo "Running NixOS VM integration tests..."
-	nix build .#checks.$(shell nix eval --raw 'builtins.currentSystem').nixos-test
+	nix build .#checks.$(shell nix eval --raw --impure --expr 'builtins.currentSystem').nixos-test
+
+nix-test-iso:
+	@echo "Running NixOS ISO graphical tests..."
+	nix build .#checks.$(shell nix eval --raw --impure --expr 'builtins.currentSystem').iso-test -L
 
 nix-test-vm-docker:
 	@echo "Running NixOS VM integration tests in Docker..."
@@ -171,4 +175,4 @@ install-completions: completions
 	@echo "For zsh, copy completions/stamusctl.zsh to a directory in your fpath"
 	@echo "For fish, copy completions/stamusctl.fish to ~/.config/fish/completions/"
 
-.PHONY: all cli test-cli test daemon daemon-dev daemon-test nix-test-syntax nix-test-vm nix-test-vm-docker nix-test-cmd-docker nix-iso nix-iso-run build-swaggo-image update-swagger init-embeds completions man-pages install-completions
+.PHONY: all cli test-cli test daemon daemon-dev daemon-test nix-test-syntax nix-test-vm nix-test-iso nix-test-vm-docker nix-test-cmd-docker nix-iso nix-iso-run build-swaggo-image update-swagger init-embeds completions man-pages install-completions
