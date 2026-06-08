@@ -323,8 +323,15 @@ func (f *Config) GetData() (map[string]any, error) {
 		}
 		configData[key] = value
 	}
-	// Merge with arbitrary config values and create a nested map
+	// Merge with arbitrary config values and create a nested map.
+	// Filter out stale children of disabled optional parameters: these
+	// linger in arbitrary (loaded from a prior values.yaml) after
+	// ProcessOptionnalParams has removed them from parameters.
+	disabledPrefixes := f.disabledOptionalPrefixes()
 	for key, value := range f.arbitrary.AsMap() {
+		if isChildOfDisabledOptional(key, disabledPrefixes) {
+			continue
+		}
 		data[addValuePrefix(key)] = value
 	}
 	for key, value := range configData {
@@ -435,8 +442,12 @@ func (f *Config) saveParamsTo(dest *File) error {
 		}
 		paramsValues[key] = value
 	}
-	// Set the new values
+	// Set the new values, filtering stale children of disabled optionals
+	disabledPrefixes := f.disabledOptionalPrefixes()
 	for key, value := range f.arbitrary.AsMap() {
+		if isChildOfDisabledOptional(key, disabledPrefixes) {
+			continue
+		}
 		conf.file.GetViper().Set(key, value)
 	}
 	for key, value := range paramsValues {
@@ -505,6 +516,36 @@ func (f *Config) GetOrSetSeed() string {
 		f.SetSeed(seed)
 	}
 	return f.GetSeed()
+}
+
+// disabledOptionalPrefixes returns dot-suffixed key prefixes for every
+// optional parameter whose current value is false.  Any arbitrary key that
+// starts with one of these prefixes is a stale child that should be excluded.
+func (f *Config) disabledOptionalPrefixes() []string {
+	var prefixes []string
+	for key, param := range *f.parameters {
+		if param.Type != "optional" {
+			continue
+		}
+		val, err := param.GetValue()
+		if err != nil {
+			continue
+		}
+		boolVal, ok := val.(bool)
+		if ok && !boolVal {
+			prefixes = append(prefixes, key+".")
+		}
+	}
+	return prefixes
+}
+
+func isChildOfDisabledOptional(key string, prefixes []string) bool {
+	for _, prefix := range prefixes {
+		if strings.HasPrefix(key, prefix) {
+			return true
+		}
+	}
+	return false
 }
 
 func generateRandomString(n int) string {

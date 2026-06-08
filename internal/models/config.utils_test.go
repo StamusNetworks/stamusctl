@@ -39,18 +39,18 @@ func TestNestMapWithMoreNesting(t *testing.T) {
 }
 
 func TestNestMap_Collision_Deterministic(t *testing.T) {
-	// Force the collision branch: set a scalar value at an intermediate key,
-	// then ask nestMap to nest beneath it. We build the map so that iteration
-	// order doesn't matter — both entries share the same prefix "x", and
-	// "x" is a scalar while "x.y" wants to use "x" as a map.
-	// Run multiple times to hit both iteration orderings.
-	for range 20 {
+	// When both "x" (scalar) and "x.y" (nested) exist, sub-keys must
+	// always win regardless of Go map iteration order.
+	for range 50 {
 		result := nestMap(map[string]interface{}{
 			"x":   "scalar",
 			"x.y": "nested",
 		})
 		assert.NotNil(t, result)
-		assert.Contains(t, result, "x")
+		// "x" must be a map containing "y", never the scalar
+		xVal, ok := result["x"].(map[string]interface{})
+		assert.True(t, ok, "x should be a map, got %T", result["x"])
+		assert.Equal(t, "nested", xVal["y"])
 	}
 }
 
