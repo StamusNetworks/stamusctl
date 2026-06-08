@@ -27,6 +27,10 @@ const github = [
 				path: `stamusd-${process.env.OS}-${process.env.ARCH}`,
 				label: `stamusd (${process.env.OS?.toUpperCase()} ${process.env.ARCH?.toUpperCase()})`,
 			},
+			{
+				path: 'stamusctl-live.iso',
+				label: 'NixOS Live ISO (x86_64)',
+			},
 		],
 	},
 ]
