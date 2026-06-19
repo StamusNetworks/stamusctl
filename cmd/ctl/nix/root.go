@@ -19,8 +19,23 @@ Examples:
   # Apply NixOS configuration
   stamusctl nix switch
 
+  # Preview what would change before switching
+  stamusctl nix diff
+
+  # Update templates to a newer version
+  stamusctl nix update --version 1.2.3
+
+  # Build a throwaway VM to test configuration
+  stamusctl nix build-vm --run
+
+  # Show configuration and system status
+  stamusctl nix status
+
   # Generate an installable ISO
   stamusctl nix iso
+
+  # Run the ISO in QEMU
+  stamusctl nix iso-run
 
   # Convert an existing system to NixOS (advanced)
   stamusctl nix infect
@@ -31,7 +46,12 @@ Examples:
 	cmd.AddCommand(switchCmd())
 	cmd.AddCommand(testCmd())
 	cmd.AddCommand(isoCmd())
+	cmd.AddCommand(isoRunCmd())
 	cmd.AddCommand(infectCmd())
+	cmd.AddCommand(diffCmd())
+	cmd.AddCommand(updateCmd())
+	cmd.AddCommand(buildVMCmd())
+	cmd.AddCommand(statusCmd())
 
 	return cmd
 }

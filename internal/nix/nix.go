@@ -2,6 +2,7 @@ package nix
 
 import (
 	// Core
+	"bytes"
 	"errors"
 	"fmt"
 	"os"
@@ -106,23 +107,116 @@ func RunShellTest(scriptPath string, configPath string) error {
 	return nil
 }
 
-// RunNixTest evaluates a Nix test expression using nix-instantiate --eval.
+// RunNixTest builds a Nix test expression using nix-build.
 // The config path is passed as --arg so Nix expressions can access it.
+// This supports NixOS integration tests (e.g. pkgs.testers.runNixOSTest)
+// as well as any derivation-producing test expression.
 func RunNixTest(scriptPath string, configPath string) error {
 	logging.Sugar.Infow("running nix test", "script", scriptPath, "config", configPath)
 
 	args := []string{
-		"--eval", scriptPath,
+		scriptPath,
 		"--arg", "configPath", fmt.Sprintf("%q", configPath),
+		"--no-out-link",
 	}
 
-	cmd := execCommand("nix-instantiate", args...) //nolint:gosec // scriptPath validated by caller
+	cmd := execCommand("nix-build", args...) //nolint:gosec // scriptPath validated by caller
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Env = append(os.Environ(), "STAMUSCTL_CONFIG_PATH="+configPath)
 
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("nix test %s failed: %w", filepath.Base(scriptPath), err)
+	}
+	return nil
+}
+
+// RunISO launches a QEMU virtual machine that boots from the given ISO file.
+// memory is the amount of RAM in megabytes, cores is the number of CPU cores,
+// and enableKVM enables hardware acceleration when true.
+func RunISO(isoPath string, memory int, cores int, enableKVM bool) error {
+	args := []string{
+		"-cdrom", isoPath,
+		"-m", fmt.Sprintf("%d", memory),
+		"-smp", fmt.Sprintf("%d", cores),
+		"-boot", "d",
+	}
+	if enableKVM {
+		args = append(args, "-enable-kvm")
+	}
+
+	logging.Sugar.Infow("launching qemu", "iso", isoPath, "memory", memory, "cores", cores, "kvm", enableKVM)
+
+	cmd := execCommand("qemu-system-x86_64", args...) //nolint:gosec // arguments are caller-controlled
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("qemu failed: %w", err)
+	}
+	return nil
+}
+
+// DiffClosures runs `nix store diff-closures` between two store paths to show
+// package-level differences. currentSystem is typically "/run/current-system"
+// and newSystem is the result of a `nixos-rebuild build`.
+func DiffClosures(currentSystem string, newSystem string) error {
+	args := []string{"store", "diff-closures", currentSystem, newSystem}
+
+	logging.Sugar.Infow("running nix store diff-closures", "current", currentSystem, "new", newSystem)
+
+	cmd := execCommand("nix", args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("nix store diff-closures failed: %w", err)
+	}
+	return nil
+}
+
+// ListGenerations runs `nixos-rebuild list-generations` and returns its output
+// as a string.
+func ListGenerations() (string, error) {
+	args := []string{"list-generations"}
+
+	logging.Sugar.Infow("listing NixOS generations")
+
+	cmd := execCommand("nixos-rebuild", args...)
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
+		return "", fmt.Errorf("nixos-rebuild list-generations failed: %w", err)
+	}
+	return out.String(), nil
+}
+
+// FindAndRunVM locates the run-*-vm script inside resultDir/bin/ and executes it.
+func FindAndRunVM(resultDir string) error {
+	binDir := filepath.Join(resultDir, "bin")
+	pattern := filepath.Join(binDir, "run-*-vm")
+
+	matches, err := filepath.Glob(pattern)
+	if err != nil {
+		return fmt.Errorf("failed to glob VM scripts in %s: %w", binDir, err)
+	}
+	if len(matches) == 0 {
+		return fmt.Errorf("no run-*-vm script found in %s", binDir)
+	}
+
+	scriptPath := matches[0]
+	logging.Sugar.Infow("running built VM", "script", scriptPath)
+
+	cmd := execCommand(scriptPath)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("VM script %s failed: %w", filepath.Base(scriptPath), err)
 	}
 	return nil
 }
