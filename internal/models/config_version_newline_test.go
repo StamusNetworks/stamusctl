@@ -59,6 +59,26 @@ func TestSaveParamsTo_LatestVersionTrailingNewline(t *testing.T) {
 	assert.Equal(t, "/tpl/1.0.0", stamusConfig)
 }
 
+// TestGetStamusFile_TrailingNewlineInStoredPath reproduces the situation of a
+// user whose values.yaml was written by an OLDER binary (before the
+// trailing-newline write fix): the stored stamus.config path already contains
+// an embedded "\n". GetStamusFile must trim it so the existing, on-disk config
+// remains loadable instead of failing with:
+//
+//	invalid file path: path contains forbidden control characters
+func TestGetStamusFile_TrailingNewlineInStoredPath(t *testing.T) {
+	stamusConf := CreateVariableString("/tpl/1.0.0\n")
+	values := map[string]*Variable{
+		"stamus.config": &stamusConf,
+	}
+
+	file, err := GetStamusFile(values)
+	require.NoError(t, err, "GetStamusFile must tolerate a trailing newline in the stored path")
+	require.NotNil(t, file)
+	assert.Equal(t, "/tpl/1.0.0", file.Path,
+		"the newline must be trimmed from the resolved path")
+}
+
 // TestLoadConfigFrom_VersionNewlineRoundTrip is the end-to-end reproduction
 // of the CI failure: compose init writes a values.yaml whose stamus.config
 // contains a trailing newline, then config get keys calls LoadConfigFrom
