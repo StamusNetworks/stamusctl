@@ -35,9 +35,20 @@ func GetChoices(name string) ([]Variable, error) {
 	}
 }
 
+// DisableInterfaceDetection skips host/container network interface detection
+// when resolving the "interfaces" choices. It is enabled by `nix init`, where
+// the host running the command is typically not the host that will run the
+// stack, so probing local interfaces is misleading.
+var DisableInterfaceDetection = false
+
 // Get the list of network interfaces
 // Depending on the mode (prod or test), it will either use the host or a busybox container
 func getInterfaces() ([]Variable, error) {
+	// When interface detection is disabled (e.g. `nix init`), return no choices
+	// so the interface is provided as free text rather than picked from this host.
+	if DisableInterfaceDetection {
+		return nil, nil
+	}
 	go func() {
 		time.Sleep(1 * time.Minute)
 		interfacesCache = []Variable{}
