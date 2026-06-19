@@ -31,7 +31,7 @@ func handleConfigRestart(conf string) error {
 	if err != nil {
 		return err
 	}
-	return wrapper.HandleUp(conf)
+	return wrapper.HandleUp(conf, true)
 }
 
 func HandleContainersRestart(containers []string) error {

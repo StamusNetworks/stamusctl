@@ -25,7 +25,7 @@ func upHandler(c *gin.Context) {
 		conf = app.DefaultConfigName
 	}
 	// Call handler
-	err := handlers.HandleUp(conf)
+	err := handlers.HandleUp(conf, true)
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return

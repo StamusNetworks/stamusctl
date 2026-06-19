@@ -14,18 +14,18 @@ import (
 	"stamus-ctl/pkg/mocker"
 )
 
-func HandleUp(conf string) error {
+func HandleUp(conf string, removeOrphans bool) error {
 	if !app.IsCtl() {
 		conf = app.GetConfigsFolder(conf)
 	}
 	if app.Mode.IsTest() {
 		return mocker.Mocked.Up(conf)
 	}
-	return handleUp(conf)
+	return handleUp(conf, removeOrphans)
 }
 
 // HandleUp handles the up command, similar to the up command in docker-compose
-func handleUp(configName string) error {
+func handleUp(configName string, removeOrphans bool) error {
 	// Get command
 	command := compose.GetComposeCmd("up")
 	// Set flags
@@ -33,6 +33,13 @@ func handleUp(configName string) error {
 	command.Flags().Lookup("config").Value.Set(configName)
 	command.Flags().Lookup("detach").DefValue = "true"
 	command.Flags().Lookup("detach").Value.Set("true")
+	// Remove orphans by default: the rendered compose file is the source of truth,
+	// so containers no longer in it (e.g. after `config set arkime=false`) must go.
+	// Use Flags().Set so the value is marked as explicitly set and the wrapper's
+	// default-on logic does not override an opt-out.
+	if err := command.Flags().Set("remove-orphans", strconv.FormatBool(removeOrphans)); err != nil {
+		return err
+	}
 	// Create root command
 	var cmd *cobra.Command = &cobra.Command{Use: "compose"}
 	cmd.SetArgs([]string{"up"})

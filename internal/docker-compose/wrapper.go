@@ -37,7 +37,7 @@ var operationCounter atomic.Int64
 var ComposeFlags = models.ComposeFlags{
 	"up": models.CreateComposeFlags(
 		[]string{"file", "project-name"},
-		[]string{"detach", "build"},
+		[]string{"detach", "build", "remove-orphans"},
 	),
 	"down": models.CreateComposeFlags(
 		[]string{"file", "project-name"},
@@ -144,6 +144,20 @@ func modifyFileFlag(c *cobra.Command) {
 	c.RunE = makeCustomRunner(currentRunE)
 }
 
+// defaultRemoveOrphans turns on --remove-orphans for `up` unless the user set it
+// explicitly. The rendered compose file is the source of truth, so services
+// dropped from it (e.g. after `config set arkime=false`) are torn down on the
+// next up rather than left running as untracked orphans.
+func defaultRemoveOrphans(cmd *cobra.Command) {
+	if cmd.Name() != "up" {
+		return
+	}
+	if ro := cmd.Flags().Lookup("remove-orphans"); ro != nil &&
+		!cmd.Flags().Changed("remove-orphans") {
+		ro.Value.Set("true")
+	}
+}
+
 // shouldCreateBackup returns true if the compose command should trigger a backup.
 func shouldCreateBackup(cmdName string, volumesValue string) bool {
 	return cmdName == "down" && volumesValue == "true"
@@ -206,6 +220,10 @@ func makeCustomRunner(
 				projectFlag.Value.Set(projectName)
 			}
 		}
+
+		// For `up`, remove orphaned containers by default (opt out with
+		// `--remove-orphans=false`).
+		defaultRemoveOrphans(cmd)
 
 		// Run existing command
 		err := runE(cmd, args)
