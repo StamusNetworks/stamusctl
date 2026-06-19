@@ -39,6 +39,29 @@ func TestGetInterfacesHost_CachedPath(t *testing.T) {
 	assert.Equal(t, "eth0", *result[1].String)
 }
 
+// TestGetChoices_Interfaces_DetectionDisabled verifies that enabling
+// DisableInterfaceDetection (as `nix init` does) skips host/container probing
+// and returns no choices, regardless of mode or cache state.
+func TestGetChoices_Interfaces_DetectionDisabled(t *testing.T) {
+	saved := interfacesCache
+	savedMode := app.Mode
+	savedDisable := DisableInterfaceDetection
+	defer func() {
+		interfacesCache = saved
+		app.Mode = savedMode
+		DisableInterfaceDetection = savedDisable
+	}()
+
+	// Even with a populated cache and prod mode, detection must be skipped.
+	app.Mode = app.ModeStruct(modeProd)
+	interfacesCache = []Variable{CreateVariableString("eth0")}
+	DisableInterfaceDetection = true
+
+	choices, err := GetChoices("interfaces")
+	require.NoError(t, err)
+	assert.Empty(t, choices)
+}
+
 // TestGetChoices_Interfaces_CachedPath covers the cache hit branch in
 // getInterfacesBusybox (prod mode) and getInterfacesHost (non-prod mode) when
 // the cache is already populated.
