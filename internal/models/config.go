@@ -110,7 +110,11 @@ func GetStamusFile(values map[string]*Variable) (*File, error) {
 	if stamusConfPathPointer == nil {
 		return nil, fmt.Errorf("stamus.config not found")
 	}
-	stamusConfPath := *stamusConfPathPointer.String
+	// Trim surrounding whitespace/newlines. values.yaml files written by
+	// older binaries (before the trailing-newline fix) embedded a "\n" into
+	// the stored path, which SanitizePath rejects as a forbidden control
+	// character. Trim here so those existing configs remain loadable.
+	stamusConfPath := strings.TrimSpace(*stamusConfPathPointer.String)
 	file, err := CreateFile(stamusConfPath, "config.yaml")
 	if err != nil {
 		return nil, err
