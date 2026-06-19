@@ -11,6 +11,7 @@
 - [Architecture](#architecture)
 - [Template System](#template-system)
 - [Commands Reference](#commands-reference)
+- [NixOS Support](#nixos-support)
 - [Daemon Mode (stamusd)](#daemon-mode-stamusd)
 - [Contributing](#contributing)
 - [License](#license)
@@ -380,6 +381,72 @@ Manages authentication with container registries.
 
 Display version information including build commit and architecture.
 
+#### `stamusctl nix`
+
+Manages NixOS-based Stamus appliance deployments. Generates NixOS configuration from templates and applies it via `nixos-rebuild`.
+
+**Subcommands:**
+
+- `init` - Initialize NixOS configuration from templates
+
+    - `--config` / `-c` - Configuration output directory (default: "config")
+    - `--values` / `-v` - Path to a values.yaml file
+    - `--fromFile` / `-F` - Use file content as parameter values
+    - `--expert` / `-E` - Expert mode for advanced configuration
+    - `--version` - Template version (default: "latest")
+    - `--registry` - Registry to pull templates from
+    - `--bind` / `-b` - Bind local files to config (`/local:/config`)
+    - `[template]` - Template to fetch from the registry (default: "clearndr")
+    - `[key]=[value]` - Set configuration parameters
+    - `clearndr` - Init ClearNDR NixOS configuration (subcommand)
+
+- `switch` - Apply NixOS configuration via `nixos-rebuild switch`
+
+    - `--config` / `-c` - Configuration directory path
+
+- `test` - Run `.sh` and `.nix` test scripts from `<config>/tests/`
+
+    - `--config` / `-c` - Configuration directory path
+    - `--filter` / `-f` - Glob pattern to filter test files
+
+- `diff` - Preview package changes between current system and pending configuration
+
+    - `--config` / `-c` - Configuration directory path
+
+- `update` - Update NixOS configuration templates to a newer version
+
+    - `--config` / `-c` - Configuration directory path
+    - `--version` - Target template version (default: "latest")
+    - `--interactive` - Interactive parameter review
+
+- `build-vm` - Build a throwaway QEMU VM from the NixOS configuration
+
+    - `--config` / `-c` - Configuration directory path
+    - `--run` - Launch the VM after building
+
+- `status` - Show NixOS configuration and system status
+
+    - `--config` / `-c` - Configuration directory path
+
+- `iso` - Generate a NixOS ISO image from configuration
+
+    - `--config` / `-c` - Configuration directory path
+    - `--output` / `-o` - Output directory (default: ".")
+
+- `iso-run` - Launch a built ISO in QEMU
+
+    - `--config` / `-c` - Configuration directory path
+    - `--output` / `-o` - Directory with ISO build result (default: ".")
+    - `--memory` / `-m` - RAM in megabytes (default: 4096)
+    - `--cores` - CPU cores (default: 2)
+    - `--kvm` - Enable KVM hardware acceleration (default: true)
+
+- `infect` - Convert current system to NixOS (not yet implemented)
+
+    - `--config` / `-c` - Configuration directory path
+
+See [`cmd/ctl/nix/README.md`](cmd/ctl/nix/README.md) for detailed documentation.
+
 ### Daemon Commands (`stamusd`)
 
 #### `stamusd run`
@@ -398,6 +465,47 @@ Display daemon version information.
 
 - `--verbose` - Set verbosity level (0-3)
 - `--help` - Show help information
+
+## NixOS Support
+
+stamusctl provides first-class NixOS support through both the `nix` CLI command family and a Nix flake for building, testing, and deploying.
+
+### Flake Outputs
+
+The root `flake.nix` (inputs: `nixpkgs` nixos-25.05, `flake-utils`) provides:
+
+| Output | System | Description |
+|--------|--------|-------------|
+| `packages.default` | all | stamusctl binary (static, CGO_ENABLED=0) |
+| `devShells.default` | all | Dev shell (go, golangci-lint, gofumpt, air, etc.) |
+| `packages.x86_64-linux.iso` | x86_64-linux | Bootable live ISO with LXQt desktop and stamusctl |
+| `checks.x86_64-linux.nixos-test` | x86_64-linux | VM integration test (template rendering + nixos-rebuild) |
+| `checks.x86_64-linux.iso-test` | x86_64-linux | ISO graphical environment test |
+
+### Live ISO
+
+A bootable NixOS ISO with stamusctl pre-installed and a LXQt graphical desktop:
+
+```bash
+make nix-iso                   # Build the ISO
+make nix-iso-run               # Build and launch in QEMU
+```
+
+See [`nix/README.md`](nix/README.md) for ISO configuration details.
+
+### NixOS Integration Tests
+
+VM-based tests run in ephemeral QEMU VMs via the NixOS test framework:
+
+```bash
+make nix-test-syntax           # Validate .nix file syntax
+make nix-test-vm               # Template rendering + nixos-rebuild test
+make nix-test-iso              # ISO graphical environment test
+make nix-test-vm-docker        # VM test in Docker (no NixOS host required)
+make nix-test-cmd-docker       # Full init+test pipeline in Docker
+```
+
+See [`tests/nixos/README.md`](tests/nixos/README.md) for test details and fixture documentation.
 
 ## Daemon Mode (stamusd)
 
