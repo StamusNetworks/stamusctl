@@ -55,6 +55,7 @@ Examples:
 	flags.Values.AddAsFlag(cmd, false)
 	flags.Reload.AddAsFlag(cmd, false)
 	flags.Apply.AddAsFlag(cmd, false)
+	flags.KeepOrphans.AddAsFlag(cmd, false)
 	flags.FromFile.AddAsFlag(cmd, false)
 	flags.Config.AddAsFlag(cmd, false)
 	return cmd
@@ -95,6 +96,10 @@ func setHandler(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	keepOrphans, err := flags.KeepOrphans.GetValue()
+	if err != nil {
+		return err
+	}
 	values, err := flags.Values.GetValue()
 	if err != nil {
 		return err
@@ -110,12 +115,13 @@ func setHandler(cmd *cobra.Command, args []string) error {
 
 	// Set the values
 	params := config.SetHandlerInputs{
-		Args:     args,
-		Reload:   reload.(bool),
-		Apply:    apply.(bool),
-		Values:   values.(string),
-		FromFile: fromFile.(string),
-		Config:   conf.(string),
+		Args:        args,
+		Reload:      reload.(bool),
+		Apply:       apply.(bool),
+		Values:      values.(string),
+		FromFile:    fromFile.(string),
+		Config:      conf.(string),
+		KeepOrphans: keepOrphans.(bool),
 	}
 	err = config.SetHandler(params)
 	if err != nil {
