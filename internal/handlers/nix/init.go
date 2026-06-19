@@ -62,6 +62,11 @@ func NixInitHandler(isCli bool, params NixInitHandlerInputs) error {
 		return err
 	}
 
+	// Skip local network interface detection: the host running `nix init` is
+	// typically not the host that will run the stack, so probing its interfaces
+	// would offer irrelevant choices.
+	models.DisableInterfaceDetection = true
+
 	// Setup
 	embeds.InitClearNDRFolder(app.DefaultClearNDRPath)
 	// Get registry info
