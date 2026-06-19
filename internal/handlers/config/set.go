@@ -21,12 +21,13 @@ import (
 )
 
 type SetHandlerInputs struct {
-	Values   string   // Path to the values.yaml file
-	Reload   bool     // Reload the configuration, don't keep arbitrary parameters
-	Apply    bool     // Apply the new configuration, reload the services
-	Args     []string // Cmd arguments
-	FromFile string   // Path to the file containing the values
-	Config   string   // Config name
+	Values      string   // Path to the values.yaml file
+	Reload      bool     // Reload the configuration, don't keep arbitrary parameters
+	Apply       bool     // Apply the new configuration, reload the services
+	Args        []string // Cmd arguments
+	FromFile    string   // Path to the file containing the values
+	Config      string   // Config name
+	KeepOrphans bool     // When applying, keep containers no longer in the config
 }
 
 // func SetHandler(configPath string, args []string, reload bool, apply bool) error {
@@ -88,7 +89,7 @@ func SetHandler(params SetHandlerInputs) error {
 			)
 		}
 
-		err = wrapper.HandleUp(params.Config)
+		err = wrapper.HandleUp(params.Config, !params.KeepOrphans)
 		if err != nil {
 			return err
 		}

@@ -40,7 +40,7 @@ func TestHandleUp_TestMode(t *testing.T) {
 	err := afero.WriteFile(app.FS, configPath+"/docker-compose.yaml", []byte(minimalCompose), 0o644)
 	assert.NoError(t, err)
 
-	err = HandleUp(configPath)
+	err = HandleUp(configPath, true)
 	assert.NoError(t, err)
 
 	containers, err := mocker.Mocked.Ps()
@@ -67,7 +67,7 @@ func TestHandleDown_TestMode(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Bring everything up first.
-	err = HandleUp(configPath)
+	err = HandleUp(configPath, true)
 	assert.NoError(t, err)
 
 	containers, err := mocker.Mocked.Ps()
@@ -103,7 +103,7 @@ func TestHandleUp_PathResolution(t *testing.T) {
 	err := afero.WriteFile(app.FS, resolvedPath+"/docker-compose.yaml", []byte(minimalCompose), 0o644)
 	assert.NoError(t, err)
 
-	err = HandleUp(name)
+	err = HandleUp(name, true)
 	assert.NoError(t, err)
 
 	containers, err := mocker.Mocked.Ps()
@@ -132,7 +132,7 @@ func TestHandleDown_PathResolution_DaemonMode(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Bring up first (daemon mode path resolution).
-	err = HandleUp(name)
+	err = HandleUp(name, true)
 	assert.NoError(t, err)
 
 	// Now bring down (exercises the !IsCtl() branch in HandleDown).

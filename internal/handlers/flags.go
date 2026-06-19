@@ -87,6 +87,13 @@ var Apply = models.Parameter{
 	Default: models.CreateVariableBool(false),
 }
 
+var KeepOrphans = models.Parameter{
+	Name:    "keep-orphans",
+	Usage:   "When applying, keep containers no longer present in the configuration instead of removing them",
+	Type:    "bool",
+	Default: models.CreateVariableBool(false),
+}
+
 var FromFile = models.Parameter{
 	Name:      "fromFile",
 	Shorthand: "F",
