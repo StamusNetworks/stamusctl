@@ -8,12 +8,38 @@ import (
 
 	"stamus-ctl/internal/app"
 	"stamus-ctl/internal/handlers/common"
+	"stamus-ctl/internal/models"
 	"stamus-ctl/internal/stamus"
 
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// TestNixInitHandler_RestoresInterfaceDetection proves that NixInitHandler does
+// not leak the process-global models.DisableInterfaceDetection flag. The handler
+// enables it to skip host NIC probing, but it must restore the previous value on
+// return — otherwise a later handler in the same process (e.g. a daemon serving a
+// subsequent `compose init`) would silently skip interface detection.
+func TestNixInitHandler_RestoresInterfaceDetection(t *testing.T) {
+	configDir := "/tmp/test-nix-init-iface-restore"
+	cleanup := setupNixEmbedConfig(t, configDir)
+	defer cleanup()
+
+	models.DisableInterfaceDetection = false
+	// Safety net: never leak into other tests regardless of outcome.
+	defer func() { models.DisableInterfaceDetection = false }()
+
+	_ = NixInitHandler(false, NixInitHandlerInputs{
+		IsDefault: true,
+		Project:   "clearndr",
+		Version:   "1.0.0",
+		Config:    configDir,
+	})
+
+	assert.False(t, models.DisableInterfaceDetection,
+		"DisableInterfaceDetection must be restored after NixInitHandler returns")
+}
 
 // minimalConfigYAML is a config.yaml that defines one typed parameter so
 // InstanciateConfig → ExtractParams → SetParameters → ValidateAll all succeed.

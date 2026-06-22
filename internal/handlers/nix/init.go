@@ -64,8 +64,12 @@ func NixInitHandler(isCli bool, params NixInitHandlerInputs) error {
 
 	// Skip local network interface detection: the host running `nix init` is
 	// typically not the host that will run the stack, so probing its interfaces
-	// would offer irrelevant choices.
+	// would offer irrelevant choices. Restore the previous value on return so the
+	// process-global flag does not leak into later handlers (e.g. a subsequent
+	// `compose init` in the same daemon process must still detect interfaces).
+	prevInterfaceDetection := models.DisableInterfaceDetection
 	models.DisableInterfaceDetection = true
+	defer func() { models.DisableInterfaceDetection = prevInterfaceDetection }()
 
 	// Setup
 	embeds.InitClearNDRFolder(app.DefaultClearNDRPath)
