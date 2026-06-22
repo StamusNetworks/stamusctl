@@ -241,6 +241,108 @@ func TestUpdateHandler_WithCompleteConfig(t *testing.T) {
 	_ = err
 }
 
+// TestUpdateHandler_PreRunOutputSurvives proves that the YAML emitted by a
+// template's sbin/pre-run script actually influences the updated config. The
+// handler must reload the migrated values before the smart merge, otherwise
+// SaveConfigTo overwrites the pre-run output with values loaded before the
+// script ran and the pre-run feature is silently dead.
+func TestUpdateHandler_PreRunOutputSurvives(t *testing.T) {
+	oldFS := app.FS
+	oldEmbed := app.Embed
+	oldTemplates := app.TemplatesFolder
+	oldCmd := execCommandFunc
+	defer func() {
+		app.FS = oldFS
+		app.Embed = oldEmbed
+		app.TemplatesFolder = oldTemplates
+		execCommandFunc = oldCmd
+	}()
+
+	app.FS = afero.NewOsFs()
+	app.Embed = embedTrue
+	tmpDir := t.TempDir()
+	app.TemplatesFolder = tmpDir + "/"
+
+	// Template kept outside the pulled-template location so the (failing) pull
+	// cannot clobber it.
+	templateDir := tmpDir + "/mytemplate"
+	require.NoError(t, os.MkdirAll(templateDir, 0o755))
+	configYAML := "param1:\n  type: string\n  usage: A test parameter\n  default: hello\n"
+	require.NoError(t, os.WriteFile(templateDir+"/config.yaml", []byte(configYAML), 0o644))
+
+	const registry = "127.0.0.1:1/none"
+	configPath := tmpDir + "/conf"
+	require.NoError(t, os.MkdirAll(configPath, 0o755))
+	existingValues := "param1: original\nstamus:\n  project: clearndr\n  registry: " + registry + "\n  config: " + templateDir + "\n"
+	require.NoError(t, os.WriteFile(configPath+"/values.yaml", []byte(existingValues), 0o644))
+
+	prerunDir := tmpDir + "/clearndr/sbin"
+	require.NoError(t, os.MkdirAll(prerunDir, 0o755))
+	require.NoError(t, os.WriteFile(prerunDir+"/pre-run", []byte("#!/bin/sh\n"), 0o755))
+
+	migratedValues := "param1: migrated\nstamus:\n  project: clearndr\n  registry: " + registry + "\n  config: " + templateDir + "\n"
+	execCommandFunc = func(name string, arg ...string) *exec.Cmd {
+		return exec.Command("printf", "%s", migratedValues)
+	}
+
+	err := UpdateHandler(UpdateHandlerParams{
+		Config:         configPath,
+		Version:        "1.0.0",
+		TemplateFolder: templateDir,
+	})
+	require.NoError(t, err)
+
+	final, err := os.ReadFile(configPath + "/values.yaml")
+	require.NoError(t, err)
+	assert.Contains(t, string(final), "migrated",
+		"pre-run script output must survive into the final config, got:\n%s", string(final))
+	assert.NotContains(t, string(final), "original",
+		"pre-run migration should have replaced the old value")
+}
+
+// TestUpdateHandler_NoPreRunPreservesExistingValues guards the reload fix: with
+// no pre-run script, the handler must not truncate values.yaml and reload an
+// empty config (which would wipe user customizations).
+func TestUpdateHandler_NoPreRunPreservesExistingValues(t *testing.T) {
+	oldFS := app.FS
+	oldEmbed := app.Embed
+	oldTemplates := app.TemplatesFolder
+	defer func() {
+		app.FS = oldFS
+		app.Embed = oldEmbed
+		app.TemplatesFolder = oldTemplates
+	}()
+
+	app.FS = afero.NewOsFs()
+	app.Embed = embedTrue
+	tmpDir := t.TempDir()
+	app.TemplatesFolder = tmpDir + "/"
+
+	templateDir := tmpDir + "/mytemplate"
+	require.NoError(t, os.MkdirAll(templateDir, 0o755))
+	configYAML := "param1:\n  type: string\n  usage: A test parameter\n  default: hello\n"
+	require.NoError(t, os.WriteFile(templateDir+"/config.yaml", []byte(configYAML), 0o644))
+
+	const registry = "127.0.0.1:1/none"
+	configPath := tmpDir + "/conf"
+	require.NoError(t, os.MkdirAll(configPath, 0o755))
+	// No sbin/pre-run script is created.
+	existingValues := "param1: original\nstamus:\n  project: clearndr\n  registry: " + registry + "\n  config: " + templateDir + "\n"
+	require.NoError(t, os.WriteFile(configPath+"/values.yaml", []byte(existingValues), 0o644))
+
+	err := UpdateHandler(UpdateHandlerParams{
+		Config:         configPath,
+		Version:        "1.0.0",
+		TemplateFolder: templateDir,
+	})
+	require.NoError(t, err)
+
+	final, err := os.ReadFile(configPath + "/values.yaml")
+	require.NoError(t, err)
+	assert.Contains(t, string(final), "original",
+		"user customization must survive an update with no pre-run script, got:\n%s", string(final))
+}
+
 // TestUpdateHandler_WithRegistryAndFullConfig exercises the registry branch
 // by providing both stamus.registry and a stamus.config in values.yaml.
 func TestUpdateHandler_WithRegistryAndFullConfig(t *testing.T) {
