@@ -142,16 +142,41 @@ func NixUpdateHandler(params NixUpdateHandlerInputs) error {
 			return err
 		}
 
-		// Save pre-run output to values.yaml
-		outputFile, err := app.FS.Create(filepath.Join(configPath, "values.yaml"))
-		if err != nil {
-			logger.Error(err)
-			return err
-		}
-		defer outputFile.Close()
-		if _, err := outputFile.WriteString(runOutput.String()); err != nil {
-			logger.Error(err)
-			return err
+		// Only persist and reload when the pre-run script actually produced
+		// output. An empty result means no script ran (or it emitted nothing);
+		// writing it would truncate values.yaml and wipe the existing config.
+		if runOutput.Len() > 0 {
+			// Save pre-run output to values.yaml
+			outputFile, err := app.FS.Create(filepath.Join(configPath, "values.yaml"))
+			if err != nil {
+				logger.Error(err)
+				return err
+			}
+			if _, err := outputFile.WriteString(runOutput.String()); err != nil {
+				outputFile.Close()
+				logger.Error(err)
+				return err
+			}
+			// Close (flush) before reloading so the reload sees the written bytes.
+			if err := outputFile.Close(); err != nil {
+				logger.Error(err)
+				return err
+			}
+
+			// Reload the existing config from the migrated values so the smart
+			// merge below operates on the pre-run script's output. Without this
+			// reload, SaveConfigTo overwrites values.yaml using values captured
+			// before the script ran, silently discarding the pre-run migration.
+			confFile, err = models.CreateFile(configPath, "values.yaml")
+			if err != nil {
+				logger.Error(err)
+				return err
+			}
+			existingConfig, err = models.LoadConfigFrom(confFile, false)
+			if err != nil {
+				logger.Error(err)
+				return err
+			}
 		}
 	}
 
