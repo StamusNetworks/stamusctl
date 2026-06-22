@@ -4,10 +4,22 @@ import (
 	// Internal
 	"stamus-ctl/internal/app"
 	handlers "stamus-ctl/internal/handlers/wrapper"
+	"stamus-ctl/internal/validation"
 
 	// External
 	"github.com/gin-gonic/gin"
 )
+
+// validConfigName rejects config names from request input that could escape the
+// configs directory (path traversal). On rejection it writes a 400 response and
+// returns false so the caller can abort.
+func validConfigName(c *gin.Context, name string) bool {
+	if err := validation.ValidateProjectName(name); err != nil {
+		c.JSON(400, gin.H{"error": "invalid config name: " + err.Error()})
+		return false
+	}
+	return true
+}
 
 // UpHandler godoc
 // @Summary Similar to docker compose up
@@ -23,6 +35,9 @@ func upHandler(c *gin.Context) {
 	conf := c.Query("config")
 	if conf == "" {
 		conf = app.DefaultConfigName
+	}
+	if !validConfigName(c, conf) {
+		return
 	}
 	// Call handler
 	err := handlers.HandleUp(conf, true)
@@ -47,6 +62,9 @@ func downHandler(c *gin.Context) {
 	conf := c.Query("config")
 	if conf == "" {
 		conf = app.DefaultConfigName
+	}
+	if !validConfigName(c, conf) {
+		return
 	}
 	// Call handler
 	err := handlers.HandleDown(conf, false, false)

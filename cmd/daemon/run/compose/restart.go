@@ -2,6 +2,7 @@ package compose
 
 import (
 	// Internal
+	"stamus-ctl/internal/app"
 	handlers "stamus-ctl/internal/handlers/compose"
 	"stamus-ctl/pkg"
 
@@ -19,8 +20,15 @@ import (
 // @Failure 400 {object} pkg.ErrorResponse "Bad request with explanation"
 // @Router /compose/restart/config [post]
 func restartConfigHandler(c *gin.Context) {
+	conf := c.Query("config")
+	if conf == "" {
+		conf = app.DefaultConfigName
+	}
+	if !validConfigName(c, conf) {
+		return
+	}
 	// Call handler
-	err := handlers.HandleConfigRestart(c.Query("config"))
+	err := handlers.HandleConfigRestart(conf)
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return

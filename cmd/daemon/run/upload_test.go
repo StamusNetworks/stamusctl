@@ -168,6 +168,51 @@ func TestUploadHandler_WithProject(t *testing.T) {
 	assert.NotEqual(t, http.StatusBadRequest, w.Code)
 }
 
+// TestUploadHandler_PathTraversalRejected proves the upload handler must reject
+// request input that escapes the configs directory, both via the project name
+// and via the in-config path, instead of writing files to arbitrary locations.
+func TestUploadHandler_PathTraversalRejected(t *testing.T) {
+	mockFS, cleanup := setupMockFSForUpload()
+	defer cleanup()
+
+	originalConfigsFolder := app.ConfigsFolder
+	defer func() { app.ConfigsFolder = originalConfigsFolder }()
+	app.ConfigsFolder = "/test/configs/"
+	mockFS.MkdirAll("/test/configs/", 0o755)
+
+	router := setupUploadRouter()
+
+	tests := []struct {
+		name    string
+		project string
+		path    string
+	}{
+		{"traversal via project", "..", "evil.txt"},
+		{"traversal via project nested", "../../etc", "evil.txt"},
+		{"traversal via path", "myproject", "../../../tmp/evil.txt"},
+		{"absolute escape via path", "myproject", "/tmp/evil.txt"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			body := &bytes.Buffer{}
+			writer := multipart.NewWriter(body)
+			part, _ := writer.CreateFormFile("file", "evil.txt")
+			io.WriteString(part, "pwned")
+			writer.Close()
+
+			w := httptest.NewRecorder()
+			url := "/api/v1/upload?path=" + tt.path + "&project=" + tt.project
+			req, _ := http.NewRequest(http.MethodPost, url, body)
+			req.Header.Set("Content-Type", writer.FormDataContentType())
+			router.ServeHTTP(w, req)
+
+			assert.Equal(t, http.StatusBadRequest, w.Code,
+				"traversal input must be rejected with 400, got %d", w.Code)
+		})
+	}
+}
+
 func TestUploadHandler_CreatesDirectory(t *testing.T) {
 	mockFS, cleanup := setupMockFSForUpload()
 	defer cleanup()

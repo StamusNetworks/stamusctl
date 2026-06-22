@@ -56,12 +56,14 @@ func CORSMiddleware() gin.HandlerFunc {
 		// Check if the request origin is allowed
 		origin := c.Request.Header.Get("Origin")
 		allowed := false
+		wildcard := false
 
 		// If wildcard is configured, allow all origins (not recommended for production)
 		for _, allowedOrigin := range allowedOrigins {
 			if allowedOrigin == "*" {
 				c.Header("Access-Control-Allow-Origin", "*")
 				allowed = true
+				wildcard = true
 				break
 			}
 			if allowedOrigin == origin {
@@ -73,8 +75,13 @@ func CORSMiddleware() gin.HandlerFunc {
 
 		// Only set CORS headers if origin is allowed
 		if allowed {
-			// Allow credentials (cookies, authorization headers, etc.)
-			c.Header("Access-Control-Allow-Credentials", "true")
+			// Allow credentials (cookies, authorization headers, etc.).
+			// The Fetch/CORS spec forbids combining credentials with the "*"
+			// wildcard origin: browsers block such responses outright. Only
+			// advertise credentials when echoing a specific origin.
+			if !wildcard {
+				c.Header("Access-Control-Allow-Credentials", "true")
+			}
 
 			// Specify allowed HTTP methods
 			c.Header("Access-Control-Allow-Methods",

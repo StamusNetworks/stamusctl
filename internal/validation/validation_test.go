@@ -158,6 +158,31 @@ func TestSanitizePath(t *testing.T) {
 	}
 }
 
+// TestSanitizePath_NoBaseDirTraversalSequences proves that SanitizePath, when
+// called with an empty baseDir, must reject home-directory (~) and shell
+// variable ($) expansion sequences. These survive filepath.Clean, so the
+// previous post-clean `strings.Contains(cleaned, "..")` guard let them through.
+func TestSanitizePath_NoBaseDirTraversalSequences(t *testing.T) {
+	tests := []struct {
+		name string
+		path string
+	}{
+		{"home expansion", "~/secret"},
+		{"home expansion nested", "config/~user/file"},
+		{"shell variable", "config/$HOME/file"},
+		{"shell variable braces", "${HOME}/file"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := SanitizePath(tt.path, "")
+			if err == nil {
+				t.Errorf("SanitizePath(%q, \"\") = nil error, want traversal rejection", tt.path)
+			}
+		})
+	}
+}
+
 func TestValidateScriptPath(t *testing.T) {
 	// Create temporary directories for testing
 	tmpDir, err := os.MkdirTemp("", "validation-test")

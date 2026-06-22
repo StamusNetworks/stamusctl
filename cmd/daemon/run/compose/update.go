@@ -31,6 +31,9 @@ func updateHandler(c *gin.Context) {
 	if conf == "" {
 		conf = app.DefaultConfigName
 	}
+	if !validConfigName(c, conf) {
+		return
+	}
 	if req.Version == "" {
 		req.Version = "latest"
 	}

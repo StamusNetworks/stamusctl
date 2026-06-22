@@ -168,9 +168,14 @@ func SanitizePath(path string, baseDir string) (string, error) {
 		return absPath, nil
 	}
 
-	// If no baseDir, just ensure no path traversal sequences
-	if strings.Contains(cleaned, "..") {
-		return "", fmt.Errorf("path contains traversal sequences")
+	// If no baseDir, there is no containment root to verify against, so reject
+	// any traversal or expansion sequence outright. Check the original path as
+	// well as the cleaned form: filepath.Clean collapses sequences like
+	// "a/../../b" and would otherwise hide them from the post-clean check.
+	for _, seq := range PathTraversalSequences {
+		if strings.Contains(path, seq) || strings.Contains(cleaned, seq) {
+			return "", fmt.Errorf("path contains traversal sequences")
+		}
 	}
 
 	return cleaned, nil

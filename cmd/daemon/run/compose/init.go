@@ -35,6 +35,9 @@ func initHandler(c *gin.Context) {
 	if req.Config == "" {
 		req.Config = "config"
 	}
+	if !validConfigName(c, req.Config) {
+		return
+	}
 	if req.Project == "" {
 		req.Project = "clearndr"
 	}
