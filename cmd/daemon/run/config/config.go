@@ -8,8 +8,20 @@ import (
 	"stamus-ctl/internal/app"
 	handlers "stamus-ctl/internal/handlers/config"
 	"stamus-ctl/internal/logging"
+	"stamus-ctl/internal/validation"
 	"stamus-ctl/pkg"
 )
+
+// validConfigName rejects config names from request input that could escape the
+// configs directory (path traversal). On rejection it writes a 400 response and
+// returns false so the caller can abort.
+func validConfigName(c *gin.Context, name string) bool {
+	if err := validation.ValidateProjectName(name); err != nil {
+		c.JSON(400, gin.H{"error": "invalid config name: " + err.Error()})
+		return false
+	}
+	return true
+}
 
 // setHandler godoc
 // @Summary Set configuration
@@ -34,6 +46,9 @@ func setHandler(c *gin.Context) {
 	conf := req.Config
 	if conf == "" {
 		conf = app.DefaultConfigName
+	}
+	if !validConfigName(c, conf) {
+		return
 	}
 	if req.Values == nil {
 		req.Values = make(map[string]string)
@@ -113,6 +128,9 @@ func getHandler(c *gin.Context) {
 	conf := req.Config
 	if conf == "" {
 		conf = app.DefaultConfigName
+	}
+	if !validConfigName(c, conf) {
+		return
 	}
 	// Call handler
 	if req.Content {

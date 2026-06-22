@@ -197,6 +197,45 @@ func TestCORS_WildcardOrigin(t *testing.T) {
 	assert.Equal(t, "*", w.Header().Get("Access-Control-Allow-Origin"))
 }
 
+// TestCORS_WildcardOrigin_NoCredentials proves that when the origin is the
+// wildcard "*", the middleware must NOT send Access-Control-Allow-Credentials:
+// true. The Fetch/CORS spec forbids "*" combined with credentials, and browsers
+// block every credentialed cross-origin request when both are present.
+func TestCORS_WildcardOrigin_NoCredentials(t *testing.T) {
+	viper.Reset()
+	viper.Set("cors.allowed_origins", []string{"*"})
+	defer viper.Reset()
+
+	router := setupCORSRouter()
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/test", nil)
+	req.Header.Set("Origin", "http://any-origin.com")
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, "*", w.Header().Get("Access-Control-Allow-Origin"))
+	assert.Empty(t, w.Header().Get("Access-Control-Allow-Credentials"),
+		"must not send Allow-Credentials with wildcard origin (CORS spec violation)")
+}
+
+// TestCORS_SpecificOrigin_Credentials proves the credentials header is still
+// sent for an explicitly allowed (non-wildcard) origin.
+func TestCORS_SpecificOrigin_Credentials(t *testing.T) {
+	viper.Reset()
+	viper.Set("cors.allowed_origins", []string{"http://allowed-origin.com"})
+	defer viper.Reset()
+
+	router := setupCORSRouter()
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/test", nil)
+	req.Header.Set("Origin", "http://allowed-origin.com")
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, "http://allowed-origin.com", w.Header().Get("Access-Control-Allow-Origin"))
+	assert.Equal(t, "true", w.Header().Get("Access-Control-Allow-Credentials"))
+}
+
 func TestCORS_SpecificOrigin_Allowed(t *testing.T) {
 	// Configure specific origins
 	viper.Reset()

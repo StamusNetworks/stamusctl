@@ -7,6 +7,7 @@ import (
 
 	"stamus-ctl/internal/app"
 	"stamus-ctl/internal/logging"
+	"stamus-ctl/internal/validation"
 
 	// External
 	"github.com/gin-gonic/gin"
@@ -39,6 +40,14 @@ func uploadHandler(c *gin.Context) {
 		return
 	}
 	project := c.Query("project")
+	// Reject project names that could escape the configs directory. An empty
+	// project is allowed and resolves to the configs root.
+	if project != "" {
+		if err := validation.ValidateProjectName(project); err != nil {
+			c.String(400, "Invalid project: "+err.Error())
+			return
+		}
+	}
 
 	// Handle file upload
 	file, err := c.FormFile("file")
@@ -47,8 +56,13 @@ func uploadHandler(c *gin.Context) {
 		return
 	}
 
-	// Extract path
-	completePath := filepath.Join(app.GetConfigsFolder(project), c.Query("path"))
+	// Resolve the destination path and confine it to the project's config
+	// directory so request input cannot write files to arbitrary locations.
+	completePath, err := validation.SanitizePath(c.Query("path"), app.GetConfigsFolder(project))
+	if err != nil {
+		c.String(400, "Invalid path: "+err.Error())
+		return
+	}
 	folderPath := filepath.Dir(completePath)
 
 	// Create directory if it doesn't exist
