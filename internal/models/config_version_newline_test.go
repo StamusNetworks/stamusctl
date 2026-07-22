@@ -142,3 +142,65 @@ param1:
 		assert.Equal(t, "roundtrip", loaded.project)
 	}
 }
+
+// TestGetStamusFile_SelfHealsNewlineDirName reproduces the on-disk half of the
+// trailing-newline bug: binaries up to 1.1.0 created the versioned template
+// directory using the raw content of the "version" file, producing a directory
+// literally named "1.2.0\n". Trimming the stored path alone then fails with
+// "no such file or directory" because only the untrimmed directory exists.
+// GetStamusFile must rename the directory so the trimmed path resolves.
+func TestGetStamusFile_SelfHealsNewlineDirName(t *testing.T) {
+	rawDir := "/selfheal/tpl/1.2.0\n"
+	err := app.FS.MkdirAll(rawDir, 0o755)
+	require.NoError(t, err)
+	err = afero.WriteFile(app.FS, rawDir+"/config.yaml", []byte("param1:\n    type: string\n"), 0o644)
+	require.NoError(t, err)
+
+	stamusConf := CreateVariableString(rawDir)
+	values := map[string]*Variable{
+		"stamus.config": &stamusConf,
+	}
+
+	file, err := GetStamusFile(values)
+	require.NoError(t, err)
+	require.NotNil(t, file)
+	assert.Equal(t, "/selfheal/tpl/1.2.0", file.Path)
+
+	// The directory must have been renamed to the trimmed name and the
+	// template config must be reachable through it.
+	exists, err := afero.Exists(app.FS, "/selfheal/tpl/1.2.0/config.yaml")
+	require.NoError(t, err)
+	assert.True(t, exists, "template config must be reachable under the trimmed path")
+
+	rawExists, err := afero.DirExists(app.FS, rawDir)
+	require.NoError(t, err)
+	assert.False(t, rawExists, "the newline-suffixed directory must be gone after healing")
+}
+
+// TestGetStamusFile_NoHealWhenTrimmedDirExists ensures the migration never
+// touches a valid install: when the trimmed directory already exists, the
+// newline-suffixed leftover (if any) is left alone.
+func TestGetStamusFile_NoHealWhenTrimmedDirExists(t *testing.T) {
+	trimmedDir := "/noheal/tpl/1.2.0"
+	rawDir := "/noheal/tpl/1.2.0\n"
+	for _, dir := range []string{trimmedDir, rawDir} {
+		err := app.FS.MkdirAll(dir, 0o755)
+		require.NoError(t, err)
+		err = afero.WriteFile(app.FS, dir+"/config.yaml", []byte("param1:\n    type: string\n"), 0o644)
+		require.NoError(t, err)
+	}
+
+	stamusConf := CreateVariableString(rawDir)
+	values := map[string]*Variable{
+		"stamus.config": &stamusConf,
+	}
+
+	file, err := GetStamusFile(values)
+	require.NoError(t, err)
+	require.NotNil(t, file)
+	assert.Equal(t, trimmedDir, file.Path)
+
+	rawExists, err := afero.DirExists(app.FS, rawDir)
+	require.NoError(t, err)
+	assert.True(t, rawExists, "an existing trimmed directory must win without touching the raw one")
+}

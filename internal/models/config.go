@@ -114,12 +114,37 @@ func GetStamusFile(values map[string]*Variable) (*File, error) {
 	// older binaries (before the trailing-newline fix) embedded a "\n" into
 	// the stored path, which SanitizePath rejects as a forbidden control
 	// character. Trim here so those existing configs remain loadable.
-	stamusConfPath := strings.TrimSpace(*stamusConfPathPointer.String)
+	rawStamusConfPath := *stamusConfPathPointer.String
+	stamusConfPath := strings.TrimSpace(rawStamusConfPath)
+	healTemplateDirName(rawStamusConfPath, stamusConfPath)
 	file, err := CreateFile(stamusConfPath, "config.yaml")
 	if err != nil {
 		return nil, err
 	}
 	return file, nil
+}
+
+// healTemplateDirName migrates template directories created by older binaries,
+// which used the raw content of the template "version" file as the directory
+// name and thus produced names with a trailing newline (e.g. "1.2.0\n"). When
+// the stored stamus.config path only exists under its untrimmed name, rename
+// it so the trimmed path resolves. Best effort: on failure the caller still
+// reports the original "file not found" error for the trimmed path.
+func healTemplateDirName(rawPath, trimmedPath string) {
+	if rawPath == trimmedPath || trimmedPath == "" {
+		return
+	}
+	if _, err := app.FS.Stat(trimmedPath); err == nil {
+		return
+	}
+	info, err := app.FS.Stat(rawPath)
+	if err != nil || !info.IsDir() {
+		return
+	}
+	if err := app.FS.Rename(rawPath, trimmedPath); err != nil {
+		logging.Sugar.Warnw("could not rename template directory with trailing newline",
+			"from", rawPath, "to", trimmedPath, "error", err)
+	}
 }
 
 // Returns the parameter extracted from the config file
